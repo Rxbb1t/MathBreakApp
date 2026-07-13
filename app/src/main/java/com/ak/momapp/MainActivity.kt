@@ -11,6 +11,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.lifecycleScope
 import com.ak.momapp.alarm.BreakCoordinator
 import com.ak.momapp.ui.AppRoot
+import com.ak.momapp.ui.problem.SuccessChime
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -34,6 +35,8 @@ class MainActivity : ComponentActivity() {
         // Self-heals the alarm chain: first launch, cleared app data, or an
         // alarm the system dropped.
         lifecycleScope.launch { BreakCoordinator.ensureScheduled(applicationContext) }
+        // Render + load the correct-answer chime ahead of the first play.
+        SuccessChime.preload(applicationContext)
     }
 
     // launchMode=singleTop: a notification tap while the app is open lands

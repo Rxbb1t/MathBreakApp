@@ -126,6 +126,8 @@ class Strings(
     val statsLineFreshWeek: String,
     /** Header of the per-exercise-type accuracy card. */
     val topicBreakdownTitle: String,
+    /** Header of the 14-day activity chart card. */
+    val activityChartTitle: String,
     // Success chime
     val soundSection: String,
     val successSoundLabel: String,
@@ -250,14 +252,14 @@ val EnglishStrings = Strings(
     },
     topicDescription = {
         when (it) {
-            ProblemTopic.CORE -> "Number chains on Easy, equations above."
+            ProblemTopic.CORE -> "Number chains on Easy, equations above, and tap the missing sign."
             ProblemTopic.PUZZLE -> "Grids where little shapes stand for numbers."
             ProblemTopic.LOGIC -> "Short riddles with a numeric answer."
             ProblemTopic.GEOMETRY -> "Perimeter, area and angles, from Normal up."
             ProblemTopic.MONEY -> "Shopping in lei: totals, change, discounts."
             ProblemTopic.TIME -> "Clocks, durations and minutes."
             ProblemTopic.WORD -> "Little number stories about everyday things."
-            ProblemTopic.COMPARE -> "Tap <, = or > between two expressions."
+            ProblemTopic.COMPARE -> "Tap <, = or > between two expressions, plus quick true-or-false checks."
             ProblemTopic.TARGET -> "Tap the cards that add up to the target."
             ProblemTopic.NUMBERS -> "Hunt evens, odds and primes; count A ∩ B."
         }
@@ -296,6 +298,7 @@ val EnglishStrings = Strings(
     statsLineWeek = "Fresh day, fresh brain 🌼",
     statsLineFreshWeek = "Fresh week, fresh brain 🌼",
     topicBreakdownTitle = "Right first try, by exercise",
+    activityChartTitle = "Your last two weeks",
     soundSection = "Sound",
     successSoundLabel = "Success chime",
     successSoundSubtitle = "A soft ding for right answers. Silent mode always wins.",
@@ -419,14 +422,14 @@ val RomanianStrings = Strings(
     },
     topicDescription = {
         when (it) {
-            ProblemTopic.CORE -> "Șiruri de numere la Ușor, ecuații mai sus."
+            ProblemTopic.CORE -> "Șiruri de numere la Ușor, ecuații mai sus și semnul care lipsește."
             ProblemTopic.PUZZLE -> "Grile în care formele țin locul numerelor."
             ProblemTopic.LOGIC -> "Ghicitori scurte cu răspuns numeric."
             ProblemTopic.GEOMETRY -> "Perimetru, arie și unghiuri, de la Normal în sus."
             ProblemTopic.MONEY -> "Cumpărături în lei: totaluri, rest, reduceri."
             ProblemTopic.TIME -> "Ceasuri, durate și minute."
             ProblemTopic.WORD -> "Povești scurte cu numere din viața de zi cu zi."
-            ProblemTopic.COMPARE -> "Atinge <, = sau > între două expresii."
+            ProblemTopic.COMPARE -> "Atinge <, = sau > între două expresii, plus verificări rapide adevărat-fals."
             ProblemTopic.TARGET -> "Atinge cartonașele care adunate dau ținta."
             ProblemTopic.NUMBERS -> "Vânează pare, impare și prime; numără A ∩ B."
         }
@@ -474,6 +477,7 @@ val RomanianStrings = Strings(
     statsLineWeek = "Zi nouă, minte proaspătă 🌼",
     statsLineFreshWeek = "Săptămână nouă, minte proaspătă 🌼",
     topicBreakdownTitle = "Corecte din prima, pe exerciții",
+    activityChartTitle = "Ultimele două săptămâni",
     soundSection = "Sunet",
     successSoundLabel = "Clinchet de reușită",
     successSoundSubtitle = "Un ding blând la răspunsurile corecte. Modul silențios are mereu prioritate.",

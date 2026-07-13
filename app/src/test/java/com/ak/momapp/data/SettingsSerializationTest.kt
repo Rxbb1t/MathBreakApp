@@ -110,9 +110,11 @@ class SettingsSerializationTest {
     }
 
     @Test
-    fun `disabling below the minimum falls back to all on`() {
-        val almostAllOff = SettingsSerialization.encodeTopics(setOf(ProblemTopic.LOGIC))
-        assertEquals(ProblemTopic.ALL, SettingsSerialization.decodeTopics(almostAllOff))
+    fun `one topic may stand alone but zero enabled falls back to all on`() {
+        val oneOn = SettingsSerialization.encodeTopics(setOf(ProblemTopic.LOGIC))
+        assertEquals(setOf(ProblemTopic.LOGIC), SettingsSerialization.decodeTopics(oneOn))
+        val allOff = SettingsSerialization.encodeTopics(emptySet())
+        assertEquals(ProblemTopic.ALL, SettingsSerialization.decodeTopics(allOff))
     }
 
     @Test

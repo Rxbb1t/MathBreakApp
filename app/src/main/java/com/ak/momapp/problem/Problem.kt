@@ -36,6 +36,12 @@ enum class ProblemKind {
 
     /** Mulțimi: count the elements of A ∩ B, A ∪ B or A \ B. */
     SETS,
+
+    /** A claim like "7 × 8 = 54"; she taps ✓ or ✗. */
+    TRUE_FALSE,
+
+    /** "12 ? 3 = 4": tap the operation sign that makes it true. */
+    MISSING_OP,
 }
 
 /**
@@ -97,7 +103,13 @@ data class Problem(
     /** The answer arrives by tapping, so no keyboard or number field. */
     val tapAnswered: Boolean
         get() = kind == ProblemKind.COMPARE || kind == ProblemKind.TARGET ||
-            kind == ProblemKind.SELECT
+            kind == ProblemKind.SELECT || kind == ProblemKind.TRUE_FALSE ||
+            kind == ProblemKind.MISSING_OP
+
+    /** One tap is the whole answer: no Check button, the tap submits. */
+    val submitsOnTap: Boolean
+        get() = kind == ProblemKind.COMPARE || kind == ProblemKind.TRUE_FALSE ||
+            kind == ProblemKind.MISSING_OP
 
     /**
      * Extra thinking time when the countdown is on. Only the single

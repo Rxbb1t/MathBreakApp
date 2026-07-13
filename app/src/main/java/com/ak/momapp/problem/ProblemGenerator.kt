@@ -14,7 +14,8 @@ import kotlin.random.Random
  *  - clock stories in minutes ([TimeProblemGenerator]). Every difficulty
  *  - word problems told with the [PersonalContent.NAMES] pool. Every
  *    difficulty
- *  - tap-to-compare expressions ([ComparisonProblemGenerator]). Every
+ *  - tap-to-compare expressions and ✓/✗ claims, one topic switch
+ *    ([ComparisonProblemGenerator], [TrueFalseProblemGenerator]). Every
  *    difficulty, leaning EASY/MEDIUM
  *  - target builder ([TargetProblemGenerator]). Every difficulty,
  *    leaning EASY/MEDIUM
@@ -22,7 +23,8 @@ import kotlin.random.Random
  *    [SetProblemGenerator]). Every difficulty, one topic switch
  *  - the difficulty's core: EASY gets 3–4 number chains using all four
  *    operations; MEDIUM and HARD get unknown-value equations, HARD adds
- *    simple derivatives ([EquationGenerator])
+ *    simple derivatives ([EquationGenerator]); every level mixes in
+ *    tap-the-missing-sign lines ([MissingOperatorGenerator])
  *
  * Settings can switch whole topics off ([ProblemTopic]); the roll then
  * spans only what is left, and the core steps in when nothing is.
@@ -39,7 +41,9 @@ class ProblemGenerator(private val random: Random = Random.Default) {
     private val money = MoneyProblemGenerator(random)
     private val time = TimeProblemGenerator(random)
     private val compare = ComparisonProblemGenerator(random)
+    private val trueFalse = TrueFalseProblemGenerator(random)
     private val target = TargetProblemGenerator(random)
+    private val missingOp = MissingOperatorGenerator(random)
     private val hunt = NumberHuntGenerator(random)
     private val sets = SetProblemGenerator(random)
 
@@ -83,7 +87,14 @@ class ProblemGenerator(private val random: Random = Random.Default) {
             Slice(weightOf(ProblemTopic.MONEY, mix.money)) { money.generate(difficulty, language) },
             Slice(weightOf(ProblemTopic.TIME, mix.time)) { time.generate(difficulty, language) },
             Slice(weightOf(ProblemTopic.WORD, mix.word)) { wordProblem(difficulty, language) },
-            Slice(weightOf(ProblemTopic.COMPARE, mix.compare)) { compare.generate(difficulty, language) },
+            // One topic, two flavors: < = > taps and ✓/✗ claims.
+            Slice(weightOf(ProblemTopic.COMPARE, mix.compare)) {
+                if (random.nextBoolean()) {
+                    compare.generate(difficulty, language)
+                } else {
+                    trueFalse.generate(difficulty, language)
+                }
+            },
             Slice(weightOf(ProblemTopic.TARGET, mix.target)) { target.generate(difficulty, language) },
             // One topic, two flavors: tap hunts and typed set counting.
             Slice(weightOf(ProblemTopic.NUMBERS, mix.numbers)) {
@@ -108,8 +119,13 @@ class ProblemGenerator(private val random: Random = Random.Default) {
                 roll -= slice.weight
             }
         }
-        return if (difficulty == Difficulty.EASY) easyChain(language)
-        else equations.generate(difficulty, language)
+        // The core itself mixes: mostly chains/equations, with the odd
+        // tap-the-missing-sign line for variety.
+        return when {
+            random.nextInt(4) == 0 -> missingOp.generate(difficulty, language)
+            difficulty == Difficulty.EASY -> easyChain(language)
+            else -> equations.generate(difficulty, language)
+        }
     }
 
     // ── EASY chains: 3–4 numbers, all four operations, small values ──────

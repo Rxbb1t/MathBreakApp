@@ -83,9 +83,11 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ak.momapp.i18n.LocalStrings
 import com.ak.momapp.problem.ComparisonProblemGenerator
 import com.ak.momapp.problem.Difficulty
+import com.ak.momapp.problem.MissingOperatorGenerator
 import com.ak.momapp.problem.PersonalContent
 import com.ak.momapp.problem.Problem
 import com.ak.momapp.problem.ProblemKind
+import com.ak.momapp.problem.TrueFalseProblemGenerator
 import com.ak.momapp.ui.theme.MomAppTheme
 import kotlinx.coroutines.launch
 
@@ -333,7 +335,9 @@ fun ProblemScreenContent(
                                 text = uiState.problem.text,
                                 style = when (uiState.problem.kind) {
                                     ProblemKind.ARITHMETIC -> MaterialTheme.typography.displayMedium
-                                    ProblemKind.EQUATION, ProblemKind.PUZZLE, ProblemKind.COMPARE ->
+                                    ProblemKind.EQUATION, ProblemKind.PUZZLE, ProblemKind.COMPARE,
+                                    ProblemKind.TRUE_FALSE, ProblemKind.MISSING_OP,
+                                    ->
                                         MaterialTheme.typography.headlineLarge
                                     ProblemKind.WORD, ProblemKind.LOGIC, ProblemKind.GEOMETRY,
                                     ProblemKind.MONEY, ProblemKind.TIME, ProblemKind.TARGET,
@@ -354,15 +358,21 @@ fun ProblemScreenContent(
                     Spacer(Modifier.height(24.dp))
 
                     when (uiState.problem.kind) {
-                        // One tap answers: <, = or >.
-                        ProblemKind.COMPARE -> Row(
+                        // One tap answers: < = >, ✓ ✗, or the missing sign.
+                        ProblemKind.COMPARE, ProblemKind.TRUE_FALSE, ProblemKind.MISSING_OP -> Row(
                             horizontalArrangement = Arrangement.spacedBy(12.dp),
                             modifier = Modifier.fillMaxWidth(),
                         ) {
-                            ComparisonProblemGenerator.SYMBOLS.forEachIndexed { index, symbol ->
+                            val choices = when (uiState.problem.kind) {
+                                ProblemKind.TRUE_FALSE -> TrueFalseProblemGenerator.CHOICES
+                                ProblemKind.MISSING_OP -> MissingOperatorGenerator.SYMBOLS
+                                else -> ComparisonProblemGenerator.SYMBOLS
+                            }
+                            choices.forEachIndexed { index, symbol ->
                                 FilledTonalButton(
                                     onClick = { onSubmitChoice(index) },
                                     enabled = !uiState.isFinished,
+                                    contentPadding = PaddingValues(0.dp),
                                     modifier = Modifier
                                         .weight(1f)
                                         .height(64.dp),
@@ -415,8 +425,8 @@ fun ProblemScreenContent(
 
                 when (uiState.phase) {
                     AnswerPhase.ANSWERING, AnswerPhase.TRY_AGAIN -> {
-                        // Comparisons submit on tap; everything else checks.
-                        if (uiState.problem.kind != ProblemKind.COMPARE) {
+                        // One-tap kinds submit on tap; everything else checks.
+                        if (!uiState.problem.submitsOnTap) {
                             // A hunt (SELECT) checks with any picks. How
                             // many belong is part of the question.
                             val ready = if (uiState.problem.kind == ProblemKind.TARGET) {

@@ -1,5 +1,6 @@
 package com.ak.momapp.ui.stats
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -10,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -28,13 +30,17 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ak.momapp.data.BrainBreakStats
+import com.ak.momapp.data.DayCount
 import com.ak.momapp.data.TopicTally
+import java.time.LocalDate
+import java.time.format.TextStyle
 import com.ak.momapp.i18n.LocalStrings
 import com.ak.momapp.problem.ProblemTopic
 import com.ak.momapp.ui.theme.MomAppTheme
@@ -140,6 +146,10 @@ private fun StatsContent(stats: BrainBreakStats, modifier: Modifier = Modifier) 
             )
         }
 
+        if (stats.lastTwoWeeks.any { it.count > 0 }) {
+            ActivityChartCard(days = stats.lastTwoWeeks)
+        }
+
         if (stats.topicTallies.isNotEmpty()) {
             TopicBreakdownCard(tallies = stats.topicTallies)
         }
@@ -156,6 +166,86 @@ private fun StatsContent(stats: BrainBreakStats, modifier: Modifier = Modifier) 
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
         )
+    }
+}
+
+/**
+ * Fourteen little bars, one per day, ending today. One quiet number sits
+ * over the best day so the height scale reads; everything else stays
+ * unlabeled — the cards above carry the totals.
+ */
+@Composable
+private fun ActivityChartCard(days: List<DayCount>, modifier: Modifier = Modifier) {
+    val strings = LocalStrings.current
+    val max = days.maxOf { it.count }
+    // If several days tie for best, the label goes on the most recent.
+    val labeledDate = days.last { it.count == max }.date
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+            contentColor = MaterialTheme.colorScheme.onSurface,
+        ),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 18.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Text(
+                text = strings.activityChartTitle,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.primary,
+            )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.Bottom,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                days.forEach { day ->
+                    val isToday = day == days.last()
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        if (day.date == labeledDate && max > 0) {
+                            Text(
+                                text = "${day.count}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                            )
+                        }
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth(0.6f)
+                                .height(if (day.count == 0) 3.dp else (8 + 64f * day.count / max).dp)
+                                .clip(RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp))
+                                .background(
+                                    if (day.count == 0) {
+                                        MaterialTheme.colorScheme.outlineVariant
+                                    } else {
+                                        MaterialTheme.colorScheme.primary
+                                    },
+                                ),
+                        )
+                        Text(
+                            text = day.date.dayOfWeek.getDisplayName(TextStyle.NARROW, strings.locale),
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal,
+                            color = if (isToday) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            },
+                            maxLines = 1,
+                        )
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -262,6 +352,9 @@ private fun StatsPreview() {
                 solvedThisWeek = 14,
                 solvedAllTime = 87,
                 fastestMs = 4_200,
+                lastTwoWeeks = (13 downTo 0).map { back ->
+                    DayCount(LocalDate.now().minusDays(back.toLong()), (back * 5) % 7)
+                },
             ),
         )
     }

@@ -14,6 +14,9 @@ import java.time.LocalDate
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
+/** One day of the activity chart. */
+data class DayCount(val date: LocalDate, val count: Int)
+
 data class BrainBreakStats(
     val solvedToday: Int = 0,
     val solvedThisWeek: Int = 0,
@@ -25,6 +28,8 @@ data class BrainBreakStats(
     val firstTrySeen: Int = 0,
     /** The same first-try record, split by exercise type. */
     val topicTallies: Map<ProblemTopic, TopicTally> = emptyMap(),
+    /** Solves per day, oldest first, ending today. As long as [DailyCounts.KEEP_DAYS]. */
+    val lastTwoWeeks: List<DayCount> = emptyList(),
 ) {
     /** First-try accuracy in percent, or null before the first problem. */
     val accuracyPercent: Int?
@@ -65,6 +70,10 @@ class ProgressRepository(private val context: Context) {
             firstTryCorrect = prefs[Keys.FIRST_TRY_CORRECT] ?: 0,
             firstTrySeen = prefs[Keys.FIRST_TRY_SEEN] ?: 0,
             topicTallies = TopicAccuracy.decode(prefs[Keys.TOPIC_ACCURACY]),
+            lastTwoWeeks = (DailyCounts.KEEP_DAYS - 1 downTo 0).map { back ->
+                val day = today.minusDays(back)
+                DayCount(day, DailyCounts.countOn(daily, day))
+            },
         )
     }
 

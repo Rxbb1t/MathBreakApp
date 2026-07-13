@@ -85,7 +85,8 @@ class ProblemGeneratorTest {
             val everywhere = listOf(
                 core, ProblemKind.PUZZLE, ProblemKind.LOGIC, ProblemKind.WORD,
                 ProblemKind.MONEY, ProblemKind.TIME, ProblemKind.COMPARE, ProblemKind.TARGET,
-                ProblemKind.SELECT, ProblemKind.SETS,
+                ProblemKind.SELECT, ProblemKind.SETS, ProblemKind.TRUE_FALSE,
+                ProblemKind.MISSING_OP,
             )
             for (expected in everywhere) {
                 assertTrue("no $expected at $difficulty in $SAMPLE_SIZE samples", expected in kinds)
@@ -212,6 +213,7 @@ class ProblemGeneratorTest {
     private fun kindsOf(topic: ProblemTopic, difficulty: Difficulty): Set<ProblemKind> = when (topic) {
         ProblemTopic.CORE -> setOf(
             if (difficulty == Difficulty.EASY) ProblemKind.ARITHMETIC else ProblemKind.EQUATION,
+            ProblemKind.MISSING_OP,
         )
         ProblemTopic.PUZZLE -> setOf(ProblemKind.PUZZLE)
         ProblemTopic.LOGIC -> setOf(ProblemKind.LOGIC)
@@ -219,7 +221,7 @@ class ProblemGeneratorTest {
         ProblemTopic.MONEY -> setOf(ProblemKind.MONEY)
         ProblemTopic.TIME -> setOf(ProblemKind.TIME)
         ProblemTopic.WORD -> setOf(ProblemKind.WORD)
-        ProblemTopic.COMPARE -> setOf(ProblemKind.COMPARE)
+        ProblemTopic.COMPARE -> setOf(ProblemKind.COMPARE, ProblemKind.TRUE_FALSE)
         ProblemTopic.TARGET -> setOf(ProblemKind.TARGET)
         ProblemTopic.NUMBERS -> setOf(ProblemKind.SELECT, ProblemKind.SETS)
     }
@@ -280,7 +282,7 @@ class ProblemGeneratorTest {
                 topics = setOf(ProblemTopic.GEOMETRY),
             )
         }.map { it.kind }.toSet()
-        assertEquals(setOf(ProblemKind.ARITHMETIC), kinds)
+        assertEquals(setOf(ProblemKind.ARITHMETIC, ProblemKind.MISSING_OP), kinds)
     }
 
     @Test

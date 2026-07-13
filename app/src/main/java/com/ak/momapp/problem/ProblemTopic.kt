@@ -8,7 +8,7 @@ enum class TopicGroup { NUMBERS, STORIES, THINKING }
  * types screen, one switch per topic, grouped by [TopicGroup].
  */
 enum class ProblemTopic(val group: TopicGroup) {
-    /** The difficulty's core: number chains at EASY, equations above. */
+    /** The difficulty's core: chains at EASY, equations above, plus missing-sign taps. */
     CORE(TopicGroup.NUMBERS),
 
     /** Emoji shape puzzles. */
@@ -29,7 +29,7 @@ enum class ProblemTopic(val group: TopicGroup) {
     /** Word problems: little stories around everyday names. */
     WORD(TopicGroup.STORIES),
 
-    /** Two expressions compared by tapping < = >. */
+    /** Two expressions compared by tapping < = >, plus ✓/✗ claims. */
     COMPARE(TopicGroup.NUMBERS),
 
     /** Number cards picked to hit a target sum. */
@@ -43,21 +43,21 @@ enum class ProblemTopic(val group: TopicGroup) {
         val ALL: Set<ProblemTopic> = entries.toSet()
 
         /** The switches never let the mix shrink below this many topics. */
-        const val MIN_ENABLED = 2
+        const val MIN_ENABLED = 1
     }
 }
 
 /** The topic switch a dealt problem belongs to. Used by the per-topic stats. */
 val ProblemKind.topic: ProblemTopic
     get() = when (this) {
-        ProblemKind.ARITHMETIC, ProblemKind.EQUATION -> ProblemTopic.CORE
+        ProblemKind.ARITHMETIC, ProblemKind.EQUATION, ProblemKind.MISSING_OP -> ProblemTopic.CORE
         ProblemKind.WORD -> ProblemTopic.WORD
         ProblemKind.PUZZLE -> ProblemTopic.PUZZLE
         ProblemKind.LOGIC -> ProblemTopic.LOGIC
         ProblemKind.GEOMETRY -> ProblemTopic.GEOMETRY
         ProblemKind.MONEY -> ProblemTopic.MONEY
         ProblemKind.TIME -> ProblemTopic.TIME
-        ProblemKind.COMPARE -> ProblemTopic.COMPARE
+        ProblemKind.COMPARE, ProblemKind.TRUE_FALSE -> ProblemTopic.COMPARE
         ProblemKind.TARGET -> ProblemTopic.TARGET
         ProblemKind.SELECT, ProblemKind.SETS -> ProblemTopic.NUMBERS
     }

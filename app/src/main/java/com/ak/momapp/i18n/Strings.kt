@@ -231,7 +231,7 @@ val EnglishStrings = Strings(
     },
     exerciseTypesTitle = "Exercise types",
     exerciseTypesSummary = { on, total -> "$on of $total switched on" },
-    problemTypesSubtitle = "Pick which problem types show up. At least two always stay on.",
+    problemTypesSubtitle = "Pick which problem types show up. At least one always stays on.",
     topicGroupLabel = {
         when (it) {
             TopicGroup.NUMBERS -> "Numbers"
@@ -409,7 +409,7 @@ val RomanianStrings = Strings(
     },
     exerciseTypesTitle = "Tipuri de exerciții",
     exerciseTypesSummary = { on, total -> "$on din $total pornite" },
-    problemTypesSubtitle = "Alege ce tipuri de probleme apar. Cel puțin două rămân mereu pornite.",
+    problemTypesSubtitle = "Alege ce tipuri de probleme apar. Cel puțin unul rămâne mereu pornit.",
     topicGroupLabel = {
         when (it) {
             TopicGroup.NUMBERS -> "Numere"

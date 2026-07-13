@@ -1,0 +1,146 @@
+package com.ak.momapp.data
+
+import com.ak.momapp.problem.Difficulty
+import com.ak.momapp.problem.ProblemTopic
+import com.ak.momapp.ui.theme.AppPalette
+import java.time.DayOfWeek
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
+import org.junit.Test
+
+class SettingsSerializationTest {
+
+    @Test
+    fun `days round-trip through encoding`() {
+        val days = setOf(DayOfWeek.MONDAY, DayOfWeek.WEDNESDAY, DayOfWeek.SUNDAY)
+        assertEquals(days, SettingsSerialization.decodeDays(SettingsSerialization.encodeDays(days)))
+    }
+
+    @Test
+    fun `null days means never set and yields the Mon-Fri default`() {
+        assertEquals(BrainBreakSettings.DEFAULT_ACTIVE_DAYS, SettingsSerialization.decodeDays(null))
+    }
+
+    @Test
+    fun `empty days string is a deliberate empty selection`() {
+        assertTrue(SettingsSerialization.decodeDays("").isEmpty())
+    }
+
+    @Test
+    fun `garbage day values are ignored`() {
+        assertEquals(
+            setOf(DayOfWeek.MONDAY, DayOfWeek.FRIDAY),
+            SettingsSerialization.decodeDays("1,notaday,99,0,5"),
+        )
+    }
+
+    @Test
+    fun `difficulty decodes by name with fallback`() {
+        assertEquals(Difficulty.HARD, SettingsSerialization.decodeDifficulty("HARD"))
+        assertEquals(Difficulty.EASY, SettingsSerialization.decodeDifficulty(null))
+        assertEquals(Difficulty.MEDIUM, SettingsSerialization.decodeDifficulty("bogus", Difficulty.MEDIUM))
+    }
+
+    @Test
+    fun `stored expert difficulty from before the rewrite folds into hard`() {
+        assertEquals(Difficulty.HARD, SettingsSerialization.decodeDifficulty("EXPERT"))
+    }
+
+    @Test
+    fun `timer minutes decode to a picker option or off`() {
+        assertEquals(BrainBreakSettings.TIMER_OFF, SettingsSerialization.decodeTimerMinutes(null))
+        assertEquals(3, SettingsSerialization.decodeTimerMinutes(3))
+        assertEquals(5, SettingsSerialization.decodeTimerMinutes(5))
+        assertEquals(10, SettingsSerialization.decodeTimerMinutes(10))
+        // Old installs stored 1 or 2 minutes; those now mean off.
+        assertEquals(BrainBreakSettings.TIMER_OFF, SettingsSerialization.decodeTimerMinutes(1))
+        assertEquals(BrainBreakSettings.TIMER_OFF, SettingsSerialization.decodeTimerMinutes(2))
+        assertEquals(BrainBreakSettings.TIMER_OFF, SettingsSerialization.decodeTimerMinutes(7))
+    }
+
+    @Test
+    fun `palette decodes by name with warm clay as the fallback`() {
+        assertEquals(AppPalette.MIDNIGHT, SettingsSerialization.decodePalette("MIDNIGHT"))
+        assertEquals(AppPalette.CLAY, SettingsSerialization.decodePalette(null))
+        assertEquals(AppPalette.CLAY, SettingsSerialization.decodePalette("bogus"))
+    }
+
+    @Test
+    fun `topics round-trip through encoding`() {
+        val topics = setOf(ProblemTopic.CORE, ProblemTopic.MONEY, ProblemTopic.TIME)
+        assertEquals(topics, SettingsSerialization.decodeTopics(SettingsSerialization.encodeTopics(topics)))
+    }
+
+    @Test
+    fun `topics are stored as the switched-off set so future topics default on`() {
+        // Everything on encodes to an empty string: a topic added in a
+        // later version is absent from it and therefore lands enabled.
+        assertEquals("", SettingsSerialization.encodeTopics(ProblemTopic.ALL))
+        assertEquals(
+            ProblemTopic.ALL - ProblemTopic.LOGIC,
+            SettingsSerialization.decodeTopics("LOGIC"),
+        )
+    }
+
+    @Test
+    fun `null topics means never set and yields all on`() {
+        assertEquals(ProblemTopic.ALL, SettingsSerialization.decodeTopics(null))
+    }
+
+    @Test
+    fun `garbage disabled values are ignored and everything stays on`() {
+        assertEquals(ProblemTopic.ALL, SettingsSerialization.decodeTopics(""))
+        assertEquals(ProblemTopic.ALL, SettingsSerialization.decodeTopics("bogus,also-bogus"))
+        assertEquals(
+            ProblemTopic.ALL - ProblemTopic.LOGIC,
+            SettingsSerialization.decodeTopics("LOGIC,bogus"),
+        )
+    }
+
+    @Test
+    fun `disabling below the minimum falls back to all on`() {
+        val almostAllOff = SettingsSerialization.encodeTopics(setOf(ProblemTopic.LOGIC))
+        assertEquals(ProblemTopic.ALL, SettingsSerialization.decodeTopics(almostAllOff))
+    }
+
+    @Test
+    fun `a v2 legacy set carries over with numbers switched on`() {
+        assertEquals(
+            setOf(ProblemTopic.LOGIC, ProblemTopic.PUZZLE, ProblemTopic.NUMBERS),
+            SettingsSerialization.decodeTopics(null, "LOGIC,PUZZLE"),
+        )
+    }
+
+    @Test
+    fun `a v1 legacy set carries over with all later topics on`() {
+        assertEquals(
+            setOf(
+                ProblemTopic.LOGIC, ProblemTopic.PUZZLE,
+                ProblemTopic.COMPARE, ProblemTopic.TARGET, ProblemTopic.NUMBERS,
+            ),
+            SettingsSerialization.decodeTopics(null, null, "LOGIC,PUZZLE"),
+        )
+    }
+
+    @Test
+    fun `garbage legacy topics still fall back to all on`() {
+        assertEquals(ProblemTopic.ALL, SettingsSerialization.decodeTopics(null, "bogus"))
+        assertEquals(ProblemTopic.ALL, SettingsSerialization.decodeTopics(null, null, "bogus"))
+    }
+
+    @Test
+    fun `the current encoding wins over both legacy ones`() {
+        assertEquals(
+            ProblemTopic.ALL - ProblemTopic.GEOMETRY,
+            SettingsSerialization.decodeTopics("GEOMETRY", "LOGIC,PUZZLE", "MONEY,TIME"),
+        )
+    }
+
+    @Test
+    fun `the v2 legacy encoding wins over v1`() {
+        assertEquals(
+            setOf(ProblemTopic.MONEY, ProblemTopic.TIME, ProblemTopic.NUMBERS),
+            SettingsSerialization.decodeTopics(null, "MONEY,TIME", "LOGIC,PUZZLE"),
+        )
+    }
+}

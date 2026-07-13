@@ -9,7 +9,7 @@ import kotlin.random.Random
  * index (0 = "<", 1 = "=", 2 = ">"), [Problem.revealText] the symbol.
  *
  * The two sides are always close in value (equal about a third of the
- * time), so eyeballing isn't enough — both sides must be worked out.
+ * time), so eyeballing isn't enough. Both sides must be worked out.
  * The text is pure numbers, identical in both languages.
  */
 class ComparisonProblemGenerator(private val random: Random) {

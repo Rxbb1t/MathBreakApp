@@ -4,7 +4,7 @@ import com.ak.momapp.i18n.AppLanguage
 import kotlin.random.Random
 
 /**
- * Story geometry with a single whole-number answer — engaging framings
+ * Story geometry with a single whole-number answer. Engaging framings
  * (fences, ladders, tiles, jogging laps), never bare "radius and
  * diameter" drills.
  *
@@ -16,7 +16,7 @@ import kotlin.random.Random
  *
  * Templates are EN/RO pairs. Same authoring rules as the riddles: keep
  * placeholder order, keep each type's English marker phrase, no digits
- * in template literals — the tests re-derive every answer from the text.
+ * in template literals. The tests re-derive every answer from the text.
  * Each problem also carries the matching theorem or formula in [Problem.notes]
  * for the helper sheet.
  */
@@ -72,8 +72,8 @@ class GeometryProblemGenerator(private val random: Random) {
             difficulty = Difficulty.MEDIUM,
             language = language,
             hint = when (language) {
-                AppLanguage.ENGLISH -> "The fence follows every side — a rectangle has two lengths and two widths."
-                AppLanguage.ROMANIAN -> "Gardul urmează fiecare latură — un dreptunghi are două lungimi și două lățimi."
+                AppLanguage.ENGLISH -> "The fence follows every side. A rectangle has two lengths and two widths."
+                AppLanguage.ROMANIAN -> "Gardul urmează fiecare latură. Un dreptunghi are două lungimi și două lățimi."
             },
             notes = perimeterNotes(language),
             diagram = Diagram.Rectangle(
@@ -167,8 +167,8 @@ class GeometryProblemGenerator(private val random: Random) {
             difficulty = Difficulty.MEDIUM,
             language = language,
             hint = when (language) {
-                AppLanguage.ENGLISH -> "Wall, ground and ladder form a right triangle — the ladder is its longest side."
-                AppLanguage.ROMANIAN -> "Peretele, pământul și scara formează un triunghi dreptunghic — scara e latura cea mai lungă."
+                AppLanguage.ENGLISH -> "Wall, ground and ladder form a right triangle. The ladder is its longest side."
+                AppLanguage.ROMANIAN -> "Peretele, pământul și scara formează un triunghi dreptunghic. Scara e latura cea mai lungă."
             },
             notes = pythagorasNotes(language),
             diagram = Diagram.RightTriangle(
@@ -265,8 +265,8 @@ class GeometryProblemGenerator(private val random: Random) {
             difficulty = Difficulty.HARD,
             language = language,
             hint = when (language) {
-                AppLanguage.ENGLISH -> "The three angles still make 180° — and two of them match."
-                AppLanguage.ROMANIAN -> "Cele trei unghiuri tot 180° fac — iar două dintre ele sunt la fel."
+                AppLanguage.ENGLISH -> "The three angles still make 180°. And two of them match."
+                AppLanguage.ROMANIAN -> "Cele trei unghiuri tot 180° fac. Iar două dintre ele sunt la fel."
             },
             notes = angleNotes(language),
             diagram = Diagram.AngleTriangle(
@@ -353,11 +353,11 @@ class GeometryProblemGenerator(private val random: Random) {
     private fun angleNotes(language: AppLanguage): List<String> = when (language) {
         AppLanguage.ENGLISH -> listOf(
             "The three angles of any triangle add up to 180°.",
-            "An isosceles triangle has two equal sides — and two equal angles.",
+            "An isosceles triangle has two equal sides. And two equal angles.",
         )
         AppLanguage.ROMANIAN -> listOf(
             "Cele trei unghiuri ale oricărui triunghi adunate dau 180°.",
-            "Un triunghi isoscel are două laturi egale — și două unghiuri egale.",
+            "Un triunghi isoscel are două laturi egale. Și două unghiuri egale.",
         )
     }
 
@@ -384,7 +384,7 @@ class GeometryProblemGenerator(private val random: Random) {
     }
 
     companion object {
-        /** (ladder, foot distance, height) — whole Pythagorean triples. */
+        /** (ladder, foot distance, height). Whole Pythagorean triples. */
         private val LADDER_TRIPLES = listOf(
             Triple(5, 3, 4), Triple(10, 6, 8), Triple(13, 5, 12),
             Triple(15, 9, 12), Triple(17, 8, 15), Triple(20, 12, 16),
@@ -399,7 +399,7 @@ class GeometryProblemGenerator(private val random: Random) {
         )
 
         // ════════════════════════════════════════════════════════════════
-        // ✏️ GEOMETRY TEMPLATES — EN/RO pairs, same three rules as the
+        // ✏️ GEOMETRY TEMPLATES. EN/RO pairs, same three rules as the
         // riddles: keep placeholder order, keep the English marker phrase
         // of each list, write no digits into the template text.
         // ════════════════════════════════════════════════════════════════
@@ -547,8 +547,8 @@ class GeometryProblemGenerator(private val random: Random) {
                 unit = "dm",
             ),
             Template(
-                "An aquarium is {a} dm long, {b} dm wide and {c} dm deep. Each liter of water fills a cube of one decimeter.\nHow many liters — cubes of water — fill it to the brim?",
-                "Un acvariu are {a} dm lungime, {b} dm lățime și {c} dm adâncime. Fiecare litru de apă umple un cub de un decimetru.\nCâți litri — cuburi de apă — îl umplu până sus?",
+                "An aquarium is {a} dm long, {b} dm wide and {c} dm deep. Each liter of water fills a cube of one decimeter.\nHow many liters (cubes of water) fill it to the brim?",
+                "Un acvariu are {a} dm lungime, {b} dm lățime și {c} dm adâncime. Fiecare litru de apă umple un cub de un decimetru.\nCâți litri (cuburi de apă) îl umplu până sus?",
                 unit = "dm",
             ),
         )

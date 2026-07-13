@@ -13,7 +13,7 @@ object PersonalContent {
     val ENCOURAGEMENTS: List<String> = listOf(
         "Nice one! 💛",
         "Sharp as ever!",
-        "Your brain says thanks for the break.",
+        "Good thinking!",
         "Look at you go!",
         "Coffee break earned ☕",
     )
@@ -21,7 +21,7 @@ object PersonalContent {
     val ENCOURAGEMENTS_RO: List<String> = listOf(
         "Bravo! 💛",
         "Isteț ca întotdeauna!",
-        "Creierul îți mulțumește pentru pauză.",
+        "Bine gândit!",
         "Așa se face!",
         "Pauză de cafea meritată ☕",
     )
@@ -48,15 +48,15 @@ object PersonalContent {
      * line, so these stay short.
      */
     val BREAK_NOTIFICATION_LINES: List<String> = listOf(
-        "Time for a tiny brain break 🌼",
-        "One quick problem — 30 seconds, tops.",
-        "Your brain called. It wants a stretch 😄",
+        "Time for a little brain break 🌼",
+        "One quick problem, 30 seconds tops.",
+        "Got a minute for one problem? 😄",
     )
 
     val BREAK_NOTIFICATION_LINES_RO: List<String> = listOf(
         "E timpul pentru o mică pauză de creier 🌼",
-        "O problemă scurtă — max 30 de secunde.",
-        "Creierul tău cere o dezmorțire 😄",
+        "O problemă scurtă, max 30 de secunde.",
+        "Ai un minut pentru o problemă? 😄",
     )
 
     fun notificationLines(language: AppLanguage): List<String> = when (language) {
@@ -65,8 +65,8 @@ object PersonalContent {
     }
 
     /** Shown by the quiet reminder ~20 min after an ignored break. */
-    const val RENUDGE_LINE = "No rush — your brain break is still waiting 💛"
-    const val RENUDGE_LINE_RO = "Fără grabă — pauza ta încă te așteaptă 💛"
+    const val RENUDGE_LINE = "No rush, your break is still waiting 💛"
+    const val RENUDGE_LINE_RO = "Fără grabă, pauza ta încă te așteaptă 💛"
 
     fun renudgeLine(language: AppLanguage): String = when (language) {
         AppLanguage.ENGLISH -> RENUDGE_LINE

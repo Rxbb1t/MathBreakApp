@@ -28,7 +28,7 @@ enum class ProblemKind {
     /** Two expressions; she taps <, = or > instead of typing. */
     COMPARE,
 
-    /** Pick the cards that add up to a target — tapped, not typed. */
+    /** Pick the cards that add up to a target. Tapped, not typed. */
     TARGET,
 
     /** Tap every card that fits a rule: evens, multiples, the largest prime. */
@@ -61,7 +61,7 @@ data class Problem(
      */
     val notes: List<String> = emptyList(),
     /**
-     * A schematic figure drawn under the text — geometry problems carry
+     * A schematic figure drawn under the text. Geometry problems carry
      * one. Labels come pre-rendered ("12 m", "?"), never the answer.
      */
     val diagram: Diagram? = null,
@@ -101,7 +101,7 @@ data class Problem(
 
     /**
      * Extra thinking time when the countdown is on. Only the single
-     * highest factor applies — they never stack.
+     * highest factor applies. They never stack.
      */
     val timerMultiplier: Double
         get() = when {

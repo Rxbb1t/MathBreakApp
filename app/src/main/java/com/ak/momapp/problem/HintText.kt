@@ -8,7 +8,7 @@ import com.ak.momapp.i18n.AppLanguage
  */
 internal object HintText {
 
-    /** "Starts with 4 and has 3 digits" — a shape-of-the-answer nudge. */
+    /** "Starts with 4 and has 3 digits". A shape-of-the-answer nudge. */
     fun digits(answer: Int, language: AppLanguage): String {
         val text = answer.toString()
         return if (text.length == 1) {

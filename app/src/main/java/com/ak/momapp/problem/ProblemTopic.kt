@@ -47,7 +47,7 @@ enum class ProblemTopic(val group: TopicGroup) {
     }
 }
 
-/** The topic switch a dealt problem belongs to — used by the per-topic stats. */
+/** The topic switch a dealt problem belongs to. Used by the per-topic stats. */
 val ProblemKind.topic: ProblemTopic
     get() = when (this) {
         ProblemKind.ARITHMETIC, ProblemKind.EQUATION -> ProblemTopic.CORE

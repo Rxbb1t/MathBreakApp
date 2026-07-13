@@ -79,7 +79,7 @@ object BreakCoordinator {
         scheduleAt(context, millisFromNow(SNOOZE_MINUTES))
     }
 
-    /** She finished a problem — whatever was pending is settled. */
+    /** She finished a problem. Whatever was pending is settled. */
     suspend fun breakCompleted(context: Context) {
         BreakNotifier.cancel(context)
         BreakScheduler.cancelRenudge(context)

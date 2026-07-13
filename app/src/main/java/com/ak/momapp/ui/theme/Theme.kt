@@ -12,7 +12,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
 import com.ak.momapp.data.BrainBreakSettings
 
-// Generously rounded corners everywhere — part of the cozy look.
+// Generously rounded corners everywhere. Part of the cozy look.
 private val SoftShapes = Shapes(
     extraSmall = RoundedCornerShape(10.dp),
     small = RoundedCornerShape(14.dp),

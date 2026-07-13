@@ -28,7 +28,7 @@ private class Particle(
 
 /**
  * A short celebratory confetti burst, redrawn whenever [burstKey] changes
- * to a non-null value. Pure Canvas — no library, and it ignores touch
+ * to a non-null value. Pure Canvas. No library, and it ignores touch
  * because it draws over the layout without consuming input.
  */
 @Composable

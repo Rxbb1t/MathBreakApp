@@ -6,20 +6,20 @@ import kotlin.random.Random
 /**
  * Hands out problems by mixing ten sources:
  *
- *  - shape puzzles ([ShapePuzzleGenerator]) — every difficulty
- *  - logic riddles ([LogicProblemGenerator]) — every difficulty
- *  - story geometry ([GeometryProblemGenerator]) — MEDIUM and HARD,
+ *  - shape puzzles ([ShapePuzzleGenerator]). Every difficulty
+ *  - logic riddles ([LogicProblemGenerator]). Every difficulty
+ *  - story geometry ([GeometryProblemGenerator]). MEDIUM and HARD,
  *    as common as the riddles
- *  - money stories in lei ([MoneyProblemGenerator]) — every difficulty
- *  - clock stories in minutes ([TimeProblemGenerator]) — every difficulty
- *  - word problems told with the [PersonalContent.NAMES] pool — every
+ *  - money stories in lei ([MoneyProblemGenerator]). Every difficulty
+ *  - clock stories in minutes ([TimeProblemGenerator]). Every difficulty
+ *  - word problems told with the [PersonalContent.NAMES] pool. Every
  *    difficulty
- *  - tap-to-compare expressions ([ComparisonProblemGenerator]) — every
+ *  - tap-to-compare expressions ([ComparisonProblemGenerator]). Every
  *    difficulty, leaning EASY/MEDIUM
- *  - target builder ([TargetProblemGenerator]) — every difficulty,
+ *  - target builder ([TargetProblemGenerator]). Every difficulty,
  *    leaning EASY/MEDIUM
  *  - number hunts and set exercises ([NumberHuntGenerator],
- *    [SetProblemGenerator]) — every difficulty, one topic switch
+ *    [SetProblemGenerator]). Every difficulty, one topic switch
  *  - the difficulty's core: EASY gets 3–4 number chains using all four
  *    operations; MEDIUM and HARD get unknown-value equations, HARD adds
  *    simple derivatives ([EquationGenerator])
@@ -27,8 +27,8 @@ import kotlin.random.Random
  * Settings can switch whole topics off ([ProblemTopic]); the roll then
  * spans only what is left, and the core steps in when nothing is.
  *
- * Guarantees: every answer — and every left-to-right running total in a
- * chain — is a non-negative whole number, and divisions are exact.
+ * Guarantees: every answer. And every left-to-right running total in a
+ * chain. Is a non-negative whole number, and divisions are exact.
  */
 class ProblemGenerator(private val random: Random = Random.Default) {
 
@@ -140,10 +140,10 @@ class ProblemGenerator(private val random: Random = Random.Default) {
             terms += segment.terms
         }
 
-        // No step-by-step walkthroughs — a calm nudge, then the answer's shape.
+        // No step-by-step walkthroughs. A calm nudge, then the answer's shape.
         val calmHint = when (language) {
-            AppLanguage.ENGLISH -> "No rush — every step lands on a whole number."
-            AppLanguage.ROMANIAN -> "Fără grabă — fiecare pas dă un număr întreg."
+            AppLanguage.ENGLISH -> "No rush. Every step lands on a whole number."
+            AppLanguage.ROMANIAN -> "Fără grabă. Fiecare pas dă un număr întreg."
         }
         return Problem(
             text = "$text = ?",
@@ -220,16 +220,16 @@ class ProblemGenerator(private val random: Random = Random.Default) {
         // What the story means, not which buttons to press.
         val storyHint = when (op) {
             Op.ADD -> when (language) {
-                AppLanguage.ENGLISH -> "The two amounts come together — the answer is bigger than either one."
-                AppLanguage.ROMANIAN -> "Cele două cantități se strâng laolaltă — răspunsul e mai mare decât fiecare."
+                AppLanguage.ENGLISH -> "The two amounts come together. The answer is bigger than either one."
+                AppLanguage.ROMANIAN -> "Cele două cantități se strâng laolaltă. Răspunsul e mai mare decât fiecare."
             }
             Op.SUB -> when (language) {
-                AppLanguage.ENGLISH -> "Part of it goes away — the answer is smaller than the start."
-                AppLanguage.ROMANIAN -> "O parte se duce — răspunsul e mai mic decât la început."
+                AppLanguage.ENGLISH -> "Part of it goes away. The answer is smaller than the start."
+                AppLanguage.ROMANIAN -> "O parte se duce. Răspunsul e mai mic decât la început."
             }
             Op.MUL -> when (language) {
-                AppLanguage.ENGLISH -> "The same little group repeats — count group by group."
-                AppLanguage.ROMANIAN -> "Același grup mic se repetă — numără grup cu grup."
+                AppLanguage.ENGLISH -> "The same little group repeats. Count group by group."
+                AppLanguage.ROMANIAN -> "Același grup mic se repetă. Numără grup cu grup."
             }
         }
         val notes = if (difficulty == Difficulty.EASY) emptyList() else wordNotes(language)
@@ -293,7 +293,7 @@ class ProblemGenerator(private val random: Random = Random.Default) {
         // ════════════════════════════════════════════════════════════════
         // WORD PROBLEM TEMPLATES, in both languages. {name} → a name from
         // PersonalContent.NAMES, {a} and {b} → the two numbers. In
-        // Romanian, write {a_de}/{b_de} when a counted noun follows — it
+        // Romanian, write {a_de}/{b_de} when a counted noun follows. It
         // becomes "12" or "45 de" as the grammar needs. Keep the math
         // implied by each list: ADD = a + b, SUB = a − b, MUL = a × b.
         // ════════════════════════════════════════════════════════════════

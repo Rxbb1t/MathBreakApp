@@ -107,7 +107,7 @@ fun ProblemScreen(
     val sessionLimit by viewModel.sessionLimit.collectAsState()
 
     // Every break arrival starts a fresh sitting for the per-break cap
-    // (and skips the Start screen — the notification tap was the start).
+    // (and skips the Start screen. The notification tap was the start).
     LaunchedEffect(breakSession) {
         if (breakSession > 0) viewModel.onBreakOpened()
     }
@@ -371,7 +371,7 @@ fun ProblemScreenContent(
                         }
 
                         // Tappable cards; the selection lives in the input.
-                        // Targets and hunts share the grid — only the
+                        // Targets and hunts share the grid. Only the
                         // winning condition differs.
                         ProblemKind.TARGET, ProblemKind.SELECT -> FlowRow(
                             horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterHorizontally),
@@ -415,7 +415,7 @@ fun ProblemScreenContent(
                     AnswerPhase.ANSWERING, AnswerPhase.TRY_AGAIN -> {
                         // Comparisons submit on tap; everything else checks.
                         if (uiState.problem.kind != ProblemKind.COMPARE) {
-                            // A hunt (SELECT) checks with any picks — how
+                            // A hunt (SELECT) checks with any picks. How
                             // many belong is part of the question.
                             val ready = if (uiState.problem.kind == ProblemKind.TARGET) {
                                 uiState.input.length == uiState.problem.pickCount
@@ -505,7 +505,7 @@ fun ProblemScreenContent(
                 }
             }
 
-            // A little tab on the left edge — the tap alternative to the
+            // A little tab on the left edge. The tap alternative to the
             // swipe, and the visual hint that the notebook exists.
             if (notebookAvailable) {
                 Surface(
@@ -622,7 +622,7 @@ private fun AnswerField(
     )
 }
 
-/** The halo behind an unsolved day's trophy — gold in every palette. */
+/** The halo behind an unsolved day's trophy. Gold in every palette. */
 private val TrophyGold = Color(0xFFF5B301)
 
 /**
@@ -678,7 +678,7 @@ private fun TrophyButton(challengeDone: Boolean, onClick: () -> Unit) {
 
 /**
  * What greets her when she opens the app on her own: the usual top-row
- * buttons and one big Start — no problem until she asks for one.
+ * buttons and one big Start. No problem until she asks for one.
  */
 @Composable
 private fun StartContent(

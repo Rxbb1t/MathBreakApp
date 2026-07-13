@@ -7,7 +7,7 @@ import kotlin.random.Random
  * Target builder: a target number and a spread of cards; she taps the
  * cards that add up to it. [Problem.answer] holds the target, [cards]
  * the shuffled spread, [pickCount] how many to choose. Any picked set
- * of the right size that sums to the target counts — the planted
+ * of the right size that sums to the target counts. The planted
  * solution just guarantees one exists. [Problem.revealText] shows it.
  */
 class TargetProblemGenerator(private val random: Random) {

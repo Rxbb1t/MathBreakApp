@@ -40,7 +40,7 @@ enum class AnswerPhase {
     /** Solved it. */
     CORRECT,
 
-    /** Three misses or time ran out — the answer is shown, no more attempts. */
+    /** Three misses or time ran out. The answer is shown, no more attempts. */
     REVEALED,
 }
 
@@ -51,7 +51,7 @@ data class ProblemUiState(
     val attempts: Int = 0,
     /**
      * Which encouragement to show, as a random pick resolved against the
-     * current language's list at render time — storing the text itself
+     * current language's list at render time. Storing the text itself
      * would freeze it in whatever language was active when she answered.
      */
     val encouragementSeed: Int? = null,
@@ -84,7 +84,7 @@ class ProblemViewModel(
     challengeRepository: ChallengeRepository? = null,
 ) : ViewModel() {
 
-    /** Today's challenge is solved — the trophy dims instead of glowing. */
+    /** Today's challenge is solved. The trophy dims instead of glowing. */
     val challengeDoneToday: StateFlow<Boolean> =
         (challengeRepository?.state ?: emptyFlow())
             .map { it.done && it.day == LocalDate.now().toEpochDay() }
@@ -118,7 +118,7 @@ class ProblemViewModel(
 
     /**
      * Nothing is dealt until she presses Start (or a break notification
-     * opens the app) — opening the app to check settings or the challenge
+     * opens the app). Opening the app to check settings or the challenge
      * shouldn't drop her into a problem.
      */
     private val _started = MutableStateFlow(false)
@@ -131,7 +131,7 @@ class ProblemViewModel(
     }
 
     /**
-     * A new break notification arrived — whatever she did last sitting no
+     * A new break notification arrived. Whatever she did last sitting no
      * longer counts against the per-break cap, and the break itself is the
      * intent to start, so no extra Start press is needed.
      */
@@ -190,7 +190,7 @@ class ProblemViewModel(
             } else {
                 val mark = index.digitToChar()
                 // A target pick stops at the asked-for count; a hunt is
-                // open-ended — how many to tap is part of the question.
+                // open-ended. How many to tap is part of the question.
                 val cap = if (state.problem.kind == ProblemKind.TARGET) {
                     state.problem.pickCount
                 } else {
@@ -220,7 +220,7 @@ class ProblemViewModel(
 
         val correct = when (state.problem.kind) {
             // The picked cards (by index) must be the asked-for count and
-            // hit the target — any valid combination counts.
+            // hit the target. Any valid combination counts.
             ProblemKind.TARGET -> {
                 val picked = state.input.map { it.digitToInt() }
                 picked.size == state.problem.pickCount &&
@@ -270,7 +270,7 @@ class ProblemViewModel(
 
     /**
      * Two nudges, then the third press shows the answer. Hints never cost
-     * first-try credit — only wrong answers and timeouts do. The revealing
+     * first-try credit. Only wrong answers and timeouts do. The revealing
      * press counts as a miss only when she hadn't attempted yet, same as a
      * timeout.
      */
@@ -316,7 +316,7 @@ class ProblemViewModel(
         )
         problemShownAtMs = System.currentTimeMillis()
         // Tricky problems get extra time: the single highest factor
-        // (hard ×2, logic ×1.5, names ×1.25) — never stacked.
+        // (hard ×2, logic ×1.5, names ×1.25). Never stacked.
         val timerSeconds = settings.timerMinutes.takeIf { it > 0 }?.let { minutes ->
             (minutes * 60 * problem.timerMultiplier).roundToInt()
         }

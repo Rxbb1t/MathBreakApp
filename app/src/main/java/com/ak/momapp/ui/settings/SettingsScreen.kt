@@ -374,7 +374,7 @@ private fun SettingsContent(
 }
 
 /**
- * One tappable summary row — the full picker with its grouped switches
+ * One tappable summary row. The full picker with its grouped switches
  * lives on the Exercise types screen, so ten switches don't pile up here.
  */
 @Composable

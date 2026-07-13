@@ -139,7 +139,7 @@ val EnglishStrings = Strings(
     statsIconDescription = "Your numbers",
     settingsIconDescription = "Settings",
     correctFeedback = "That's right! ✓",
-    tryAgainFeedback = "Not quite — try again 💛",
+    tryAgainFeedback = "Not quite. Try again 💛",
     hintButton = { "💡 Hint ($it)" },
     skipButton = "⏭ Skip",
     revealedFeedback = { "The answer was $it.\nOn to the next one!" },
@@ -151,7 +151,7 @@ val EnglishStrings = Strings(
     notebookTitle = "Helper sheet",
     notebookSubtitle = "The rules, formulas and definitions that fit this problem.",
     guideTitle = "Welcome! 🌼",
-    guideIntro = "How should your brain breaks feel? Pick a style — every detail can be changed later in Settings.",
+    guideIntro = "Pick how you want your breaks to work. You can change everything later in Settings.",
     presetTitle = {
         when (it) {
             SetupPreset.DEFAULT -> "Balanced"
@@ -164,9 +164,9 @@ val EnglishStrings = Strings(
             SetupPreset.DEFAULT ->
                 "Every exercise type, no problem limit, no timer. Starts easy and adapts to you."
             SetupPreset.RELAXED ->
-                "Cozy sittings of 5 problems, no timer — and it never gets too hard."
+                "Short rounds of 5 problems, no timer, and it never gets too hard."
             SetupPreset.CHALLENGE ->
-                "Starts at Normal with a 5-minute timer and 10 problems per break. A proper workout."
+                "Starts at Normal with a 5-minute timer and 10 problems per break."
         }
     },
     snooze15 = "Snooze 15 min",
@@ -221,7 +221,7 @@ val EnglishStrings = Strings(
             Difficulty.MEDIUM ->
                 "Normal: equations with x and y, geometry, money and clock stories, and trickier puzzles."
             Difficulty.HARD ->
-                "Hard: longer equations with 4–7 numbers, simple derivatives, tougher geometry, discounts and journeys, the hardest puzzles and riddles — the timer gives double time."
+                "Hard: longer equations with 4–7 numbers, simple derivatives, tougher geometry, discounts and journeys, the hardest puzzles and riddles. The timer gives double time."
         }
     },
     exerciseTypesTitle = "Exercise types",
@@ -253,7 +253,7 @@ val EnglishStrings = Strings(
             ProblemTopic.CORE -> "Number chains on Easy, equations above."
             ProblemTopic.PUZZLE -> "Grids where little shapes stand for numbers."
             ProblemTopic.LOGIC -> "Short riddles with a numeric answer."
-            ProblemTopic.GEOMETRY -> "Perimeter, area, angles — from Normal up."
+            ProblemTopic.GEOMETRY -> "Perimeter, area and angles, from Normal up."
             ProblemTopic.MONEY -> "Shopping in lei: totals, change, discounts."
             ProblemTopic.TIME -> "Clocks, durations and minutes."
             ProblemTopic.WORD -> "Little number stories about everyday things."
@@ -267,7 +267,7 @@ val EnglishStrings = Strings(
     challengeContinue = "Continue",
     challengeDoneHeadline = "Challenge complete!",
     challengeDoneBody = {
-        if (it == 1) "Your first daily challenge — bravo!"
+        if (it == 1) "Your first daily challenge. Bravo!"
         else "That's $it daily challenges solved."
     },
     challengeTomorrow = "A fresh one arrives tomorrow.",
@@ -308,7 +308,7 @@ val RomanianStrings = Strings(
     statsIconDescription = "Cifrele tale",
     settingsIconDescription = "Setări",
     correctFeedback = "Corect! ✓",
-    tryAgainFeedback = "Nu chiar — mai încearcă 💛",
+    tryAgainFeedback = "Nu chiar. Mai încearcă 💛",
     hintButton = { "💡 Indiciu ($it)" },
     skipButton = "⏭ Sari peste",
     revealedFeedback = { "Răspunsul era $it.\nMergem la următoarea!" },
@@ -320,7 +320,7 @@ val RomanianStrings = Strings(
     notebookTitle = "Foaie de ajutor",
     notebookSubtitle = "Regulile, formulele și definițiile potrivite problemei.",
     guideTitle = "Bun venit! 🌼",
-    guideIntro = "Cum vrei să fie pauzele tale de creier? Alege un stil — orice detaliu se poate schimba mai târziu din Setări.",
+    guideIntro = "Alege cum vrei să arate pauzele tale. Poți schimba orice mai târziu din Setări.",
     presetTitle = {
         when (it) {
             SetupPreset.DEFAULT -> "Echilibrat"
@@ -333,9 +333,9 @@ val RomanianStrings = Strings(
             SetupPreset.DEFAULT ->
                 "Toate tipurile de exerciții, fără limită de probleme, fără cronometru. Începe ușor și se adaptează după tine."
             SetupPreset.RELAXED ->
-                "Runde scurte de 5 probleme, fără cronometru — și nu devine niciodată prea greu."
+                "Runde scurte de 5 probleme, fără cronometru, și nu devine niciodată prea greu."
             SetupPreset.CHALLENGE ->
-                "Începe la Normal, cu cronometru de 5 minute și 10 probleme pe pauză. Antrenament serios."
+                "Începe la Normal, cu cronometru de 5 minute și 10 probleme pe pauză."
         }
     },
     snooze15 = "Amână 15 min",
@@ -390,7 +390,7 @@ val RomanianStrings = Strings(
             Difficulty.MEDIUM ->
                 "Normal: ecuații cu x și y, povești de geometrie, de bani și cu ceasul și puzzle-uri mai încuietoare."
             Difficulty.HARD ->
-                "Greu: ecuații mai lungi cu 4–7 numere, derivate simple, geometrie mai grea, reduceri și călătorii, cele mai grele puzzle-uri și ghicitori — cronometrul dă timp dublu."
+                "Greu: ecuații mai lungi cu 4–7 numere, derivate simple, geometrie mai grea, reduceri și călătorii, cele mai grele puzzle-uri și ghicitori. Cronometrul dă timp dublu."
         }
     },
     exerciseTypesTitle = "Tipuri de exerciții",
@@ -422,7 +422,7 @@ val RomanianStrings = Strings(
             ProblemTopic.CORE -> "Șiruri de numere la Ușor, ecuații mai sus."
             ProblemTopic.PUZZLE -> "Grile în care formele țin locul numerelor."
             ProblemTopic.LOGIC -> "Ghicitori scurte cu răspuns numeric."
-            ProblemTopic.GEOMETRY -> "Perimetru, arie, unghiuri — de la Normal în sus."
+            ProblemTopic.GEOMETRY -> "Perimetru, arie și unghiuri, de la Normal în sus."
             ProblemTopic.MONEY -> "Cumpărături în lei: totaluri, rest, reduceri."
             ProblemTopic.TIME -> "Ceasuri, durate și minute."
             ProblemTopic.WORD -> "Povești scurte cu numere din viața de zi cu zi."
@@ -437,7 +437,7 @@ val RomanianStrings = Strings(
     challengeDoneHeadline = "Provocare rezolvată!",
     challengeDoneBody = {
         when {
-            it == 1 -> "Prima ta provocare zilnică — bravo!"
+            it == 1 -> "Prima ta provocare zilnică. Bravo!"
             it < 20 -> "Ai rezolvat $it provocări zilnice."
             else -> "Ai rezolvat $it de provocări zilnice."
         }

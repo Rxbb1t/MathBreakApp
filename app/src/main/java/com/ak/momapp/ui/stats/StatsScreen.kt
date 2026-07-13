@@ -119,7 +119,7 @@ private fun StatsContent(stats: BrainBreakStats, modifier: Modifier = Modifier) 
                 modifier = Modifier.weight(1f),
             )
             StatCard(
-                value = stats.accuracyPercent?.let { "$it%" } ?: "—",
+                value = stats.accuracyPercent?.let { "$it%" } ?: "–",
                 label = strings.accuracyCard,
                 modifier = Modifier.weight(1f),
             )
@@ -129,7 +129,7 @@ private fun StatsContent(stats: BrainBreakStats, modifier: Modifier = Modifier) 
             modifier = Modifier.fillMaxWidth(),
         ) {
             StatCard(
-                value = stats.fastestMs?.let(::formatDuration) ?: "—",
+                value = stats.fastestMs?.let(::formatDuration) ?: "–",
                 label = strings.fastestCard,
                 modifier = Modifier.weight(1f),
             )
@@ -160,7 +160,7 @@ private fun StatsContent(stats: BrainBreakStats, modifier: Modifier = Modifier) 
 }
 
 /**
- * First-try accuracy split by exercise type — only types that have been
+ * First-try accuracy split by exercise type. Only types that have been
  * seen at least once get a row, in the Exercise-screen order.
  */
 @Composable
@@ -200,7 +200,7 @@ private fun TopicBreakdownCard(
                         modifier = Modifier.weight(1f),
                     )
                     Text(
-                        text = tally.percent?.let { "$it%" } ?: "—",
+                        text = tally.percent?.let { "$it%" } ?: "–",
                         style = MaterialTheme.typography.bodyLarge,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary,

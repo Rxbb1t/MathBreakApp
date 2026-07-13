@@ -99,7 +99,7 @@ object SettingsSerialization {
     /**
      * Topics are stored as the switched-OFF set: a topic added in a later
      * app version is missing from the stored string and therefore lands
-     * switched on — no per-release migration needed anymore.
+     * switched on. No per-release migration needed anymore.
      */
     fun encodeTopics(enabled: Set<ProblemTopic>): String =
         (ProblemTopic.ALL - enabled).sortedBy(ProblemTopic::ordinal).joinToString(",") { it.name }
@@ -107,7 +107,7 @@ object SettingsSerialization {
     /**
      * Returns the ENABLED set. Anything invalid enough to break the min-2
      * rule falls back to all on. The legacy parameters are the old
-     * enabled-set encodings — [legacyV2Raw] from before NUMBERS existed,
+     * enabled-set encodings. [legacyV2Raw] from before NUMBERS existed,
      * [legacyV1Raw] from before COMPARE and TARGET split off the CORE
      * switch; the topics they couldn't name carry over switched on.
      */
@@ -128,7 +128,7 @@ object SettingsSerialization {
         return if (enabled.size < ProblemTopic.MIN_ENABLED) ProblemTopic.ALL else enabled
     }
 
-    /** A garbage legacy set means all on — never "only the new topics". */
+    /** A garbage legacy set means all on. Never "only the new topics". */
     private fun legacyEnabled(raw: String, vararg newTopics: ProblemTopic): Set<ProblemTopic> {
         val stored = parseTopics(raw)
         return if (stored.size < ProblemTopic.MIN_ENABLED) ProblemTopic.ALL else stored + newTopics
@@ -270,7 +270,7 @@ class SettingsRepository(private val context: Context) {
 
     /**
      * Choosing a level by hand also resets the adaptive level to it and
-     * lifts any preset's climb cap — a deliberate pick outranks Relaxed.
+     * lifts any preset's climb cap. A deliberate pick outranks Relaxed.
      */
     suspend fun setStartingDifficulty(difficulty: Difficulty) {
         context.brainBreakDataStore.edit {

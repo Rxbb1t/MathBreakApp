@@ -13,7 +13,7 @@ import kotlin.random.Random
  * Each riddle type dresses the same math in one of eight settings (zoo,
  * school, library, liters of water or soda, …). Templates are authored in
  * EN/RO pairs; number order inside the text is fixed per type, and every
- * English template carries its type's marker phrase — the tests rely on
+ * English template carries its type's marker phrase. The tests rely on
  * both to re-derive answers.
  *
  * People puzzles borrow the family names from settings when there are
@@ -121,15 +121,15 @@ class LogicProblemGenerator(private val random: Random) {
         )
     }
 
-    /** {n} things, {p} takers × {k} each — how many are left? */
+    /** {n} things, {p} takers × {k} each. How many are left? */
     private fun leftover(language: AppLanguage): Problem {
         val people = random.nextInt(2, 5)
         val each = random.nextInt(2, 4)
         val left = random.nextInt(1, 7)
         val total = people * each + left
         val takenHint = when (language) {
-            AppLanguage.ENGLISH -> "Everyone takes the same amount — how much disappears altogether?"
-            AppLanguage.ROMANIAN -> "Fiecare ia la fel de mult — cât dispare cu totul?"
+            AppLanguage.ENGLISH -> "Everyone takes the same amount. How much disappears altogether?"
+            AppLanguage.ROMANIAN -> "Fiecare ia la fel de mult. Cât dispare cu totul?"
         }
         return logicProblem(
             text = fill(
@@ -148,8 +148,8 @@ class LogicProblemGenerator(private val random: Random) {
         val c = random.nextInt(2, 31)
         val r = 2 * x + c
         val beforeBothHint = when (language) {
-            AppLanguage.ENGLISH -> "The story did two things to the number — the answer is what it was before both."
-            AppLanguage.ROMANIAN -> "Povestea a făcut două lucruri cu numărul — răspunsul e cât era înainte de amândouă."
+            AppLanguage.ENGLISH -> "The story did two things to the number. The answer is what it was before both."
+            AppLanguage.ROMANIAN -> "Povestea a făcut două lucruri cu numărul. Răspunsul e cât era înainte de amândouă."
         }
         val undoNote = when (language) {
             AppLanguage.ENGLISH ->
@@ -176,8 +176,8 @@ class LogicProblemGenerator(private val random: Random) {
         val gap = random.nextInt(2, 16)
         val total = 2 * youngerAge + gap
         val headStartHint = when (language) {
-            AppLanguage.ENGLISH -> "If they were the same age, the total would split evenly — but one has a head start of $gap years."
-            AppLanguage.ROMANIAN -> "Dacă ar avea aceeași vârstă, totalul s-ar împărți egal — dar unul are un avans de $gap ani."
+            AppLanguage.ENGLISH -> "If they were the same age, the total would split evenly. But one has a head start of $gap years."
+            AppLanguage.ROMANIAN -> "Dacă ar avea aceeași vârstă, totalul s-ar împărți egal. Dar unul are un avans de $gap ani."
         }
         val agesNote = when (language) {
             AppLanguage.ENGLISH ->
@@ -209,8 +209,8 @@ class LogicProblemGenerator(private val random: Random) {
         val heads = fourLegged + twoLegged
         val legs = 4 * fourLegged + 2 * twoLegged
         val extraLegsHint = when (language) {
-            AppLanguage.ENGLISH -> "Every head has at least two legs — it's the four-legged ones that bring the extras."
-            AppLanguage.ROMANIAN -> "Fiecare cap are măcar două picioare — cele cu patru picioare aduc restul."
+            AppLanguage.ENGLISH -> "Every head has at least two legs. It's the four-legged ones that bring the extras."
+            AppLanguage.ROMANIAN -> "Fiecare cap are măcar două picioare. Cele cu patru picioare aduc restul."
         }
         val headsLegsNote = when (language) {
             AppLanguage.ENGLISH ->
@@ -244,8 +244,8 @@ class LogicProblemGenerator(private val random: Random) {
         if ((m * x + c) % 2 != 0) c++
         val r = (m * x + c) / 2
         val threeChangesHint = when (language) {
-            AppLanguage.ENGLISH -> "The number went through three changes — the answer is what it was before any of them."
-            AppLanguage.ROMANIAN -> "Numărul a trecut prin trei schimbări — răspunsul e cât era înainte de toate."
+            AppLanguage.ENGLISH -> "The number went through three changes. The answer is what it was before any of them."
+            AppLanguage.ROMANIAN -> "Numărul a trecut prin trei schimbări. Răspunsul e cât era înainte de toate."
         }
         val reverseNote = when (language) {
             AppLanguage.ENGLISH ->
@@ -271,8 +271,8 @@ class LogicProblemGenerator(private val random: Random) {
         val youngerAge = random.nextInt(5, 41)
         val total = 3 * youngerAge
         val partsHint = when (language) {
-            AppLanguage.ENGLISH -> "Twice as old means the older one counts for two of the younger — together they make 3 equal parts."
-            AppLanguage.ROMANIAN -> "De două ori mai mare înseamnă că cel mare face cât doi ca cel mic — împreună fac 3 părți egale."
+            AppLanguage.ENGLISH -> "Twice as old means the older one counts for two of the younger. Together they make 3 equal parts."
+            AppLanguage.ROMANIAN -> "De două ori mai mare înseamnă că cel mare face cât doi ca cel mic. Împreună fac 3 părți egale."
         }
         val partsNote = when (language) {
             AppLanguage.ENGLISH ->
@@ -337,11 +337,11 @@ class LogicProblemGenerator(private val random: Random) {
         private val FALLBACK_NAMES = listOf("Ana", "Maria", "Ion", "Elena")
 
         // ════════════════════════════════════════════════════════════════
-        // ✏️ RIDDLE TEMPLATES — eight settings per type, EN/RO pairs.
+        // ✏️ RIDDLE TEMPLATES. Eight settings per type, EN/RO pairs.
         // Add or reword freely, but keep three rules so nothing breaks:
         //  1. keep every {placeholder} and their left-to-right order;
         //  2. keep the English marker phrase of the type (noted above
-        //     each list) — tests use it to recognise the riddle;
+        //     each list). Tests use it to recognise the riddle;
         //  3. write no digits into the template text itself.
         // ════════════════════════════════════════════════════════════════
 
@@ -349,12 +349,12 @@ class LogicProblemGenerator(private val random: Random) {
         private val SEQUENCE_TEMPLATES = listOf(
             Template("What comes next?", "Ce urmează?"),
             Template("Which number comes next?", "Ce număr urmează?"),
-            Template("The row continues — what comes next?", "Șirul continuă — ce urmează?"),
+            Template("The row continues. What comes next?", "Șirul continuă. Ce urmează?"),
             Template("Find the pattern. What comes next?", "Găsește regula. Ce urmează?"),
             Template("These numbers follow a rule. What comes next?", "Numerele urmează o regulă. Ce urmează?"),
-            Template("Keep the row going — what comes next?", "Du șirul mai departe — ce urmează?"),
+            Template("Keep the row going. What comes next?", "Du șirul mai departe. Ce urmează?"),
             Template("The last one is missing. What comes next?", "Ultimul lipsește. Ce urmează?"),
-            Template("Look closely — what comes next?", "Privește atent — ce urmează?"),
+            Template("Look closely. What comes next?", "Privește atent. Ce urmează?"),
         )
 
         // Marker: "now". Order: {c} then {r}; asks for the starting amount.
@@ -444,24 +444,24 @@ class LogicProblemGenerator(private val random: Random) {
                 "Economiile mele s-au dublat, apoi am adăugat {c}, ajungând la {r}.\nCât aveam la început?",
             ),
             Template(
-                "A plant doubled its flowers, then grew {c} more — {r} flowers in all.\nHow many did it have at the start?",
-                "O plantă și-a dublat florile, apoi au apărut încă {c} — în total {r}.\nCâte avea la început?",
+                "A plant doubled its flowers, then grew {c} more. {r} flowers in all.\nHow many did it have at the start?",
+                "O plantă și-a dublat florile, apoi au apărut încă {c}. În total {r}.\nCâte avea la început?",
             ),
             Template(
                 "The library doubled its puzzle books and bought {c} more, reaching {r}.\nHow many were there at the start?",
                 "Biblioteca și-a dublat cărțile de jocuri și a mai cumpărat {c}, ajungând la {r}.\nCâte erau la început?",
             ),
             Template(
-                "A tank's liters of water doubled in the rain, plus {c} from the hose — {r} liters in all.\nHow many liters at the start?",
-                "Litrii de apă dintr-un bazin s-au dublat după ploaie, plus {c} de la furtun — în total {r}.\nCâți litri erau la început?",
+                "A tank's liters of water doubled in the rain, plus {c} from the hose. {r} liters in all.\nHow many liters at the start?",
+                "Litrii de apă dintr-un bazin s-au dublat după ploaie, plus {c} de la furtun. În total {r}.\nCâți litri erau la început?",
             ),
             Template(
-                "I doubled my stamp collection and got {c} as a gift — {r} stamps in all.\nHow many did I start with?",
-                "Mi-am dublat colecția de timbre și am primit {c} cadou — în total {r}.\nCu câte am început?",
+                "I doubled my stamp collection and got {c} as a gift. {r} stamps in all.\nHow many did I start with?",
+                "Mi-am dublat colecția de timbre și am primit {c} cadou. În total {r}.\nCu câte am început?",
             ),
             Template(
-                "The zoo doubled its parrots and welcomed {c} more — {r} parrots in all.\nHow many lived there at the start?",
-                "Zoo-ul și-a dublat papagalii și a mai primit {c} — în total {r}.\nCâți erau la început?",
+                "The zoo doubled its parrots and welcomed {c} more. {r} parrots in all.\nHow many lived there at the start?",
+                "Zoo-ul și-a dublat papagalii și a mai primit {c}. În total {r}.\nCâți erau la început?",
             ),
         )
 
@@ -549,8 +549,8 @@ class LogicProblemGenerator(private val random: Random) {
                 "O mașinărie de numere înmulțește cu {m}, adună {c}, apoi înjumătățește. Iese {r}.\nCe număr a intrat?",
             ),
             Template(
-                "Take a number, multiply by {m}, add {c}, halve it — you get {r}.\nWhat was the number?",
-                "Ia un număr, înmulțește-l cu {m}, adună {c}, înjumătățește — obții {r}.\nCare era numărul?",
+                "Take a number, multiply by {m}, add {c}, halve it. You get {r}.\nWhat was the number?",
+                "Ia un număr, înmulțește-l cu {m}, adună {c}, înjumătățește. Obții {r}.\nCare era numărul?",
             ),
             Template(
                 "A magician multiplies a secret number by {m}, adds {c}, then halves it, revealing {r}.\nWhat's the secret number?",

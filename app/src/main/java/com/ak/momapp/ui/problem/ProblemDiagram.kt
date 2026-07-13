@@ -28,7 +28,7 @@ import kotlin.math.tan
 
 /**
  * Draws a [Diagram] in the current palette's colors: shapes in the
- * primary accent, labels in the body color. Everything is schematic —
+ * primary accent, labels in the body color. Everything is schematic;
  * proportions are clamped so a 60×8 garden still reads as a rectangle.
  */
 @Composable

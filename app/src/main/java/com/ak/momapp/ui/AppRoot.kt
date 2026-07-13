@@ -49,17 +49,20 @@ fun AppRoot(
         settingsRepository.settings.map { Triple(it.language, it.largeText, it.palette) }
     }.collectAsState(initial = Triple(AppLanguage.ENGLISH, false, AppPalette.CLAY))
     val (language, largeText, palette) = appearance
-    // Starts true so the guide never flashes while the first read is in flight.
+    // Null while the first read is in flight, so neither the guide nor the
+    // notification prompt can fire before the stored value is known.
     val guideShown by remember {
-        settingsRepository.settings.map { it.guideShown }
-    }.collectAsState(initial = true)
+        settingsRepository.settings.map { it.guideShown as Boolean? }
+    }.collectAsState(initial = null)
     val scope = rememberCoroutineScope()
 
     // Activity-scoped, so it survives trips to settings: the reset-round
     // button there acts on the same sitting the problem screen shows.
     val problemViewModel: ProblemViewModel = viewModel(factory = ProblemViewModel.Factory)
 
-    NotificationPermissionRequest()
+    // The system permission dialog waits its turn: it only appears once
+    // the setup guide has been answered, never on top of it.
+    NotificationPermissionRequest(enabled = guideShown == true)
 
     MomAppTheme(largeText = largeText, palette = palette) {
         CompositionLocalProvider(LocalStrings provides language.strings()) {
@@ -81,7 +84,7 @@ fun AppRoot(
                     BackHandler { screen = AppScreen.PROBLEM }
                     SettingsScreen(
                         onBack = { screen = AppScreen.PROBLEM },
-                        // Straight into the freshly dealt problem — staying
+                        // Straight into the freshly dealt problem. Staying
                         // in settings made the button feel like a no-op.
                         onResetSitting = {
                             problemViewModel.resetSitting()
@@ -105,7 +108,7 @@ fun AppRoot(
                 }
             }
 
-            if (!guideShown) {
+            if (guideShown == false) {
                 SetupGuideDialog(
                     onPick = { preset -> scope.launch { settingsRepository.applyPreset(preset) } },
                 )
@@ -115,18 +118,20 @@ fun AppRoot(
 }
 
 /**
- * Asks for POST_NOTIFICATIONS once per app start on Android 13+. If she
+ * Asks for POST_NOTIFICATIONS once per app start on Android 13+, but only
+ * after [enabled] flips true (the setup guide has been answered). If she
  * declines twice the system stops showing the dialog, and the settings
  * screen takes over with a pointer to system settings.
  */
 @Composable
-private fun NotificationPermissionRequest() {
+private fun NotificationPermissionRequest(enabled: Boolean) {
     if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
     val context = LocalContext.current
     val launcher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
     ) {}
-    LaunchedEffect(Unit) {
+    LaunchedEffect(enabled) {
+        if (!enabled) return@LaunchedEffect
         val granted = context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) ==
             PackageManager.PERMISSION_GRANTED
         if (!granted) launcher.launch(Manifest.permission.POST_NOTIFICATIONS)

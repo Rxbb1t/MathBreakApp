@@ -6,7 +6,7 @@ import kotlin.random.Random
 
 /**
  * Deals the daily challenge: one five-stage story per calendar day,
- * seeded from the date, so the same day always deals the same story —
+ * seeded from the date, so the same day always deals the same story;
  * closing the app, restarting the phone, or switching language changes
  * nothing but the words.
  *
@@ -16,7 +16,7 @@ import kotlin.random.Random
  * person, and later stages carry earlier answers in their text.
  *
  * Same rules as everywhere else: whole non-negative answers only, and
- * hints restate meaning — never the solving steps.
+ * hints restate meaning. Never the solving steps.
  */
 class DailyChallengeGenerator {
 
@@ -33,7 +33,7 @@ class DailyChallengeGenerator {
         }
     }
 
-    // ── Arc 1: market day — money, a clock, and the morning purse ───────
+    // ── Arc 1: market day. Money, a clock, and the morning purse ───────
 
     private fun marketDay(random: Random, language: AppLanguage): DailyChallenge {
         val q1 = random.nextInt(2, 7)
@@ -52,8 +52,8 @@ class DailyChallengeGenerator {
         val en = language == AppLanguage.ENGLISH
 
         val intro =
-            if (en) "Market day! Shopping, change and a little juggling — keep count as you go."
-            else "Zi de piață! Cumpărături, rest și puțină socoteală — ține șirul numerelor."
+            if (en) "Market day! Keep count of your money as you go."
+            else "Zi de piață! Ține socoteala banilor pe drum."
         return DailyChallenge(
             intro = intro,
             stages = listOf(
@@ -67,8 +67,8 @@ class DailyChallengeGenerator {
                     },
                     answer = spent,
                     kind = ProblemKind.MONEY,
-                    hint = if (en) "Two buys, one purse — the answer is everything you paid together."
-                    else "Două cumpărături, un singur portofel — răspunsul e tot ce ai plătit laolaltă.",
+                    hint = if (en) "Two buys, one purse. The answer is everything you paid together."
+                    else "Două cumpărături, un singur portofel. Răspunsul e tot ce ai plătit laolaltă.",
                     language = language,
                     unit = "lei",
                 ),
@@ -97,8 +97,8 @@ class DailyChallengeGenerator {
                     },
                     answer = span,
                     kind = ProblemKind.TIME,
-                    hint = if (en) "From leaving to returning — the minutes between the two clocks."
-                    else "De la plecare la întoarcere — minutele dintre cele două ceasuri.",
+                    hint = if (en) "From leaving to returning. The minutes between the two clocks."
+                    else "De la plecare la întoarcere. Minutele dintre cele două ceasuri.",
                     language = language,
                     unit = "min",
                 ),
@@ -128,8 +128,8 @@ class DailyChallengeGenerator {
                     },
                     answer = purse,
                     kind = ProblemKind.EQUATION,
-                    hint = if (en) "x was there before any spending — bigger than everything that followed."
-                    else "x era acolo înainte de orice cheltuială — mai mare decât tot ce a urmat.",
+                    hint = if (en) "x was there before any spending. Bigger than everything that followed."
+                    else "x era acolo înainte de orice cheltuială. Mai mare decât tot ce a urmat.",
                     language = language,
                     unit = "lei",
                 ),
@@ -137,7 +137,7 @@ class DailyChallengeGenerator {
         )
     }
 
-    // ── Arc 2: garden day — a fence, beds in a grid, and the clock ──────
+    // ── Arc 2: garden day. A fence, beds in a grid, and the clock ──────
 
     private fun gardenDay(random: Random, language: AppLanguage): DailyChallenge {
         val a = random.nextInt(7, 15)
@@ -151,8 +151,8 @@ class DailyChallengeGenerator {
         val en = language == AppLanguage.ENGLISH
 
         val intro =
-            if (en) "A day in the garden: a fence to plan, beds to fill, seedlings to plant."
-            else "O zi în grădină: un gard de plănuit, straturi de umplut, răsaduri de pus."
+            if (en) "A day in the garden. It starts with the fence."
+            else "O zi în grădină. Începe cu gardul."
         return DailyChallenge(
             intro = intro,
             stages = listOf(
@@ -166,8 +166,8 @@ class DailyChallengeGenerator {
                     },
                     answer = fence,
                     kind = ProblemKind.GEOMETRY,
-                    hint = if (en) "The fence follows every side — the short ones and the long ones alike."
-                    else "Gardul urmează fiecare latură — și pe cele scurte, și pe cele lungi.",
+                    hint = if (en) "The fence follows every side. The short ones and the long ones alike."
+                    else "Gardul urmează fiecare latură. Și pe cele scurte, și pe cele lungi.",
                     language = language,
                     unit = "m",
                     diagram = Diagram.Rectangle(
@@ -201,8 +201,8 @@ class DailyChallengeGenerator {
                     },
                     answer = squares,
                     kind = ProblemKind.GEOMETRY,
-                    hint = if (en) "The squares fill the patch like a tray of ice cubes — count them all."
-                    else "Pătratele umplu grădina ca o tavă de cuburi — numără-le pe toate.",
+                    hint = if (en) "The squares fill the patch like a tray of ice cubes. Count them all."
+                    else "Pătratele umplu grădina ca o tavă de cuburi. Numără-le pe toate.",
                     language = language,
                     diagram = Diagram.Rectangle(
                         widthLabel = "$a m",
@@ -235,8 +235,8 @@ class DailyChallengeGenerator {
                     },
                     answer = span,
                     kind = ProblemKind.TIME,
-                    hint = if (en) "From the first seedling to the last — the minutes between the clocks."
-                    else "De la primul răsad la ultimul — minutele dintre cele două ceasuri.",
+                    hint = if (en) "From the first seedling to the last. The minutes between the clocks."
+                    else "De la primul răsad la ultimul. Minutele dintre cele două ceasuri.",
                     language = language,
                     unit = "min",
                 ),
@@ -244,7 +244,7 @@ class DailyChallengeGenerator {
         )
     }
 
-    // ── Arc 3: a family visit — trains, gifts, pocket money ─────────────
+    // ── Arc 3: a family visit. Trains, gifts, pocket money ─────────────
 
     private fun visitDay(random: Random, language: AppLanguage): DailyChallenge {
         val start = random.nextInt(7 * 60, 11 * 60).let { it - it % 5 }
@@ -261,8 +261,8 @@ class DailyChallengeGenerator {
         val en = language == AppLanguage.ENGLISH
 
         val intro =
-            if (en) "A day of visiting: trains to catch, gifts to carry, money to mind."
-            else "O zi în vizită: trenuri de prins, cadouri de dus și bani de socotit."
+            if (en) "You're going visiting today. First, catch the train."
+            else "Azi mergi în vizită. Mai întâi, trenul."
         return DailyChallenge(
             intro = intro,
             stages = listOf(
@@ -276,8 +276,8 @@ class DailyChallengeGenerator {
                     },
                     answer = ride,
                     kind = ProblemKind.TIME,
-                    hint = if (en) "Departure to arrival — the minutes between the two clocks."
-                    else "De la plecare la sosire — minutele dintre cele două ceasuri.",
+                    hint = if (en) "Departure to arrival. The minutes between the two clocks."
+                    else "De la plecare la sosire. Minutele dintre cele două ceasuri.",
                     language = language,
                     unit = "min",
                 ),
@@ -322,8 +322,8 @@ class DailyChallengeGenerator {
                     },
                     answer = bus + ride,
                     kind = ProblemKind.WORD,
-                    hint = if (en) "Train first, then the bus — the whole way is both together."
-                    else "Întâi trenul, apoi autobuzul — tot drumul le cuprinde pe amândouă.",
+                    hint = if (en) "Train first, then the bus. The whole way is both together."
+                    else "Întâi trenul, apoi autobuzul. Tot drumul le cuprinde pe amândouă.",
                     language = language,
                     unit = "min",
                 ),
@@ -346,7 +346,7 @@ class DailyChallengeGenerator {
         )
     }
 
-    // ── Arc 4: baking day — supplies, change, trays, and the oven ───────
+    // ── Arc 4: baking day. Supplies, change, trays, and the oven ───────
 
     private fun bakingDay(random: Random, language: AppLanguage): DailyChallenge {
         val flour = random.nextInt(12, 40)
@@ -362,8 +362,8 @@ class DailyChallengeGenerator {
         val en = language == AppLanguage.ENGLISH
 
         val intro =
-            if (en) "Baking day! Supplies to buy, trays to fill, warm covrigi to share."
-            else "Zi de copt! Cumpărături de făcut, tăvi de umplut, covrigi calzi de împărțit."
+            if (en) "Baking day! It starts at the shop."
+            else "Zi de copt! Totul începe la magazin."
         return DailyChallenge(
             intro = intro,
             stages = listOf(
@@ -377,8 +377,8 @@ class DailyChallengeGenerator {
                     },
                     answer = total,
                     kind = ProblemKind.MONEY,
-                    hint = if (en) "Three prices, one basket — the answer holds them all."
-                    else "Trei prețuri, un singur coș — răspunsul le cuprinde pe toate.",
+                    hint = if (en) "Three prices, one basket. The answer holds them all."
+                    else "Trei prețuri, un singur coș. Răspunsul le cuprinde pe toate.",
                     language = language,
                     unit = "lei",
                 ),
@@ -434,8 +434,8 @@ class DailyChallengeGenerator {
                     },
                     answer = span,
                     kind = ProblemKind.TIME,
-                    hint = if (en) "From the first tray to the last — the minutes between the clocks."
-                    else "De la prima tavă la ultima — minutele dintre cele două ceasuri.",
+                    hint = if (en) "From the first tray to the last. The minutes between the clocks."
+                    else "De la prima tavă la ultima. Minutele dintre cele două ceasuri.",
                     language = language,
                     unit = "min",
                 ),
@@ -443,7 +443,7 @@ class DailyChallengeGenerator {
         )
     }
 
-    // ── Arc 5: a walk in the park — a lap to measure, laps to count ─────
+    // ── Arc 5: a walk in the park. A lap to measure, laps to count ─────
 
     private fun parkDay(random: Random, language: AppLanguage): DailyChallenge {
         val start = random.nextInt(8 * 60, 11 * 60).let { it - it % 5 }
@@ -458,8 +458,8 @@ class DailyChallengeGenerator {
         val en = language == AppLanguage.ENGLISH
 
         val intro =
-            if (en) "A walk in the park: a brisk pace, laps to count, a lemonade at the end."
-            else "O plimbare în parc: pas vioi, ture de numărat și o limonadă la final."
+            if (en) "A morning walk in the park, with a lemonade at the end."
+            else "O plimbare de dimineață în parc, cu o limonadă la final."
         return DailyChallenge(
             intro = intro,
             stages = listOf(
@@ -473,8 +473,8 @@ class DailyChallengeGenerator {
                     },
                     answer = walk,
                     kind = ProblemKind.TIME,
-                    hint = if (en) "From your door to the park gate — the minutes between the clocks."
-                    else "De la ușa ta la poarta parcului — minutele dintre cele două ceasuri.",
+                    hint = if (en) "From your door to the park gate. The minutes between the clocks."
+                    else "De la ușa ta la poarta parcului. Minutele dintre cele două ceasuri.",
                     language = language,
                     unit = "min",
                 ),
@@ -488,8 +488,8 @@ class DailyChallengeGenerator {
                     },
                     answer = lap,
                     kind = ProblemKind.GEOMETRY,
-                    hint = if (en) "One lap follows every side — the short ones and the long ones alike."
-                    else "O tură urmează fiecare latură — și pe cele scurte, și pe cele lungi.",
+                    hint = if (en) "One lap follows every side. The short ones and the long ones alike."
+                    else "O tură urmează fiecare latură. Și pe cele scurte, și pe cele lungi.",
                     language = language,
                     unit = "m",
                     diagram = Diagram.Rectangle(
@@ -521,8 +521,8 @@ class DailyChallengeGenerator {
                     },
                     answer = yesterday + distance,
                     kind = ProblemKind.WORD,
-                    hint = if (en) "Both days go into one total — bigger than either one."
-                    else "Ambele zile intră într-un singur total — mai mare decât fiecare.",
+                    hint = if (en) "Both days go into one total. Bigger than either one."
+                    else "Ambele zile intră într-un singur total. Mai mare decât fiecare.",
                     language = language,
                     unit = "m",
                 ),

@@ -6,7 +6,7 @@ import kotlin.random.Random
 /**
  * Mulțimi: two small sets written out in full; she counts the elements
  * of A ∩ B, A ∪ B or (at HARD) A \ B and types the count. EASY sticks
- * to intersections — spotting the shared numbers is the friendly entry
+ * to intersections. Spotting the shared numbers is the friendly entry
  * point; the union and difference arrive with the levels above.
  */
 class SetProblemGenerator(private val random: Random) {
@@ -77,9 +77,9 @@ class SetProblemGenerator(private val random: Random) {
     private fun opHint(op: Op, language: AppLanguage): String = when (op) {
         Op.INTERSECT -> when (language) {
             AppLanguage.ENGLISH ->
-                "A ∩ B keeps only the numbers that sit in both lists — walk through A and look for each number in B."
+                "A ∩ B keeps only the numbers that sit in both lists. Walk through A and look for each number in B."
             AppLanguage.ROMANIAN ->
-                "A ∩ B păstrează doar numerele aflate în ambele liste — ia lista A și caută fiecare număr în B."
+                "A ∩ B păstrează doar numerele aflate în ambele liste. Ia lista A și caută fiecare număr în B."
         }
         Op.UNION -> when (language) {
             AppLanguage.ENGLISH ->
@@ -89,9 +89,9 @@ class SetProblemGenerator(private val random: Random) {
         }
         Op.DIFFERENCE -> when (language) {
             AppLanguage.ENGLISH ->
-                "A \\ B keeps what is only in A — cross out every number that also shows up in B."
+                "A \\ B keeps what is only in A. Cross out every number that also shows up in B."
             AppLanguage.ROMANIAN ->
-                "A \\ B păstrează doar ce e numai în A — taie numerele care apar și în B."
+                "A \\ B păstrează doar ce e numai în A. Taie numerele care apar și în B."
         }
     }
 
@@ -110,9 +110,9 @@ class SetProblemGenerator(private val random: Random) {
         }
         val inclusionExclusion = when (language) {
             AppLanguage.ENGLISH ->
-                "Counting tip: |A ∪ B| = |A| + |B| − |A ∩ B| — subtract the shared ones so they aren't counted twice."
+                "Counting tip: |A ∪ B| = |A| + |B| − |A ∩ B|. Subtract the shared ones so they aren't counted twice."
             AppLanguage.ROMANIAN ->
-                "Truc de numărat: |A ∪ B| = |A| + |B| − |A ∩ B| — scazi elementele comune ca să nu le numeri de două ori."
+                "Truc de numărat: |A ∪ B| = |A| + |B| − |A ∩ B|. Scazi elementele comune ca să nu le numeri de două ori."
         }
         val difference = when (language) {
             AppLanguage.ENGLISH ->

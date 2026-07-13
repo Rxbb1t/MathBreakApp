@@ -11,7 +11,7 @@ import kotlin.random.Random
  * Guarantees: every answer and every number shown is a non-negative whole
  * number; at MEDIUM nothing on screen or in the answer passes 3500.
  *
- * Hints clarify what the symbols mean or what is being asked — they never
+ * Hints clarify what the symbols mean or what is being asked. They never
  * walk through the solving steps. The rules themselves (balance, roots,
  * powers) ride along in [Problem.notes] for the helper sheet.
  */
@@ -31,7 +31,7 @@ class EquationGenerator(private val random: Random) {
         else -> rootOrPower(language)
     }
 
-    /** "3x + 7 = 25" — the bread and butter. */
+    /** "3x + 7 = 25". The bread and butter. */
     private fun findX(language: AppLanguage): Problem {
         val a = random.nextInt(2, 10)
         val x = random.nextInt(2, 13)
@@ -55,7 +55,7 @@ class EquationGenerator(private val random: Random) {
     }
 
     /**
-     * "x + y = 24, x − y = 6" — ask for x, y, or (at HARD) their product.
+     * "x + y = 24, x − y = 6". Ask for x, y, or (at HARD) their product.
      */
     private fun sumDifferenceSystem(
         language: AppLanguage,
@@ -85,7 +85,7 @@ class EquationGenerator(private val random: Random) {
         )
     }
 
-    /** "4x + y = 31, y = 3" — substitute, then solve. */
+    /** "4x + y = 31, y = 3". Substitute, then solve. */
     private fun substitutionSystem(language: AppLanguage): Problem {
         val a = random.nextInt(2, 7)
         val x = random.nextInt(2, 13)
@@ -227,7 +227,7 @@ class EquationGenerator(private val random: Random) {
         }
 
         else -> {
-            // "√81 × 7 − 13 = ?" — no unknown, the root is the twist.
+            // "√81 × 7 − 13 = ?". No unknown, the root is the twist.
             val r = random.nextInt(3, 13)
             val a = random.nextInt(2, 10)
             val b = random.nextInt(1, r * a + 1)
@@ -249,9 +249,9 @@ class EquationGenerator(private val random: Random) {
     // ── Derivatives: f′ at a small point, whole numbers throughout ──────
 
     /**
-     * "f(x) = 3x² + 5x + 12, f′(2) = ?" — quadratic or cubic, always with
+     * "f(x) = 3x² + 5x + 12, f′(2) = ?". Quadratic or cubic, always with
      * a constant so the "constants vanish" tip has something to bite on.
-     * f′ of ax² + bx + c at k is 2ak + b; of ax³ + bx + c it is 3ak² + b —
+     * f′ of ax² + bx + c at k is 2ak + b; of ax³ + bx + c it is 3ak² + b;
      * whole and positive by construction.
      */
     private fun derivative(language: AppLanguage): Problem {
@@ -326,8 +326,8 @@ class EquationGenerator(private val random: Random) {
     }
 
     private fun shorthandNote(language: AppLanguage): String = when (language) {
-        AppLanguage.ENGLISH -> "Writing 3x is shorthand for 3 × x — a number glued to a letter means multiply."
-        AppLanguage.ROMANIAN -> "Scrierea 3x e o prescurtare pentru 3 × x — un număr lipit de o literă înseamnă înmulțire."
+        AppLanguage.ENGLISH -> "Writing 3x is shorthand for 3 × x. A number glued to a letter means multiply."
+        AppLanguage.ROMANIAN -> "Scrierea 3x e o prescurtare pentru 3 × x. Un număr lipit de o literă înseamnă înmulțire."
     }
 
     private fun rootNote(language: AppLanguage): String = when (language) {
@@ -347,9 +347,9 @@ class EquationGenerator(private val random: Random) {
 
     private fun derivativeNote(language: AppLanguage): String = when (language) {
         AppLanguage.ENGLISH ->
-            "The derivative f′ measures how fast f changes — the slope of its graph at that point."
+            "The derivative f′ measures how fast f changes. The slope of its graph at that point."
         AppLanguage.ROMANIAN ->
-            "Derivata f′ arată cât de repede se schimbă f — panta graficului ei în acel punct."
+            "Derivata f′ arată cât de repede se schimbă f. Panta graficului ei în acel punct."
     }
 
     /** The exact formula for the shape on screen, worked through once. */
@@ -381,9 +381,9 @@ class EquationGenerator(private val random: Random) {
 
     private fun derivativeConstantNote(language: AppLanguage): String = when (language) {
         AppLanguage.ENGLISH ->
-            "A number in front stays: (5x²)′ = 5 · 2x = 10x. A lone number vanishes — its derivative is 0."
+            "A number in front stays: (5x²)′ = 5 · 2x = 10x. A lone number vanishes. Its derivative is 0."
         AppLanguage.ROMANIAN ->
-            "Numărul din față rămâne: (5x²)′ = 5 · 2x = 10x. Un număr singur dispare — derivata lui e 0."
+            "Numărul din față rămâne: (5x²)′ = 5 · 2x = 10x. Un număr singur dispare. Derivata lui e 0."
     }
 
     private fun sumDifferenceNote(language: AppLanguage): String = when (language) {

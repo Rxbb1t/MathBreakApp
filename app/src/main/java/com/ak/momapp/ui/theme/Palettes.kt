@@ -36,7 +36,7 @@ enum class AppPalette(
         lightBackground = Color(0xFFEFF5F9),
     ),
 
-    /** Fully dark, mossy greens — a calmer dark than Midnight. */
+    /** Fully dark, mossy greens. A calmer dark than Midnight. */
     FOREST(
         primarySeed = Color(0xFF3F7A4C),
         secondarySeed = Color(0xFF4C6B4E),

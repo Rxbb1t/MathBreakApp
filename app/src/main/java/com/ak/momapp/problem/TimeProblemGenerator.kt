@@ -114,8 +114,8 @@ class TimeProblemGenerator(private val random: Random) {
             difficulty = Difficulty.MEDIUM,
             language = language,
             hint = when (language) {
-                AppLanguage.ENGLISH -> "The hours hide minutes of their own — the loose minutes join them."
-                AppLanguage.ROMANIAN -> "Orele ascund propriile lor minute — minutele răzlețe li se alătură."
+                AppLanguage.ENGLISH -> "The hours hide minutes of their own. The loose minutes join them."
+                AppLanguage.ROMANIAN -> "Orele ascund propriile lor minute. Minutele răzlețe li se alătură."
             },
             notes = clockNotes(language),
         )
@@ -123,7 +123,7 @@ class TimeProblemGenerator(private val random: Random) {
 
     /**
      * Marker: "away". Order: {t1}, {t2}, {t3}, {t4} clock times; only the
-     * first and last matter — the middle two try to distract.
+     * first and last matter. The middle two try to distract.
      * Answer t4 − t1.
      */
     private fun journey(language: AppLanguage): Problem {
@@ -145,8 +145,8 @@ class TimeProblemGenerator(private val random: Random) {
             difficulty = Difficulty.HARD,
             language = language,
             hint = when (language) {
-                AppLanguage.ENGLISH -> "Away in total means from stepping out to stepping back in — the stops in between are part of it."
-                AppLanguage.ROMANIAN -> "Plecată în total înseamnă de la ieșire până la întoarcere — opririle de pe drum se pun și ele."
+                AppLanguage.ENGLISH -> "Away in total means from stepping out to stepping back in. The stops in between are part of it."
+                AppLanguage.ROMANIAN -> "Plecată în total înseamnă de la ieșire până la întoarcere. Opririle de pe drum se pun și ele."
             },
             notes = clockNotes(language) + journeyNote(language),
         )
@@ -184,16 +184,16 @@ class TimeProblemGenerator(private val random: Random) {
 
     private fun journeyNote(language: AppLanguage): List<String> = when (language) {
         AppLanguage.ENGLISH -> listOf(
-            "The total time away runs from the first clock reading to the last — everything in between already lives inside it.",
+            "The total time away runs from the first clock reading to the last. Everything in between already lives inside it.",
         )
         AppLanguage.ROMANIAN -> listOf(
-            "Timpul total de plecare curge de la prima oră de pe ceas până la ultima — tot ce e între ele e deja cuprins.",
+            "Timpul total de plecare curge de la prima oră de pe ceas până la ultima. Tot ce e între ele e deja cuprins.",
         )
     }
 
     companion object {
         // ════════════════════════════════════════════════════════════════
-        // ✏️ TIME TEMPLATES — EN/RO pairs, same three rules as the
+        // ✏️ TIME TEMPLATES. EN/RO pairs, same three rules as the
         // riddles: keep placeholder order, keep the English marker phrase
         // of each list, write no digits into the template text.
         // ════════════════════════════════════════════════════════════════

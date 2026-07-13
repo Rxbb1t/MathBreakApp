@@ -28,7 +28,7 @@ enum class ChallengePhase {
     /** Stage solved or revealed; the Continue button moves the story on. */
     STAGE_DONE,
 
-    /** All five stages behind her — or she opens an already-done day. */
+    /** All five stages behind her. Or she opens an already-done day. */
     COMPLETE,
 }
 
@@ -50,7 +50,7 @@ data class ChallengeUiState(
 /**
  * Runs the daily challenge. Deliberately separate from the break flow:
  * nothing here touches the adaptive difficulty, the solved-today count,
- * or the per-break cap — a rough challenge day can't demote her level.
+ * or the per-break cap. A rough challenge day can't demote her level.
  */
 class ChallengeViewModel(
     private val settingsRepository: SettingsRepository,
@@ -99,7 +99,7 @@ class ChallengeViewModel(
     }
 
     /**
-     * Two nudges and that's all — the challenge never reveals an answer,
+     * Two nudges and that's all. The challenge never reveals an answer,
      * so a stage can only be passed by solving it.
      */
     fun useHint() {

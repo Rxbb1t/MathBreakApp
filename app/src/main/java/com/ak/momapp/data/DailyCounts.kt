@@ -36,7 +36,7 @@ object DailyCounts {
     fun countOn(counts: Map<Long, Int>, day: LocalDate): Int =
         counts[day.toEpochDay()] ?: 0
 
-    /** Total from Monday through [today] — the week she's in right now. */
+    /** Total from Monday through [today]. The week she's in right now. */
     fun weekTotal(counts: Map<Long, Int>, today: LocalDate): Int {
         val monday = today.with(DayOfWeek.MONDAY).toEpochDay()
         return counts.entries

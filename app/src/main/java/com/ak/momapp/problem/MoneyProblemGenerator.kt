@@ -4,7 +4,7 @@ import com.ak.momapp.i18n.AppLanguage
 import kotlin.random.Random
 
 /**
- * Shopping stories in lei — everyday market math with whole-lei answers.
+ * Shopping stories in lei. Everyday market math with whole-lei answers.
  *
  * EASY: two prices together, change from a banknote, a price per piece.
  * MEDIUM: a small basket (kilograms plus an extra item), change after
@@ -14,7 +14,7 @@ import kotlin.random.Random
  *
  * Templates are EN/RO pairs with the usual authoring rules: keep the
  * placeholder order, keep each type's English marker phrase, write no
- * digits into the template text — the tests re-derive every answer.
+ * digits into the template text. The tests re-derive every answer.
  * Romanian templates use {x_de} where a counted "lei" follows, so
  * "12 lei" and "45 de lei" both come out right.
  */
@@ -73,8 +73,8 @@ class MoneyProblemGenerator(private val random: Random) {
             difficulty = Difficulty.EASY,
             language = language,
             hint = when (language) {
-                AppLanguage.ENGLISH -> "Both prices land in the same purse — the answer is more than either."
-                AppLanguage.ROMANIAN -> "Ambele prețuri ajung în aceeași pungă — răspunsul e mai mare decât fiecare."
+                AppLanguage.ENGLISH -> "Both prices land in the same purse. The answer is more than either."
+                AppLanguage.ROMANIAN -> "Ambele prețuri ajung în aceeași pungă. Răspunsul e mai mare decât fiecare."
             },
         )
     }
@@ -188,8 +188,8 @@ class MoneyProblemGenerator(private val random: Random) {
             difficulty = Difficulty.HARD,
             language = language,
             hint = when (language) {
-                AppLanguage.ENGLISH -> "The discount is the part of the price that's forgiven — you pay the rest."
-                AppLanguage.ROMANIAN -> "Reducerea e partea din preț care se iartă — plătești restul."
+                AppLanguage.ENGLISH -> "The discount is the part of the price that's forgiven. You pay the rest."
+                AppLanguage.ROMANIAN -> "Reducerea e partea din preț care se iartă. Plătești restul."
             },
             notes = percentNotes(language),
         )
@@ -307,7 +307,7 @@ class MoneyProblemGenerator(private val random: Random) {
 
     companion object {
         // ════════════════════════════════════════════════════════════════
-        // ✏️ MONEY TEMPLATES — EN/RO pairs, same three rules as the
+        // ✏️ MONEY TEMPLATES. EN/RO pairs, same three rules as the
         // riddles: keep placeholder order, keep the English marker phrase
         // of each list, write no digits into the template text. Romanian
         // uses {x_de} before "lei" ("12 lei" / "45 de lei").

@@ -1,7 +1,7 @@
 package com.ak.momapp.problem
 
 /**
- * A small schematic figure the UI draws under the problem text — every
+ * A small schematic figure the UI draws under the problem text. Every
  * geometry problem carries one. Purely descriptive: the UI picks colors
  * and sizes. Labels arrive ready to print ("12 m", "A = 84 m²", "?"), so
  * the drawing code stays language-blind, and the unknown is always "?".
@@ -64,7 +64,7 @@ sealed interface Diagram {
 
     /**
      * A row of little boxes for what-comes-next riddles. The last value
-     * is the unknown — "?" by convention — and drawn highlighted.
+     * is the unknown ("?" by convention) and drawn highlighted.
      */
     data class SequenceRow(val values: List<String>) : Diagram
 }

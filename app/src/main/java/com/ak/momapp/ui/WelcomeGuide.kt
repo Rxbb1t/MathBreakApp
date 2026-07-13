@@ -27,7 +27,7 @@ import com.ak.momapp.i18n.LocalStrings
 fun SetupGuideDialog(onPick: (SetupPreset) -> Unit) {
     val strings = LocalStrings.current
     AlertDialog(
-        // No dismiss without choosing — a stray outside tap would
+        // No dismiss without choosing. A stray outside tap would
         // otherwise leave every setting at its bare default silently.
         onDismissRequest = {},
         title = { Text(strings.guideTitle) },

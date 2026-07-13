@@ -12,7 +12,7 @@ import kotlin.math.sin
 
 /**
  * A soft two-note "ding" for correct answers, synthesized on the fly so
- * the app ships no audio asset. Silent and vibrate modes always win —
+ * the app ships no audio asset. Silent and vibrate modes always win;
  * the chime only plays when the ringer is on.
  */
 object SuccessChime {

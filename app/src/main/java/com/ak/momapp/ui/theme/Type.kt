@@ -6,7 +6,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 
-// Slightly larger body text than Material defaults — the app is used in
+// Slightly larger body text than Material defaults. The app is used in
 // quick glances, so readability beats density everywhere.
 val Typography = Typography(
     bodyLarge = TextStyle(

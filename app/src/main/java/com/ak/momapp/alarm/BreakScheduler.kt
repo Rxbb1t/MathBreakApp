@@ -44,7 +44,7 @@ object BreakScheduler {
         alarmManager(context).cancel(alarmPendingIntent(context, ACTION_BREAK, REQUEST_BREAK))
     }
 
-    /** The re-nudge needn't be exact — a few minutes of drift is fine. */
+    /** The re-nudge needn't be exact. A few minutes of drift is fine. */
     fun scheduleRenudge(context: Context, triggerAtMillis: Long) {
         alarmManager(context).setAndAllowWhileIdle(
             AlarmManager.RTC_WAKEUP,

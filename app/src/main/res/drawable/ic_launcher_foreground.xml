@@ -4,14 +4,57 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- Cream flower centered in the adaptive-icon safe zone. -->
-    <group
-        android:scaleX="2.2"
-        android:scaleY="2.2"
-        android:translateX="27.6"
-        android:translateY="27.6">
-        <path
-            android:fillColor="#FFF8F6"
-            android:pathData="M12,22c4.97,0 9,-4.03 9,-9c-4.97,0 -9,4.03 -9,9zM5.6,10.25c0,1.38 1.12,2.5 2.5,2.5c0.53,0 1.01,-0.16 1.42,-0.44l-0.02,0.19c0,1.38 1.12,2.5 2.5,2.5s2.5,-1.12 2.5,-2.5l-0.02,-0.19c0.4,0.28 0.89,0.44 1.42,0.44c1.38,0 2.5,-1.12 2.5,-2.5c0,-1 -0.59,-1.85 -1.43,-2.25c0.84,-0.4 1.43,-1.25 1.43,-2.25c0,-1.38 -1.12,-2.5 -2.5,-2.5c-0.53,0 -1.01,0.16 -1.42,0.44l0.02,-0.19C14.5,2.12 13.38,1 12,1S9.5,2.12 9.5,3.5l0.02,0.19C9.12,3.41 8.63,3.25 8.1,3.25c-1.38,0 -2.5,1.12 -2.5,2.5c0,1 0.59,1.85 1.43,2.25c-0.84,0.4 -1.43,1.25 -1.43,2.25zM12,5.5c1.38,0 2.5,1.12 2.5,2.5s-1.12,2.5 -2.5,2.5S9.5,9.38 9.5,8s1.12,-2.5 2.5,-2.5zM3,13c0,4.97 4.03,9 9,9c0,-4.97 -4.03,-9 -9,-9z" />
-    </group>
+    <!--
+        Math brain break: a cream brain silhouette (overlapping lobes)
+        with an abacus inside. Rods are cut in the background terracotta,
+        beads in honey gold. Everything stays in the adaptive-icon safe
+        zone around the center.
+    -->
+
+    <!-- Brain lobes: same-color circles whose union forms the silhouette. -->
+    <path android:fillColor="#FFF8F6"
+        android:pathData="M54,34 m-12,0 a12,12 0 1 1 24,0 a12,12 0 1 1 -24,0" />
+    <path android:fillColor="#FFF8F6"
+        android:pathData="M42,40 m-13,0 a13,13 0 1 1 26,0 a13,13 0 1 1 -26,0" />
+    <path android:fillColor="#FFF8F6"
+        android:pathData="M66,40 m-13,0 a13,13 0 1 1 26,0 a13,13 0 1 1 -26,0" />
+    <path android:fillColor="#FFF8F6"
+        android:pathData="M34,54 m-11,0 a11,11 0 1 1 22,0 a11,11 0 1 1 -22,0" />
+    <path android:fillColor="#FFF8F6"
+        android:pathData="M74,54 m-11,0 a11,11 0 1 1 22,0 a11,11 0 1 1 -22,0" />
+    <path android:fillColor="#FFF8F6"
+        android:pathData="M42,67 m-12,0 a12,12 0 1 1 24,0 a12,12 0 1 1 -24,0" />
+    <path android:fillColor="#FFF8F6"
+        android:pathData="M66,67 m-12,0 a12,12 0 1 1 24,0 a12,12 0 1 1 -24,0" />
+    <path android:fillColor="#FFF8F6"
+        android:pathData="M54,56 m-16,0 a16,16 0 1 1 32,0 a16,16 0 1 1 -32,0" />
+
+    <!-- Abacus rods, cut through the brain in the background color. -->
+    <path android:strokeColor="#9C4A2F" android:strokeWidth="3.4"
+        android:strokeLineCap="round"
+        android:pathData="M36,44 L72,44" />
+    <path android:strokeColor="#9C4A2F" android:strokeWidth="3.4"
+        android:strokeLineCap="round"
+        android:pathData="M32,56 L76,56" />
+    <path android:strokeColor="#9C4A2F" android:strokeWidth="3.4"
+        android:strokeLineCap="round"
+        android:pathData="M36,68 L72,68" />
+
+    <!-- Beads, slid to different spots so each rod reads mid-count. -->
+    <path android:fillColor="#E8A63C"
+        android:pathData="M42,44 m-4.4,0 a4.4,4.4 0 1 1 8.8,0 a4.4,4.4 0 1 1 -8.8,0" />
+    <path android:fillColor="#E8A63C"
+        android:pathData="M52,44 m-4.4,0 a4.4,4.4 0 1 1 8.8,0 a4.4,4.4 0 1 1 -8.8,0" />
+    <path android:fillColor="#E8A63C"
+        android:pathData="M67,44 m-4.4,0 a4.4,4.4 0 1 1 8.8,0 a4.4,4.4 0 1 1 -8.8,0" />
+    <path android:fillColor="#E8A63C"
+        android:pathData="M38,56 m-4.4,0 a4.4,4.4 0 1 1 8.8,0 a4.4,4.4 0 1 1 -8.8,0" />
+    <path android:fillColor="#E8A63C"
+        android:pathData="M60,56 m-4.4,0 a4.4,4.4 0 1 1 8.8,0 a4.4,4.4 0 1 1 -8.8,0" />
+    <path android:fillColor="#E8A63C"
+        android:pathData="M70,56 m-4.4,0 a4.4,4.4 0 1 1 8.8,0 a4.4,4.4 0 1 1 -8.8,0" />
+    <path android:fillColor="#E8A63C"
+        android:pathData="M46,68 m-4.4,0 a4.4,4.4 0 1 1 8.8,0 a4.4,4.4 0 1 1 -8.8,0" />
+    <path android:fillColor="#E8A63C"
+        android:pathData="M62,68 m-4.4,0 a4.4,4.4 0 1 1 8.8,0 a4.4,4.4 0 1 1 -8.8,0" />
 </vector>

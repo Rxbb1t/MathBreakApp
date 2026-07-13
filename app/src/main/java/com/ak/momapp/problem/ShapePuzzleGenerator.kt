@@ -10,7 +10,7 @@ import kotlin.random.Random
  *     🍎 + 🍐 = 12
  *     🍐 × 🍎 = ?
  *
- * Built constructively — values are picked first, then each given line
+ * Built constructively. Values are picked first, then each given line
  * reveals exactly one new shape, so every puzzle is solvable top to
  * bottom. EASY uses 2 shapes, MEDIUM and HARD use 3 with bigger values
  * and multiplication in the given lines.
@@ -103,8 +103,8 @@ class ShapePuzzleGenerator(private val random: Random) {
         val (finalLine, answer) = finals.random(random)
         val firstShape = values.first().first
         val firstLineHint = when (language) {
-            AppLanguage.ENGLISH -> "Start at the top — the first line tells you $firstShape"
-            AppLanguage.ROMANIAN -> "Începe de sus — primul rând îți spune cât face $firstShape"
+            AppLanguage.ENGLISH -> "Start at the top. The first line tells you $firstShape"
+            AppLanguage.ROMANIAN -> "Începe de sus. Primul rând îți spune cât face $firstShape"
         }
         val valuesHint = values.joinToString("   ") { (shape, value) -> "$shape = $value" }
         val notes = if (difficulty == Difficulty.EASY) {
@@ -113,11 +113,11 @@ class ShapePuzzleGenerator(private val random: Random) {
             when (language) {
                 AppLanguage.ENGLISH -> listOf(
                     "The same shape stands for the same number everywhere in the puzzle.",
-                    "Each given line reveals exactly one new shape — carry what you know into the next line.",
+                    "Each given line reveals exactly one new shape. Carry what you know into the next line.",
                 )
                 AppLanguage.ROMANIAN -> listOf(
                     "Aceeași formă înseamnă același număr peste tot în joc.",
-                    "Fiecare rând dat dezvăluie exact o formă nouă — ia cu tine ce știi în rândul următor.",
+                    "Fiecare rând dat dezvăluie exact o formă nouă. Ia cu tine ce știi în rândul următor.",
                 )
             }
         }

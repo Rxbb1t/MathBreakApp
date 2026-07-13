@@ -24,7 +24,7 @@ class MainActivity : ComponentActivity() {
         breakSession = if (intent?.getBooleanExtra(EXTRA_FROM_BREAK, false) == true) 1 else 0
         enableEdgeToEdge()
         setContent {
-            // AppRoot applies MomAppTheme itself — it needs the persisted
+            // AppRoot applies MomAppTheme itself. It needs the persisted
             // text-size choice, which lives with the other settings.
             AppRoot(
                 breakSession = breakSession,

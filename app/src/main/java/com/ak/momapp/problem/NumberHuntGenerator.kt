@@ -4,11 +4,11 @@ import com.ak.momapp.i18n.AppLanguage
 import kotlin.random.Random
 
 /**
- * Number hunt: a spread of distinct number cards and a rule — tap every
+ * Number hunt: a spread of distinct number cards and a rule. Tap every
  * card that fits it (all the evens, all the multiples of 5) or the one
  * best card (the largest prime). [Problem.cards] holds the shuffled
  * spread, [Problem.correctCards] the values that must be tapped and
- * [Problem.revealText] lists them. Tap-answered, so no hints — but the
+ * [Problem.revealText] lists them. Tap-answered, so no hints. But the
  * notebook teaches the trick (last digit, digit sum, the small primes).
  */
 class NumberHuntGenerator(private val random: Random) {
@@ -88,10 +88,10 @@ class NumberHuntGenerator(private val random: Random) {
                 }.takeIf { k == 5 || k == 10 },
                 when (language) {
                     AppLanguage.ENGLISH ->
-                        "Add the digits: when the sum divides by 3, the number does too — " +
+                        "Add the digits: when the sum divides by 3, the number does too. " +
                             "same trick for 9. 87 → 8 + 7 = 15, so 87 divides by 3."
                     AppLanguage.ROMANIAN ->
-                        "Adună cifrele: dacă suma se împarte la 3, și numărul se împarte — " +
+                        "Adună cifrele: dacă suma se împarte la 3, și numărul se împarte. " +
                             "același truc merge pentru 9. 87 → 8 + 7 = 15, deci 87 se împarte la 3."
                 }.takeIf { k == 3 || k == 9 },
             ),
@@ -152,7 +152,7 @@ class NumberHuntGenerator(private val random: Random) {
             "A prime divides only by 1 and by itself. The primes up to 30: " +
                 "2, 3, 5, 7, 11, 13, 17, 19, 23, 29.",
             "Watch for lookalikes: 91 = 7 × 13, 87 = 3 × 29, 119 = 7 × 17, " +
-                "121 = 11 × 11 — none of them prime.",
+                "121 = 11 × 11. None of them prime.",
             "To test a number, try dividing by the small primes in turn: 2, 3, 5, 7, 11, 13. " +
                 "If none of them fits, it's prime.",
         )
@@ -160,7 +160,7 @@ class NumberHuntGenerator(private val random: Random) {
             "Un număr prim se împarte doar la 1 și la el însuși. Numerele prime până la 30: " +
                 "2, 3, 5, 7, 11, 13, 17, 19, 23, 29.",
             "Atenție la impostori: 91 = 7 × 13, 87 = 3 × 29, 119 = 7 × 17, " +
-                "121 = 11 × 11 — niciunul nu e prim.",
+                "121 = 11 × 11. Niciunul nu e prim.",
             "Ca să verifici un număr, împarte-l pe rând la numerele prime mici: 2, 3, 5, 7, 11, 13. " +
                 "Dacă niciunul nu se potrivește, e prim.",
         )

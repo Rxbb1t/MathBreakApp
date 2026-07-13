@@ -1,5 +1,6 @@
 package com.ak.momapp.data
 
+import com.ak.momapp.i18n.AppLanguage
 import com.ak.momapp.problem.Difficulty
 import com.ak.momapp.problem.ProblemTopic
 import com.ak.momapp.ui.theme.AppPalette
@@ -56,6 +57,17 @@ class SettingsSerializationTest {
         assertEquals(BrainBreakSettings.TIMER_OFF, SettingsSerialization.decodeTimerMinutes(1))
         assertEquals(BrainBreakSettings.TIMER_OFF, SettingsSerialization.decodeTimerMinutes(2))
         assertEquals(BrainBreakSettings.TIMER_OFF, SettingsSerialization.decodeTimerMinutes(7))
+    }
+
+    @Test
+    fun `language follows the phone before the user picks, then sticks`() {
+        // Never set: the system locale decides.
+        assertEquals(AppLanguage.ROMANIAN, SettingsSerialization.decodeLanguage(null, "ro"))
+        assertEquals(AppLanguage.ENGLISH, SettingsSerialization.decodeLanguage(null, "en"))
+        assertEquals(AppLanguage.ENGLISH, SettingsSerialization.decodeLanguage(null, "de"))
+        // A saved choice always wins over the locale.
+        assertEquals(AppLanguage.ENGLISH, SettingsSerialization.decodeLanguage("ENGLISH", "ro"))
+        assertEquals(AppLanguage.ROMANIAN, SettingsSerialization.decodeLanguage("ROMANIAN", "en"))
     }
 
     @Test

@@ -53,7 +53,8 @@ import com.ak.momapp.data.SettingsRepository
 import com.ak.momapp.i18n.LocalStrings
 import com.ak.momapp.ui.problem.ConfettiBurst
 import com.ak.momapp.ui.problem.ProblemDiagram
-import com.ak.momapp.ui.problem.SuccessChime
+import com.ak.momapp.ui.problem.ChimeSound
+import com.ak.momapp.ui.problem.Chimes
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.map
 
@@ -76,8 +77,18 @@ fun ChallengeScreen(
         SettingsRepository(context.applicationContext).settings.map { it.successSound }
     }.collectAsState(initial = false)
     // Each solved stage bumps the celebrations counter: confetti + chime.
+    // The finale gets its own little fanfare instead of the plain ding.
     LaunchedEffect(uiState?.celebrations) {
-        if ((uiState?.celebrations ?: 0) > 0 && soundEnabled) SuccessChime.play(context)
+        val state = uiState ?: return@LaunchedEffect
+        if (state.celebrations > 0 && soundEnabled) {
+            val sound = if (state.phase == ChallengePhase.COMPLETE) ChimeSound.FANFARE else ChimeSound.SUCCESS
+            Chimes.play(context, sound)
+        }
+    }
+    LaunchedEffect(uiState?.phase) {
+        if (uiState?.phase == ChallengePhase.TRY_AGAIN && soundEnabled) {
+            Chimes.play(context, ChimeSound.TRY_AGAIN)
+        }
     }
 
     Scaffold(

@@ -207,10 +207,12 @@ fun ProblemScreenContent(
         when (uiState.phase) {
             AnswerPhase.CORRECT -> {
                 haptics.performHapticFeedback(HapticFeedbackType.Confirm)
-                if (soundEnabled) SuccessChime.play(context)
+                if (soundEnabled) Chimes.play(context, ChimeSound.SUCCESS)
             }
-            AnswerPhase.TRY_AGAIN, AnswerPhase.REVEALED ->
+            AnswerPhase.TRY_AGAIN, AnswerPhase.REVEALED -> {
                 haptics.performHapticFeedback(HapticFeedbackType.Reject)
+                if (soundEnabled) Chimes.play(context, ChimeSound.TRY_AGAIN)
+            }
             AnswerPhase.ANSWERING -> Unit
         }
     }

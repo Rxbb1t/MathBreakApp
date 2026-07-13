@@ -10,6 +10,7 @@ import com.ak.momapp.problem.Difficulty
 import com.ak.momapp.problem.ProblemTopic
 import com.ak.momapp.ui.theme.AppPalette
 import java.time.DayOfWeek
+import java.util.Locale
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
@@ -90,8 +91,13 @@ object SettingsSerialization {
     fun decodeTimerMinutes(raw: Int?): Int =
         if (raw != null && raw in BrainBreakSettings.TIMER_OPTIONS) raw else BrainBreakSettings.TIMER_OFF
 
-    fun decodeLanguage(raw: String?): AppLanguage =
-        AppLanguage.entries.firstOrNull { it.name == raw } ?: AppLanguage.ENGLISH
+    /** Before the user ever picks, a Romanian phone starts in Romanian. */
+    fun decodeLanguage(
+        raw: String?,
+        systemLanguage: String = Locale.getDefault().language,
+    ): AppLanguage =
+        AppLanguage.entries.firstOrNull { it.name == raw }
+            ?: if (systemLanguage == "ro") AppLanguage.ROMANIAN else AppLanguage.ENGLISH
 
     fun decodePalette(raw: String?): AppPalette =
         AppPalette.entries.firstOrNull { it.name == raw } ?: AppPalette.CLAY

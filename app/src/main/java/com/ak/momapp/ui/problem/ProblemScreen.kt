@@ -331,6 +331,19 @@ fun ProblemScreenContent(
                                 .fillMaxWidth()
                                 .padding(horizontal = 20.dp, vertical = 28.dp),
                         ) {
+                            // One-tap exercises are bare numbers, so a
+                            // little instruction says what the taps mean.
+                            if (uiState.problem.submitsOnTap) {
+                                Text(
+                                    text = strings.tapPrompt(uiState.problem.kind),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(bottom = 16.dp),
+                                )
+                            }
                             Text(
                                 text = uiState.problem.text,
                                 style = when (uiState.problem.kind) {

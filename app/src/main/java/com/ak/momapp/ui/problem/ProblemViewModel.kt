@@ -40,7 +40,7 @@ enum class AnswerPhase {
     /** Solved it. */
     CORRECT,
 
-    /** Three misses or time ran out. The answer is shown, no more attempts. */
+    /** Out of tries (three typed, two tapped) or time ran out. The answer is shown. */
     REVEALED,
 }
 
@@ -257,14 +257,17 @@ class ProblemViewModel(
                 viewModelScope.launch { progressRepository.recordIncorrect(state.problem.kind.topic) }
             }
             val attempts = state.attempts + 1
+            // One-tap exercises offer fewer choices, so they forgive one
+            // miss less than typed answers do.
+            val maxAttempts = if (state.problem.submitsOnTap) MAX_TAP_ATTEMPTS else MAX_ATTEMPTS
             _uiState.update {
                 it?.copy(
-                    phase = if (attempts >= MAX_ATTEMPTS) AnswerPhase.REVEALED else AnswerPhase.TRY_AGAIN,
+                    phase = if (attempts >= maxAttempts) AnswerPhase.REVEALED else AnswerPhase.TRY_AGAIN,
                     attempts = attempts,
                     input = "",
                 )
             }
-            if (attempts >= MAX_ATTEMPTS) notifyProblemFinished()
+            if (attempts >= maxAttempts) notifyProblemFinished()
         }
     }
 
@@ -368,6 +371,9 @@ class ProblemViewModel(
 
     companion object {
         const val MAX_ATTEMPTS = 3
+
+        /** Tap kinds ([Problem.submitsOnTap]) reveal one miss earlier. */
+        const val MAX_TAP_ATTEMPTS = 2
         const val MAX_HINTS = 3
         private const val MAX_INPUT_DIGITS = 5
 

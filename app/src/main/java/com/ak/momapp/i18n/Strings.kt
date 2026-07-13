@@ -3,6 +3,7 @@ package com.ak.momapp.i18n
 import androidx.compose.runtime.staticCompositionLocalOf
 import com.ak.momapp.data.SetupPreset
 import com.ak.momapp.problem.Difficulty
+import com.ak.momapp.problem.ProblemKind
 import com.ak.momapp.problem.ProblemTopic
 import com.ak.momapp.problem.TopicGroup
 import com.ak.momapp.ui.theme.AppPalette
@@ -98,6 +99,8 @@ class Strings(
     val problemTypesSubtitle: String,
     val topicGroupLabel: (TopicGroup) -> String,
     val topicLabel: (ProblemTopic) -> String,
+    /** The little instruction over a one-tap exercise; empty for typed kinds. */
+    val tapPrompt: (ProblemKind) -> String,
     /** One calm line under each switch saying what the topic deals. */
     val topicDescription: (ProblemTopic) -> String,
     // Daily challenge
@@ -248,6 +251,14 @@ val EnglishStrings = Strings(
             ProblemTopic.COMPARE -> "Comparisons (tap < = >)"
             ProblemTopic.TARGET -> "Number cards"
             ProblemTopic.NUMBERS -> "Numbers & sets"
+        }
+    },
+    tapPrompt = {
+        when (it) {
+            ProblemKind.COMPARE -> "Which sign fits between the two sides?"
+            ProblemKind.TRUE_FALSE -> "True or false?"
+            ProblemKind.MISSING_OP -> "Which sign is hiding behind the ?"
+            else -> ""
         }
     },
     topicDescription = {
@@ -418,6 +429,14 @@ val RomanianStrings = Strings(
             ProblemTopic.COMPARE -> "Comparații (atinge < = >)"
             ProblemTopic.TARGET -> "Cartonașe cu numere"
             ProblemTopic.NUMBERS -> "Numere și mulțimi"
+        }
+    },
+    tapPrompt = {
+        when (it) {
+            ProblemKind.COMPARE -> "Ce semn se potrivește între cele două părți?"
+            ProblemKind.TRUE_FALSE -> "Adevărat sau fals?"
+            ProblemKind.MISSING_OP -> "Ce semn se ascunde în spatele lui ?"
+            else -> ""
         }
     },
     topicDescription = {

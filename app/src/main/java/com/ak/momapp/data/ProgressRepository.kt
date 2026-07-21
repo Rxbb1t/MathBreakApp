@@ -176,13 +176,20 @@ class ProgressRepository(private val context: Context) {
         effort: Double = 1.0,
     ) {
         context.brainBreakDataStore.edit { prefs ->
+            // The level moves on EVERY solve, not only a clean one. Solving
+            // a problem should reward you even if it took a try or two; a
+            // wrong attempt was already free, and now the eventual answer
+            // pays. A struggled solve simply took longer, so its pace makes
+            // it worth less, never nothing. The topic's "seen" tally still
+            // ticks once per problem (on the first attempt, whether that was
+            // this clean solve or an earlier stumble), so nothing is counted
+            // twice.
+            if (countsTowardLevel) {
+                advance(prefs, topic, Outcome.CORRECT, solveTimeMs, effort, countsAsSeen = firstAttempt)
+            }
             if (firstAttempt) {
-                if (countsTowardLevel) {
-                    advance(prefs, topic, Outcome.CORRECT, solveTimeMs, effort)
-                }
-                // A drill still counts here. She chose to practise this and
-                // got it right, which is exactly the evidence the queue
-                // wants, whatever it does to the break level.
+                // A clean solve graduates the shape further along the review
+                // schedule; a stumbled one leaves it queued to come back.
                 prefs[Keys.REVIEW_QUEUE] = ReviewQueue.recordCorrect(
                     raw = prefs[Keys.REVIEW_QUEUE],
                     shape = shape,
@@ -262,34 +269,14 @@ class ProgressRepository(private val context: Context) {
     }
 
     /**
-     * Moves both ladders on one first-try answer.
+     * Moves the level for a problem that ended without a solve: lost, timed
+     * out, or skipped.
      *
-     * How quickly the answer came is judged ONCE, against her usual pace on
-     * this topic, and the same verdict feeds both ladders. Classifying
-     * separately for each would let them disagree about whether the very
-     * same answer was quick.
-     *
-     * The topic's ladder is seeded with the OVERALL level, deliberately: a
-     * topic she has never answered should start where she already is,
-     * rather than back at the floor.
-     */
-    /**
-     * Whether this outcome should move the level at all.
-     *
-     * Everything except a skip does. A skip only counts every
-     * [LevelLadder.SKIPS_PER_PENALTY]-th time: passing on one problem
-     * because the doorbell went should cost nothing, and an app that docks
-     * you for every single pass is one you start feeling watched by. Two in
-     * a row is a different signal and that one is worth hearing.
-     */
-    /**
-     * Moves the level for something that was not solved.
-     *
-     * Separate from the stats above because the two now happen at different
-     * moments: the accuracy tally votes once, on the FIRST stumble, while
-     * the level only moves when the problem is actually lost. A wrong
-     * attempt she recovers from is recorded in one and invisible to the
-     * other, which is the whole point of the change.
+     * Separate from the accuracy stats because the two happen at different
+     * moments. The tally votes once, on the first stumble; the level moves
+     * here, when the problem is finally given up on. It never counts the
+     * topic as newly seen ([countsAsSeen] false), because the first stumble
+     * already did.
      */
     suspend fun recordLevelOnly(
         topic: ProblemTopic,

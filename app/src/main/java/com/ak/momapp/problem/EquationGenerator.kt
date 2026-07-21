@@ -294,7 +294,14 @@ class EquationGenerator(private val random: Random) {
 
     // ── HARD: 4–7 numbers, up to two unknowns, bigger values ────────────
 
-    private fun rollHard(level: Level, language: AppLanguage): Problem = when (random.nextInt(6)) {
+    private fun rollHard(level: Level, language: AppLanguage): Problem {
+        val roll = random.nextInt(6)
+        // The derivative carries its own, heavier weight. Every other hard
+        // shape is a multi-number equation and gets the same solid bump, so
+        // wrestling through "5x + 12 − 7 = 65" or a two-unknown system is
+        // worth more than an ordinary problem.
+        if (roll == 3) return derivative(level, language)
+        return when (roll) {
         0 -> {
             // "5x + 12 − 7 = 65"
             val a = random.nextInt(level.span(3..7, 3..9, 3..9))
@@ -356,8 +363,6 @@ class EquationGenerator(private val random: Random) {
 
         2 -> sumDifferenceSystem(level, language, askProduct = true)
 
-        3 -> derivative(level, language)
-
         4 -> {
             // "x² − 9 = 40"
             val x = random.nextInt(level.span(4..12, 4..20, 4..20))
@@ -415,6 +420,7 @@ class EquationGenerator(private val random: Random) {
                 ),
             )
         }
+        }.copy(effort = HARD_EQUATION_EFFORT)
     }
 
     // ── Derivatives: f′ at a small point, whole numbers throughout ──────
@@ -431,8 +437,18 @@ class EquationGenerator(private val random: Random) {
      */
     private val SINGLE_UNKNOWN_EFFORT = 1.15
 
-    /** Derivatives are the hardest thing the app asks for. */
-    private val DERIVATIVE_EFFORT = 1.6
+    /**
+     * The multi-number hard equations: 4-to-7-number find-x, two-coefficient
+     * systems, x²−b, √-chains. Worth well above an ordinary problem (about
+     * two points more at a steady pace), because that is real wrestling.
+     */
+    private val HARD_EQUATION_EFFORT = 2.1
+
+    /**
+     * Derivatives are the hardest thing the app asks for, and priced like
+     * it: about two points above the other hard equations at a steady pace.
+     */
+    private val DERIVATIVE_EFFORT = 2.5
 
     private fun derivative(level: Level, language: AppLanguage): Problem {
         val b = random.nextInt(2, 14)

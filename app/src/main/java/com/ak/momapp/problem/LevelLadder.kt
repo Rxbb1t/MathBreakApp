@@ -90,25 +90,48 @@ data class PaceEstimate(
  * Moves a [Level] by a few points per answer.
  *
  * The old ladder counted streaks and jumped a whole third of the range
- * when one filled up. This one nudges: a handful of steady right answers
- * to cross a band, fewer if they come quickly, and a wrong answer costs
- * about one right answer's worth of ground. She can drift up through Easy
- * for a week before the word "Normal" ever appears, and the problems will
- * have been getting gently harder the whole time.
+ * when one filled up. This one nudges: a couple of dozen steady right
+ * answers to cross a band, fewer if they come quickly, and a wrong answer
+ * costs several right ones. She can drift up through Easy for a week
+ * before the word "Normal" ever appears, and the problems will have been
+ * getting gently harder the whole time.
  */
 object LevelLadder {
 
+    /**
+     * THE NUMBER THAT DECIDES EVERYTHING, and the one worth understanding
+     * before touching any of the steps below.
+     *
+     * A points ladder stops moving where the climbing and the falling
+     * cancel out, so `p × STEP_STEADY = (1 − p) × STEP_MISS` fixes the
+     * accuracy it hunts for: whatever she does, it drags her toward the
+     * level where she gets that share right. The steps are not four
+     * independent tuning knobs. They are a ratio that names a target.
+     *
+     * 4:1 puts the target at 80%. That is a deliberate product decision
+     * rather than a default: this app interrupts someone at home to be a
+     * pleasant two minutes, so the level it seeks should be one where she
+     * is mostly right and occasionally stretched. An earlier draft used
+     * 5:4, which targets 56%, and a simulated player answering 80% right
+     * was carried from Easy to derivatives in about forty problems. Nobody
+     * would have called that adaptive. They would have called it broken.
+     */
+    const val TARGET_ACCURACY = 0.8
+
     /** Right, and quickly: the strongest sign the level is too low. */
-    const val STEP_FAST = 6
+    const val STEP_FAST = 3
 
     /** Right, at her usual pace: the level fits, so inch upward. */
-    const val STEP_STEADY = 4
+    const val STEP_STEADY = 2
 
-    /** Right, but it took her: she is where she should be. */
+    /** Right, but it took her: she is about where she should be. */
     const val STEP_SLOW = 1
 
-    /** Wrong, skipped, or timed out. */
-    const val STEP_MISS = 5
+    /**
+     * Wrong, skipped, or timed out. Four times the steady step, which is
+     * what sets [TARGET_ACCURACY]; changing it moves the target.
+     */
+    const val STEP_MISS = 8
 
     /**
      * How far past a boundary the points must travel before the NAME

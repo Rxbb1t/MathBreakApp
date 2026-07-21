@@ -64,16 +64,44 @@ class AdaptiveSimulationTest {
     private fun settledAt(history: List<Level>, tail: Int = 40): Double =
         history.takeLast(tail).map { it.points }.average()
 
+    /**
+     * THE ONE THAT MATTERS. Not "does it find her ability" but "does it
+     * park her somewhere pleasant to be": the level where she gets about
+     * [LevelLadder.TARGET_ACCURACY] of them right and is stretched by the
+     * rest.
+     *
+     * Asserting proximity to the simulated ability instead would be a
+     * weaker and vaguer claim, and it is what let an earlier draft look
+     * fine while hunting for a level where she got nearly half wrong.
+     */
     @Test
-    fun `the ladder finds a player wherever she really is`() {
+    fun `it parks her where she gets most of them right`() {
         for (ability in listOf(15, 35, 50, 70, 90)) {
-            val settled = settledAt(run(ability, problems = 220, start = Level.of(50), seed = ability))
-            val drift = abs(settled - ability)
+            val settled = settledAt(run(ability, problems = 300, start = Level.of(50), seed = ability))
+            val accuracy = chanceCorrect(ability, Level.of(settled.toInt()))
             assertTrue(
-                "ability $ability settled at ${"%.1f".format(settled)}, $drift away",
-                drift < 15,
+                "ability $ability settled at ${"%.1f".format(settled)}, " +
+                    "where she would get ${"%.0f".format(accuracy * 100)}% right",
+                accuracy > LevelLadder.TARGET_ACCURACY - 0.15,
+            )
+            // And still stretched: parking her somewhere she never misses
+            // would be just as wrong, in the other direction.
+            assertTrue(
+                "ability $ability parked at a level she never misses",
+                accuracy < 0.97,
             )
         }
+    }
+
+    @Test
+    fun `a competent player is not rushed to the top of the scale`() {
+        // Someone answering 80% right is, by definition, already where she
+        // belongs. The level should drift, not bolt.
+        val history = run(ability = 40, problems = 60, start = Difficulty.EASY.toLevel(), seed = 3)
+        assertTrue(
+            "sixty problems carried her to ${history.last().points}",
+            history.last().points < 75,
+        )
     }
 
     @Test
@@ -126,7 +154,7 @@ class AdaptiveSimulationTest {
             fast = LevelLadder.next(fast, correct = true, pace = Pace.FAST)
             slow = LevelLadder.next(slow, correct = true, pace = Pace.SLOW)
         }
-        assertTrue("fast $fast should be well past slow $slow", fast.points - slow.points > 20)
+        assertTrue("fast $fast should be well past slow $slow", fast.points - slow.points > 15)
     }
 
     /**

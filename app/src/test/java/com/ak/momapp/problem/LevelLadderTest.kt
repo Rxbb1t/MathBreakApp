@@ -15,9 +15,23 @@ class LevelLadderTest {
     @Test
     fun `one right answer moves a few points, not a whole band`() {
         val after = LevelLadder.next(Level.of(50), correct = true, pace = Pace.STEADY)
-        assertEquals(Level.of(54), after)
+        assertEquals(Level.of(50 + LevelLadder.STEP_STEADY), after)
         // Still Normal. The name only changes when the points earn it.
         assertEquals(Difficulty.MEDIUM, after.band)
+    }
+
+    /**
+     * The steps are a ratio that names a target accuracy, not four
+     * independent knobs. Pinning it here because getting it wrong is
+     * invisible in every other test: an earlier draft targeted 56% and
+     * carried a competent player from Easy to derivatives in forty
+     * problems, with every other assertion still green.
+     */
+    @Test
+    fun `the ladder targets the accuracy it claims to`() {
+        val target = LevelLadder.STEP_MISS.toDouble() /
+            (LevelLadder.STEP_STEADY + LevelLadder.STEP_MISS)
+        assertEquals(LevelLadder.TARGET_ACCURACY, target, 0.02)
     }
 
     @Test
@@ -50,7 +64,9 @@ class LevelLadderTest {
         val fast = generateSequence(Level.of(33)) {
             LevelLadder.next(it, correct = true, pace = Pace.FAST)
         }.indexOfFirst { it.band == Difficulty.HARD }
-        assertTrue("steady climb took $steady answers", steady in 6..12)
+        // Deliberate rather than glacial: a few sittings of getting
+        // everything right, not one good afternoon.
+        assertTrue("steady climb took $steady answers", steady in 12..24)
         assertTrue("fast climb ($fast) should beat steady ($steady)", fast < steady)
     }
 
@@ -80,7 +96,7 @@ class LevelLadderTest {
         val above = Level.of(85)
         assertEquals(above, LevelLadder.next(above, correct = true, pace = Pace.FAST, ceiling = ceiling))
         // Misses still work normally above the cap.
-        assertEquals(Level.of(80), LevelLadder.next(above, correct = false, pace = Pace.STEADY, ceiling = ceiling))
+        assertEquals(Level.of(85 - LevelLadder.STEP_MISS), LevelLadder.next(above, correct = false, pace = Pace.STEADY, ceiling = ceiling))
     }
 
     @Test
@@ -98,10 +114,10 @@ class LevelLadderTest {
     fun `the shown name holds until the points are clear of the boundary`() {
         // Just over the line, but not far enough to be worth renaming.
         assertEquals(Difficulty.MEDIUM, LevelLadder.shownBand(Level.of(67), previous = Difficulty.MEDIUM))
-        assertEquals(Difficulty.HARD, LevelLadder.shownBand(Level.of(73), previous = Difficulty.MEDIUM))
+        assertEquals(Difficulty.HARD, LevelLadder.shownBand(Level.of(76), previous = Difficulty.MEDIUM))
         // And the same coming back down.
         assertEquals(Difficulty.HARD, LevelLadder.shownBand(Level.of(66), previous = Difficulty.HARD))
-        assertEquals(Difficulty.MEDIUM, LevelLadder.shownBand(Level.of(60), previous = Difficulty.HARD))
+        assertEquals(Difficulty.MEDIUM, LevelLadder.shownBand(Level.of(57), previous = Difficulty.HARD))
     }
 
     @Test

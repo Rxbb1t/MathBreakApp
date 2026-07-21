@@ -3,15 +3,17 @@ package com.ak.momapp.data
 import com.ak.momapp.problem.LevelLadder
 
 /**
- * Counts skips so that only every so often costs anything.
+ * Counts skips IN A ROW, so that passing on the odd problem is free and
+ * only a run of them says anything.
  *
- * Passing on one problem should be free. The doorbell goes, she does not
- * fancy this one, she wants to see what else there is: none of that is
+ * Skipping one problem should cost nothing. The doorbell goes, she does
+ * not fancy this one, she wants to see what else there is: none of that is
  * evidence that the level is wrong, and an app that docks you for every
  * single pass is one you start to feel watched by.
  *
- * Two skips in a row is a different signal. That one usually does mean the
- * problems have got ahead of her, and it is worth hearing.
+ * A run is different. Three in a row usually does mean the problems have
+ * got ahead of her, and six in a row says it louder, so the price goes up
+ * and stays up. Answering anything at all breaks the run.
  *
  * Pulled out of [ProgressRepository] so the rule can be tested without an
  * Android context behind it.
@@ -19,13 +21,18 @@ import com.ak.momapp.problem.LevelLadder
 object SkipTally {
 
     /**
-     * Files one skip against the running [tally].
+     * Files one skip against the running [streak] of them.
      *
-     * Returns the tally to store and whether this skip should actually move
-     * the level.
+     * Returns the streak to store, and what this skip should cost. Zero
+     * means it costs nothing, which is the usual answer.
      */
-    fun record(tally: Int): Pair<Int, Boolean> {
-        val next = tally + 1
-        return if (next >= LevelLadder.SKIPS_PER_PENALTY) 0 to true else next to false
+    fun record(streak: Int): Pair<Int, Int> {
+        val next = streak + 1
+        val penalty = when {
+            next % LevelLadder.SKIPS_BEFORE_PENALTY != 0 -> 0
+            next >= LevelLadder.SKIPS_BEFORE_BIGGER_PENALTY -> LevelLadder.STEP_SKIP_PERSISTENT
+            else -> LevelLadder.STEP_SKIP
+        }
+        return next to penalty
     }
 }

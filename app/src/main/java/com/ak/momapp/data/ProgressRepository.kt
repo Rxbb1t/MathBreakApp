@@ -88,10 +88,10 @@ class ProgressRepository(private val context: Context) {
 
         /**
          * Skips since the last one that counted. See
-         * [LevelLadder.SKIPS_PER_PENALTY]: passing on a single problem
-         * costs nothing at all.
+         * [SkipTally]: passing on one or two problems
+         * in a row costs nothing at all.
          */
-        val SKIP_TALLY = intPreferencesKey("skip_tally")
+        val SKIP_TALLY = intPreferencesKey("skip_streak")
     }
 
     /**
@@ -252,8 +252,8 @@ class ProgressRepository(private val context: Context) {
         effort: Double = 1.0,
     ) {
         context.brainBreakDataStore.edit { prefs ->
-            if (countsTowardLevel && countsSkip(prefs, outcome)) {
-                advance(prefs, topic, outcome, solveTimeMs = 0, effort = effort)
+            if (countsTowardLevel) {
+                moveLevel(prefs, topic, outcome, effort, countsAsSeen = true)
             }
             prefs[Keys.REVIEW_QUEUE] = ReviewQueue.recordMiss(
                 raw = prefs[Keys.REVIEW_QUEUE],
@@ -288,11 +288,53 @@ class ProgressRepository(private val context: Context) {
      * you for every single pass is one you start feeling watched by. Two in
      * a row is a different signal and that one is worth hearing.
      */
-    private fun countsSkip(prefs: MutablePreferences, outcome: Outcome): Boolean {
-        if (outcome != Outcome.SKIPPED) return true
-        val (tally, counts) = SkipTally.record(prefs[Keys.SKIP_TALLY] ?: 0)
-        prefs[Keys.SKIP_TALLY] = tally
-        return counts
+    /**
+     * Moves the level for something that was not solved.
+     *
+     * Separate from the stats above because the two now happen at different
+     * moments: the accuracy tally votes once, on the FIRST stumble, while
+     * the level only moves when the problem is actually lost. A wrong
+     * attempt she recovers from is recorded in one and invisible to the
+     * other, which is the whole point of the change.
+     */
+    suspend fun recordLevelOnly(
+        topic: ProblemTopic,
+        outcome: Outcome,
+        effort: Double = 1.0,
+        countsTowardLevel: Boolean = true,
+    ) {
+        if (!countsTowardLevel) return
+        context.brainBreakDataStore.edit { prefs ->
+            moveLevel(prefs, topic, outcome, effort, countsAsSeen = false)
+        }
+    }
+
+    /** Applies one outcome to both ladders, with the skip run worked out. */
+    private fun moveLevel(
+        prefs: MutablePreferences,
+        topic: ProblemTopic,
+        outcome: Outcome,
+        effort: Double,
+        countsAsSeen: Boolean,
+    ) {
+        var skipPenalty = 0
+        if (outcome == Outcome.SKIPPED) {
+            val (streak, penalty) = SkipTally.record(prefs[Keys.SKIP_TALLY] ?: 0)
+            prefs[Keys.SKIP_TALLY] = streak
+            // Most skips cost nothing, and a free one is not worth waking
+            // the ladders up for.
+            if (penalty == 0) return
+            skipPenalty = penalty
+        }
+        advance(
+            prefs = prefs,
+            topic = topic,
+            outcome = outcome,
+            solveTimeMs = 0,
+            effort = effort,
+            skipPenalty = skipPenalty,
+            countsAsSeen = countsAsSeen,
+        )
     }
 
     private fun advance(
@@ -301,6 +343,8 @@ class ProgressRepository(private val context: Context) {
         outcome: Outcome,
         solveTimeMs: Long,
         effort: Double,
+        skipPenalty: Int = 0,
+        countsAsSeen: Boolean = true,
     ) {
         val ladders = TopicLadders.decode(prefs[Keys.TOPIC_LADDERS])
         val overallPace = PaceEstimate(
@@ -312,15 +356,15 @@ class ProgressRepository(private val context: Context) {
             val paced = overallPace.record(solveTimeMs)
             prefs[Keys.OVERALL_PACE_MS] = paced.typicalMs
             prefs[Keys.OVERALL_PACE_SAMPLES] = paced.samples
-            // A clean run resets the skip tally: two skips a week apart are
-            // not the pattern this is trying to notice.
-            prefs[Keys.SKIP_TALLY] = 0
         }
+        // Anything she actually engaged with breaks a run of skips. Three
+        // scattered across a week are not the pattern this is looking for.
+        if (outcome != Outcome.SKIPPED) prefs[Keys.SKIP_TALLY] = 0
         val ceiling = readCeiling(prefs)
         val level = readLevel(prefs)
         val band = readBand(prefs)
 
-        val moved = LevelLadder.next(level, outcome, pace, effort, ceiling)
+        val moved = LevelLadder.next(level, outcome, pace, effort, skipPenalty, ceiling)
         prefs[Keys.CURRENT_POINTS] = moved.points
         prefs[Keys.CURRENT_BAND] = LevelLadder.shownBand(minOf(moved, ceiling), band).name
 

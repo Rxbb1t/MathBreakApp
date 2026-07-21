@@ -29,8 +29,8 @@ class LevelLadderTest {
      */
     @Test
     fun `the ladder targets the accuracy it claims to`() {
-        val target = LevelLadder.STEP_MISS.toDouble() /
-            (LevelLadder.STEP_STEADY + LevelLadder.STEP_MISS)
+        val target = LevelLadder.STEP_LOST.toDouble() /
+            (LevelLadder.STEP_STEADY + LevelLadder.STEP_LOST)
         assertEquals(LevelLadder.TARGET_ACCURACY, target, 0.02)
     }
 
@@ -50,7 +50,7 @@ class LevelLadderTest {
     fun `a single miss never costs a whole band`() {
         for (points in Level.MIN..Level.MAX) {
             val before = Level.of(points)
-            val after = LevelLadder.next(before, Outcome.WRONG, Pace.STEADY)
+            val after = LevelLadder.next(before, Outcome.LOST, Pace.STEADY)
             val band = LevelLadder.shownBand(after, previous = before.band)
             assertEquals("a miss at $points changed the name she sees", before.band, band)
         }
@@ -73,7 +73,7 @@ class LevelLadderTest {
     @Test
     fun `misses walk the level back down`() {
         var level = Level.of(70)
-        repeat(4) { level = LevelLadder.next(level, Outcome.WRONG, Pace.STEADY) }
+        repeat(4) { level = LevelLadder.next(level, Outcome.LOST, Pace.STEADY) }
         assertEquals(Difficulty.MEDIUM, level.band)
     }
 
@@ -96,13 +96,13 @@ class LevelLadderTest {
         val above = Level.of(85)
         assertEquals(above, LevelLadder.next(above, Outcome.CORRECT, Pace.FAST, ceiling = ceiling))
         // Misses still work normally above the cap.
-        assertEquals(Level.of(85 - LevelLadder.STEP_MISS), LevelLadder.next(above, Outcome.WRONG, Pace.STEADY, ceiling = ceiling))
+        assertEquals(Level.of(85 - LevelLadder.STEP_LOST), LevelLadder.next(above, Outcome.LOST, Pace.STEADY, ceiling = ceiling))
     }
 
     @Test
     fun `the level never leaves the scale`() {
         var level = Level.of(2)
-        repeat(50) { level = LevelLadder.next(level, Outcome.WRONG, Pace.STEADY) }
+        repeat(50) { level = LevelLadder.next(level, Outcome.LOST, Pace.STEADY) }
         assertEquals(Level.FLOOR, level)
         repeat(80) { level = LevelLadder.next(level, Outcome.CORRECT, Pace.FAST) }
         assertEquals(Level.CEILING, level)
@@ -128,16 +128,16 @@ class LevelLadderTest {
     @Test
     fun `a hard problem rewards more without costing more`() {
         val start = Level.of(50)
-        val heavy = LevelLadder.next(start, Outcome.WRONG, Pace.STEADY, ProblemKind.EQUATION.effort)
-        val ordinary = LevelLadder.next(start, Outcome.WRONG, Pace.STEADY, ProblemKind.WORD.effort)
+        val heavy = LevelLadder.next(start, Outcome.LOST, Pace.STEADY, ProblemKind.EQUATION.effort)
+        val ordinary = LevelLadder.next(start, Outcome.LOST, Pace.STEADY, ProblemKind.WORD.effort)
         assertEquals(ordinary, heavy)
     }
 
     @Test
     fun `a cheap problem also costs less when missed`() {
         val start = Level.of(50)
-        val tap = LevelLadder.next(start, Outcome.WRONG, Pace.STEADY, ProblemKind.TRUE_FALSE.effort)
-        val ordinary = LevelLadder.next(start, Outcome.WRONG, Pace.STEADY, ProblemKind.WORD.effort)
+        val tap = LevelLadder.next(start, Outcome.LOST, Pace.STEADY, ProblemKind.TRUE_FALSE.effort)
+        val ordinary = LevelLadder.next(start, Outcome.LOST, Pace.STEADY, ProblemKind.WORD.effort)
         assertTrue("a coin-flip tap should cost less than a story", tap > ordinary)
     }
 
@@ -159,21 +159,50 @@ class LevelLadderTest {
 
     // ── Giving up, and skipping ──────────────────────────────────────────
 
+    /**
+     * THE RULE THAT MATTERS MOST HERE: being wrong is free. Only losing the
+     * problem costs anything, so two stumbles ending in the right answer
+     * leave her better off than when she started.
+     */
     @Test
-    fun `giving up costs less than answering wrongly`() {
+    fun `a wrong attempt costs nothing at all`() {
         val start = Level.of(50)
-        val wrong = LevelLadder.next(start, Outcome.WRONG, Pace.STEADY)
+        assertEquals(start, LevelLadder.next(start, Outcome.WRONG, Pace.STEADY))
+        for (kind in ProblemKind.entries) {
+            assertEquals(
+                "$kind charged for a wrong attempt",
+                start,
+                LevelLadder.next(start, Outcome.WRONG, Pace.STEADY, kind.effort),
+            )
+        }
+    }
+
+    @Test
+    fun `two wrong attempts then the right answer still gains ground`() {
+        var level = Level.of(50)
+        level = LevelLadder.next(level, Outcome.WRONG, Pace.STEADY)
+        level = LevelLadder.next(level, Outcome.WRONG, Pace.STEADY)
+        level = LevelLadder.next(level, Outcome.CORRECT, Pace.STEADY)
+        assertTrue("stumbling on the way should still be progress", level > Level.of(50))
+    }
+
+    @Test
+    fun `giving up costs less than losing the problem outright`() {
+        val start = Level.of(50)
+        val lost = LevelLadder.next(start, Outcome.LOST, Pace.STEADY)
         val gaveUp = LevelLadder.next(start, Outcome.GAVE_UP, Pace.STEADY)
-        assertTrue("giving up ($gaveUp) should sting less than being wrong ($wrong)", gaveUp > wrong)
+        assertTrue("giving up ($gaveUp) should sting less than losing it ($lost)", gaveUp > lost)
         assertEquals(Level.of(50 - LevelLadder.STEP_GAVE_UP), gaveUp)
     }
 
     @Test
-    fun `running out of time costs the same as any other giving up`() {
+    fun `a skip costs only what the run of them has earned`() {
         val start = Level.of(50)
+        // The usual case: nothing, because most skips are not part of a run.
+        assertEquals(start, LevelLadder.next(start, Outcome.SKIPPED, Pace.STEADY))
         assertEquals(
-            LevelLadder.next(start, Outcome.SKIPPED, Pace.STEADY),
-            LevelLadder.next(start, Outcome.GAVE_UP, Pace.STEADY),
+            Level.of(50 - LevelLadder.STEP_SKIP),
+            LevelLadder.next(start, Outcome.SKIPPED, Pace.STEADY, skipPenalty = LevelLadder.STEP_SKIP),
         )
     }
 
@@ -244,7 +273,7 @@ class LevelLadderTest {
         var level = Level.of(Level.MEDIUM_TOP)
         var shown = Difficulty.MEDIUM
         repeat(12) { i ->
-            level = LevelLadder.next(level, if (i % 2 == 0) Outcome.CORRECT else Outcome.WRONG, Pace.STEADY)
+            level = LevelLadder.next(level, if (i % 2 == 0) Outcome.CORRECT else Outcome.LOST, Pace.STEADY)
             shown = LevelLadder.shownBand(level, shown)
             assertEquals("the name changed on answer $i", Difficulty.MEDIUM, shown)
         }

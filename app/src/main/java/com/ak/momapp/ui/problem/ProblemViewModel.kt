@@ -211,8 +211,14 @@ class ProblemViewModel(
         val state = _uiState.value ?: return
         if (state.isFinished) return
         timerJob?.cancel()
+        // ONE call, not a stats call followed by a level call: anything
+        // that reaches the ladder resets the run of skips, so recording the
+        // accuracy vote separately would clear the very run this is trying
+        // to count. Skips are free until the third in a row.
         if (state.attempts == 0) {
             recordMiss(state.problem.kind.topic, Outcome.SKIPPED)
+        } else {
+            recordProblemLost(state.problem.kind.topic, Outcome.SKIPPED)
         }
         nextProblem()
     }
@@ -305,21 +311,30 @@ class ProblemViewModel(
             }
             notifyProblemFinished()
         } else {
+            // The first wrong attempt votes in the accuracy tally, but it
+            // costs nothing on the ladder. Being wrong on the way to the
+            // right answer is how the exercise works.
             if (state.attempts == 0) {
-                recordMiss(state.problem.kind.topic)
+                recordStumble(state.problem.kind.topic)
             }
             val attempts = state.attempts + 1
             // One-tap exercises offer fewer choices, so they forgive one
             // miss less than typed answers do.
             val maxAttempts = if (state.problem.submitsOnTap) MAX_TAP_ATTEMPTS else MAX_ATTEMPTS
+            val lost = attempts >= maxAttempts
             _uiState.update {
                 it?.copy(
-                    phase = if (attempts >= maxAttempts) AnswerPhase.REVEALED else AnswerPhase.TRY_AGAIN,
+                    phase = if (lost) AnswerPhase.REVEALED else AnswerPhase.TRY_AGAIN,
                     attempts = attempts,
                     input = "",
                 )
             }
-            if (attempts >= maxAttempts) notifyProblemFinished()
+            if (lost) {
+                // Out of tries: this is the one moment a wrong answer costs
+                // anything, and it is charged once for the whole problem.
+                recordProblemLost(state.problem.kind.topic, Outcome.LOST)
+                notifyProblemFinished()
+            }
         }
     }
 
@@ -336,10 +351,12 @@ class ProblemViewModel(
             _uiState.update { it?.copy(hintsUsed = state.hintsUsed + 1) }
             return
         }
+        // Asking to be shown the answer is giving up, not getting it wrong.
+        // Gentler than losing it, and the same as the clock running out.
         if (state.attempts == 0) {
-            // Asking to be shown the answer is giving up, not getting it
-            // wrong. Gentler, and the same as letting the clock run out.
             recordMiss(state.problem.kind.topic, Outcome.GAVE_UP)
+        } else {
+            recordProblemLost(state.problem.kind.topic, Outcome.GAVE_UP)
         }
         _uiState.update {
             it?.copy(phase = AnswerPhase.REVEALED, hintsUsed = MAX_HINTS, input = "")
@@ -347,8 +364,22 @@ class ProblemViewModel(
         notifyProblemFinished()
     }
 
-    /** A first-attempt miss. Drills never drag the break level down. */
-    private fun recordMiss(topic: ProblemTopic, outcome: Outcome = Outcome.WRONG) {
+    /**
+     * The first stumble on a problem: casts its one vote in the accuracy
+     * tally and files the shape for review.
+     *
+     * It does NOT move the level, because a wrong attempt she recovers from
+     * is not evidence that the level is wrong. Only [recordProblemLost]
+     * moves it.
+     */
+    private fun recordStumble(topic: ProblemTopic) = recordMiss(topic, Outcome.WRONG)
+
+    /**
+     * Casts a problem's one vote in the accuracy tally, files its shape for
+     * review, and applies whatever [outcome] costs on the ladder. The two
+     * halves stay in ONE call because they share the skip-run counter.
+     */
+    private fun recordMiss(topic: ProblemTopic, outcome: Outcome) {
         val drilling = _practice.value != null
         val problem = _uiState.value?.problem
         viewModelScope.launch {
@@ -358,6 +389,24 @@ class ProblemViewModel(
                 shape = problem?.let(ProblemShape::of),
                 outcome = outcome,
                 effort = problem?.effort ?: 1.0,
+            )
+        }
+    }
+
+    /**
+     * The problem is gone: out of tries, out of time, or she asked to see
+     * it. This is the only thing that lowers the level, and it happens once
+     * per problem however many attempts went into it.
+     */
+    private fun recordProblemLost(topic: ProblemTopic, outcome: Outcome) {
+        val drilling = _practice.value != null
+        val effort = _uiState.value?.problem?.effort ?: 1.0
+        viewModelScope.launch {
+            progressRepository.recordLevelOnly(
+                topic = topic,
+                outcome = outcome,
+                effort = effort,
+                countsTowardLevel = !drilling,
             )
         }
     }
@@ -432,11 +481,13 @@ class ProblemViewModel(
     private fun onTimeUp() {
         val state = _uiState.value ?: return
         if (state.isFinished) return
-        // Untouched problems count against the adaptive level, but gently:
-        // running out of time is not the same as trying and missing. If she
-        // already missed an attempt, that was recorded then.
+        // Running out of time costs less than losing the problem outright.
+        // The accuracy tally only hears about it if she hadn't already
+        // stumbled, but the level moves either way: the problem is gone.
         if (state.attempts == 0) {
             recordMiss(state.problem.kind.topic, Outcome.GAVE_UP)
+        } else {
+            recordProblemLost(state.problem.kind.topic, Outcome.GAVE_UP)
         }
         _uiState.update {
             it?.copy(

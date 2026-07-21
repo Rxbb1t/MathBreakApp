@@ -166,16 +166,24 @@ object TopicLadders {
         seedLevel: Level,
         seedBand: Difficulty,
         effort: Double = 1.0,
+        skipPenalty: Int = 0,
+        /**
+         * Whether this counts as one of the topic's answers for the
+         * evidence wait. False when the ladder is being moved a second time
+         * for the same problem (a stumble votes, then losing it pays), so
+         * one problem is never counted as two.
+         */
+        countsAsSeen: Boolean = true,
         ceiling: Level = Level.CEILING,
     ): String {
         val correct = outcome == Outcome.CORRECT
         val ladders = decode(raw).toMutableMap()
         val ladder = ladders[topic] ?: TopicLadder(level = seedLevel, shownBand = seedBand)
-        val moved = LevelLadder.next(ladder.level, outcome, pace, effort, ceiling)
+        val moved = LevelLadder.next(ladder.level, outcome, pace, effort, skipPenalty, ceiling)
         ladders[topic] = TopicLadder(
             level = moved,
             shownBand = LevelLadder.shownBand(minOf(moved, ceiling), ladder.shownBand),
-            seen = ladder.seen + 1,
+            seen = if (countsAsSeen) ladder.seen + 1 else ladder.seen,
             // Only correct answers teach the app her pace. A wrong answer's
             // time measures how long she was willing to stare at it, which
             // is a different thing entirely.

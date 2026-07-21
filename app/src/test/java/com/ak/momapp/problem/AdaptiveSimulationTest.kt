@@ -55,7 +55,7 @@ class AdaptiveSimulationTest {
             val time = solveTimeMs(ability, level, random)
             val judged = pace.classify(time)
             if (correct) pace = pace.record(time)
-            level = LevelLadder.next(level, if (correct) Outcome.CORRECT else Outcome.WRONG, judged)
+            level = LevelLadder.next(level, if (correct) Outcome.CORRECT else Outcome.LOST, judged)
             level
         }
     }

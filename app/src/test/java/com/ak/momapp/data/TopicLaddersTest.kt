@@ -95,7 +95,7 @@ class TopicLaddersTest {
 
     @Test
     fun `a topic follows the overall level until it has evidence`() {
-        val ladders = TopicLadders.decode(record(null, ProblemTopic.GEOMETRY, outcome = Outcome.WRONG, count = 3))
+        val ladders = TopicLadders.decode(record(null, ProblemTopic.GEOMETRY, outcome = Outcome.LOST, count = 3))
         // Its own ladder has moved, but nobody is listening yet.
         assertTrue(ladders.getValue(ProblemTopic.GEOMETRY).level < start)
         assertEquals(start, TopicLadders.levelFor(ladders, ProblemTopic.GEOMETRY, start))
@@ -103,7 +103,7 @@ class TopicLaddersTest {
 
     @Test
     fun `once there is evidence the topic speaks for itself`() {
-        val raw = record(null, ProblemTopic.GEOMETRY, outcome = Outcome.WRONG, count = TopicLadders.EVIDENCE_NEEDED)
+        val raw = record(null, ProblemTopic.GEOMETRY, outcome = Outcome.LOST, count = TopicLadders.EVIDENCE_NEEDED)
         assertTrue(TopicLadders.levelFor(TopicLadders.decode(raw), ProblemTopic.GEOMETRY, start) < start)
     }
 
@@ -125,7 +125,7 @@ class TopicLaddersTest {
             null, ProblemTopic.MONEY, outcome = Outcome.CORRECT,
             count = TopicLadders.EVIDENCE_NEEDED, pace = Pace.FAST,
         )
-        raw = record(raw, ProblemTopic.GEOMETRY, outcome = Outcome.WRONG, count = TopicLadders.EVIDENCE_NEEDED)
+        raw = record(raw, ProblemTopic.GEOMETRY, outcome = Outcome.LOST, count = TopicLadders.EVIDENCE_NEEDED)
         val ladders = TopicLadders.decode(raw)
         val money = TopicLadders.levelFor(ladders, ProblemTopic.MONEY, start)
         val geometry = TopicLadders.levelFor(ladders, ProblemTopic.GEOMETRY, start)
@@ -193,7 +193,7 @@ class TopicLaddersTest {
 
     @Test
     fun `a topic without evidence shows the overall name`() {
-        val ladders = TopicLadders.decode(record(null, ProblemTopic.WORD, outcome = Outcome.WRONG))
+        val ladders = TopicLadders.decode(record(null, ProblemTopic.WORD, outcome = Outcome.LOST))
         assertEquals(
             Difficulty.MEDIUM,
             TopicLadders.bandFor(ladders, ProblemTopic.WORD, start, Difficulty.MEDIUM),
@@ -216,7 +216,7 @@ class TopicLaddersTest {
 
     @Test
     fun `only correct answers teach the app her pace`() {
-        val raw = record(null, ProblemTopic.CORE, outcome = Outcome.WRONG, count = 4, solveTimeMs = 30_000)
+        val raw = record(null, ProblemTopic.CORE, outcome = Outcome.LOST, count = 4, solveTimeMs = 30_000)
         assertEquals(0, TopicLadders.decode(raw).getValue(ProblemTopic.CORE).pace.samples)
     }
 
@@ -291,7 +291,7 @@ class TopicLaddersTest {
 
     @Test
     fun `misses walk a topic back down`() {
-        val raw = record(null, ProblemTopic.PUZZLE, outcome = Outcome.WRONG, count = 8)
+        val raw = record(null, ProblemTopic.PUZZLE, outcome = Outcome.LOST, count = 8)
         assertTrue(TopicLadders.decode(raw).getValue(ProblemTopic.PUZZLE).level < start)
     }
 }

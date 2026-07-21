@@ -166,7 +166,6 @@ object TopicLadders {
         seedLevel: Level,
         seedBand: Difficulty,
         effort: Double = 1.0,
-        skipPenalty: Int = 0,
         /**
          * Whether this counts as one of the topic's answers for the
          * evidence wait. False when the ladder is being moved a second time
@@ -179,7 +178,7 @@ object TopicLadders {
         val correct = outcome == Outcome.CORRECT
         val ladders = decode(raw).toMutableMap()
         val ladder = ladders[topic] ?: TopicLadder(level = seedLevel, shownBand = seedBand)
-        val moved = LevelLadder.next(ladder.level, outcome, pace, effort, skipPenalty, ceiling)
+        val moved = LevelLadder.next(ladder.level, outcome, pace, effort, ceiling)
         ladders[topic] = TopicLadder(
             level = moved,
             shownBand = LevelLadder.shownBand(minOf(moved, ceiling), ladder.shownBand),

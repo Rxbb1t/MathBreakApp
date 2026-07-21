@@ -86,12 +86,6 @@ class ProgressRepository(private val context: Context) {
         val OVERALL_PACE_MS = longPreferencesKey("overall_pace_ms")
         val OVERALL_PACE_SAMPLES = intPreferencesKey("overall_pace_samples")
 
-        /**
-         * Skips since the last one that counted. See
-         * [SkipTally]: passing on one or two problems
-         * in a row costs nothing at all.
-         */
-        val SKIP_TALLY = intPreferencesKey("skip_streak")
     }
 
     /**
@@ -309,7 +303,7 @@ class ProgressRepository(private val context: Context) {
         }
     }
 
-    /** Applies one outcome to both ladders, with the skip run worked out. */
+    /** Applies one outcome to both ladders. */
     private fun moveLevel(
         prefs: MutablePreferences,
         topic: ProblemTopic,
@@ -317,22 +311,12 @@ class ProgressRepository(private val context: Context) {
         effort: Double,
         countsAsSeen: Boolean,
     ) {
-        var skipPenalty = 0
-        if (outcome == Outcome.SKIPPED) {
-            val (streak, penalty) = SkipTally.record(prefs[Keys.SKIP_TALLY] ?: 0)
-            prefs[Keys.SKIP_TALLY] = streak
-            // Most skips cost nothing, and a free one is not worth waking
-            // the ladders up for.
-            if (penalty == 0) return
-            skipPenalty = penalty
-        }
         advance(
             prefs = prefs,
             topic = topic,
             outcome = outcome,
             solveTimeMs = 0,
             effort = effort,
-            skipPenalty = skipPenalty,
             countsAsSeen = countsAsSeen,
         )
     }
@@ -343,7 +327,6 @@ class ProgressRepository(private val context: Context) {
         outcome: Outcome,
         solveTimeMs: Long,
         effort: Double,
-        skipPenalty: Int = 0,
         countsAsSeen: Boolean = true,
     ) {
         val ladders = TopicLadders.decode(prefs[Keys.TOPIC_LADDERS])
@@ -357,14 +340,11 @@ class ProgressRepository(private val context: Context) {
             prefs[Keys.OVERALL_PACE_MS] = paced.typicalMs
             prefs[Keys.OVERALL_PACE_SAMPLES] = paced.samples
         }
-        // Anything she actually engaged with breaks a run of skips. Three
-        // scattered across a week are not the pattern this is looking for.
-        if (outcome != Outcome.SKIPPED) prefs[Keys.SKIP_TALLY] = 0
         val ceiling = readCeiling(prefs)
         val level = readLevel(prefs)
         val band = readBand(prefs)
 
-        val moved = LevelLadder.next(level, outcome, pace, effort, skipPenalty, ceiling)
+        val moved = LevelLadder.next(level, outcome, pace, effort, ceiling)
         prefs[Keys.CURRENT_POINTS] = moved.points
         prefs[Keys.CURRENT_BAND] = LevelLadder.shownBand(minOf(moved, ceiling), band).name
 

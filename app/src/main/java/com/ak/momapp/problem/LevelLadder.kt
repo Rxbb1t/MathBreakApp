@@ -142,8 +142,8 @@ object LevelLadder {
      * A points ladder stops moving where the climbing and the falling
      * cancel out, so `p × STEP_STEADY = (1 − p) × STEP_LOST` fixes the
      * share it hunts for: whatever she does, it drags her toward the level
-     * where she SOLVES that many. The steps are not independent tuning
-     * knobs. They are a ratio that names a target.
+     * where she SOLVES that many. The gain steps and [STEP_LOST] are not
+     * independent tuning knobs. Their ratio names a target.
      *
      * Note what p counts now: problems SOLVED, not first attempts right.
      * Since a wrong attempt costs nothing and only losing a problem does,
@@ -151,64 +151,58 @@ object LevelLadder {
      * first-try accuracy she settles at is therefore lower than this
      * number, which is intended: it leaves room to be wrong on the way.
      *
-     * 4:1 puts the target at 80%. That is a deliberate product decision
-     * rather than a default: this app interrupts someone at home to be a
-     * pleasant two minutes, so the level it seeks should be one where she
-     * is mostly right and occasionally stretched. An earlier draft used
-     * 5:4, which targets 56%, and a simulated player answering 80% right
-     * was carried from Easy to derivatives in about forty problems. Nobody
-     * would have called that adaptive. They would have called it broken.
+     * At [STEP_STEADY] 2.4 against [STEP_LOST] 5 the target is about 68%
+     * SOLVED. Lower than the old 80% on purpose: the user found that too
+     * punishing, so the gains were raised and the loss softened, both of
+     * which let the level sit a little higher, where she is stretched more
+     * often. The flip side is that she loses a slightly larger share of
+     * problems outright; that is the deliberate trade, and [STEP_LOST] is
+     * the lever if it ever needs pulling back.
      */
-    const val TARGET_ACCURACY = 0.8
+    const val TARGET_ACCURACY = 0.68
 
-    /** Right, and quickly: the strongest sign the level is too low. */
-    const val STEP_FAST = 3
+    /**
+     * The three climb sizes. Twenty percent above the old 3 / 2 / 1: the
+     * user wanted a right answer, and a quick one especially, to feel like
+     * it moved the needle more. Doubles because the boost only survives
+     * rounding on some of them otherwise.
+     */
+    const val STEP_FAST = 3.6
 
     /** Right, at her usual pace: the level fits, so inch upward. */
-    const val STEP_STEADY = 2
+    const val STEP_STEADY = 2.4
 
     /** Right, but it took her: she is about where she should be. */
-    const val STEP_SLOW = 1
+    const val STEP_SLOW = 1.2
 
     /**
-     * LOSING a problem: out of tries, answer revealed. Four times the
-     * steady step, which is what sets [TARGET_ACCURACY]; changing it moves
-     * the target.
+     * LOSING a problem: out of tries, answer revealed, or the clock ran
+     * out. A flat five points whatever the problem was worth.
      *
-     * This is the only thing a typed answer can cost her, and it is charged
-     * once at the end rather than per wrong attempt. Two stumbles followed
-     * by the right answer is a solved problem and is paid for as one.
+     * This is the only thing that costs anything besides a run of skips,
+     * and it is charged once at the end, not per wrong attempt. Two
+     * stumbles followed by the right answer is a solved problem and is paid
+     * for as one.
      */
-    const val STEP_LOST = 8
+    const val STEP_LOST = 5
 
-    /**
-     * Giving up on a problem, or letting the clock run out.
-     *
-     * Deliberately gentler than losing one, because it is weaker evidence:
-     * not fancying this one says less about whether the level fits than
-     * trying it three times and not getting there.
-     */
+    /** Giving up, or the clock running out: the same flat five as a loss. */
     const val STEP_GAVE_UP = 5
 
     /**
-     * How many skips IN A ROW before one costs anything, and what a run of
-     * them costs.
+     * What one skip costs. Flat, and charged every time.
      *
-     * The first two are free. Skipping because the doorbell went is not
-     * evidence about the level, and an app that docks you for every pass is
-     * one you start to feel watched by. Three in a row is a real signal;
-     * six in a row is a louder one, so the price goes up and stays up.
-     * Answering anything at all resets the run.
+     * It used to be free for the first two of a run and then escalate; the
+     * user preferred a plain, predictable three points. Small enough that
+     * the odd pass barely registers, real enough that skipping everything
+     * still walks the level down.
      */
-    const val SKIPS_BEFORE_PENALTY = 3
-    const val SKIPS_BEFORE_BIGGER_PENALTY = 6
-    const val STEP_SKIP = 5
-    const val STEP_SKIP_PERSISTENT = 8
+    const val STEP_SKIP = 3
 
     /**
      * The most a single answer can move her, which is what [BAND_HYSTERESIS]
-     * has to clear. A loss is capped at the ordinary step even for the
-     * heaviest problems, and a persistent skip costs the same.
+     * has to clear. A loss is capped at the flat step even for the heaviest
+     * problems.
      */
     const val MAX_DROP = STEP_LOST
 
@@ -243,11 +237,6 @@ object LevelLadder {
         outcome: Outcome,
         pace: Pace,
         effort: Double = 1.0,
-        /**
-         * What this particular skip costs, worked out from how many came
-         * before it; see [SkipTally]. Ignored for every other outcome.
-         */
-        skipPenalty: Int = 0,
         ceiling: Level = Level.CEILING,
     ): Level {
         val step = when (outcome) {
@@ -264,7 +253,7 @@ object LevelLadder {
             Outcome.WRONG -> 0
             Outcome.LOST -> -(STEP_LOST * minOf(effort, 1.0)).roundToInt()
             Outcome.GAVE_UP -> -STEP_GAVE_UP
-            Outcome.SKIPPED -> -skipPenalty
+            Outcome.SKIPPED -> -STEP_SKIP
         }
         val moved = level.shift(step)
         // The ceiling holds a climb back, but never shoves her down: a cap

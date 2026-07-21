@@ -15,7 +15,8 @@ class LevelLadderTest {
     @Test
     fun `one right answer moves a few points, not a whole band`() {
         val after = LevelLadder.next(Level.of(50), Outcome.CORRECT, Pace.STEADY)
-        assertEquals(Level.of(50 + LevelLadder.STEP_STEADY), after)
+        val moved = after.points - 50
+        assertTrue("a steady answer should nudge, not leap: moved $moved", moved in 1..5)
         // Still Normal. The name only changes when the points earn it.
         assertEquals(Difficulty.MEDIUM, after.band)
     }
@@ -187,23 +188,32 @@ class LevelLadderTest {
     }
 
     @Test
-    fun `giving up costs less than losing the problem outright`() {
+    fun `losing, timing out and revealing all cost the same flat amount`() {
         val start = Level.of(50)
         val lost = LevelLadder.next(start, Outcome.LOST, Pace.STEADY)
         val gaveUp = LevelLadder.next(start, Outcome.GAVE_UP, Pace.STEADY)
-        assertTrue("giving up ($gaveUp) should sting less than losing it ($lost)", gaveUp > lost)
-        assertEquals(Level.of(50 - LevelLadder.STEP_GAVE_UP), gaveUp)
+        assertEquals(lost, gaveUp)
+        assertEquals(Level.of(50 - LevelLadder.STEP_LOST), lost)
     }
 
     @Test
-    fun `a skip costs only what the run of them has earned`() {
+    fun `a skip costs a flat few points every time`() {
         val start = Level.of(50)
-        // The usual case: nothing, because most skips are not part of a run.
-        assertEquals(start, LevelLadder.next(start, Outcome.SKIPPED, Pace.STEADY))
+        val after = LevelLadder.next(start, Outcome.SKIPPED, Pace.STEADY)
+        assertEquals(Level.of(50 - LevelLadder.STEP_SKIP), after)
+        // And the same again, with no escalation.
         assertEquals(
-            Level.of(50 - LevelLadder.STEP_SKIP),
-            LevelLadder.next(start, Outcome.SKIPPED, Pace.STEADY, skipPenalty = LevelLadder.STEP_SKIP),
+            Level.of(50 - 2 * LevelLadder.STEP_SKIP),
+            LevelLadder.next(after, Outcome.SKIPPED, Pace.STEADY),
         )
+    }
+
+    @Test
+    fun `a skip costs less than losing the problem`() {
+        val start = Level.of(50)
+        val skipped = LevelLadder.next(start, Outcome.SKIPPED, Pace.STEADY)
+        val lost = LevelLadder.next(start, Outcome.LOST, Pace.STEADY)
+        assertTrue("a skip ($skipped) should sting less than a loss ($lost)", skipped > lost)
     }
 
     /**

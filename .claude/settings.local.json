@@ -4,7 +4,15 @@
       "PowerShell(Remove-Item *)",
       "PowerShell(.\\\\gradlew.bat :app:testDebugUnitTest :app:assembleDebug --console=plain)",
       "WebFetch(domain:play.google.com)",
-      "PowerShell(.\\\\gradlew.bat :app:compileDebugKotlin :app:testDebugUnitTest --console=plain)"
+      "PowerShell(.\\\\gradlew.bat :app:compileDebugKotlin :app:testDebugUnitTest --console=plain)",
+      "Bash(git -C /c/Users/Anto/AndroidStudioProjects/MomApp status)",
+      "Bash(git -C /c/Users/Anto/AndroidStudioProjects/MomApp branch -a)",
+      "Bash(git -C /c/Users/Anto/AndroidStudioProjects/MomApp remote -v)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git remote *)",
+      "Bash(git push *)",
+      "PowerShell(.\\\\gradlew.bat assembleRelease --console=plain -q; if \\($?\\) { \"BUILD OK\" })"
     ]
   }
 }

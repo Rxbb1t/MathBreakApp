@@ -59,33 +59,33 @@ class DailyChallengeGenerator {
             stages = listOf(
                 stage(
                     text = if (en) {
-                        "At the market you buy $q1 kg of potatoes at $p1 lei per kilo " +
-                            "and $q2 kg of apples at $p2 lei per kilo. How much do you spend?"
+                        "At the market you buy $q1 kg of potatoes at $p1 euros per kilo " +
+                            "and $q2 kg of apples at $p2 euros per kilo. How much do you spend?"
                     } else {
-                        "La piață cumperi $q1 kg de cartofi cu $p1 lei kilogramul " +
-                            "și $q2 kg de mere cu $p2 lei kilogramul. Cât cheltuiești?"
+                        "La piață cumperi $q1 kg de cartofi cu $p1 euro kilogramul " +
+                            "și $q2 kg de mere cu $p2 euro kilogramul. Cât cheltuiești?"
                     },
                     answer = spent,
                     kind = ProblemKind.MONEY,
-                    hint = if (en) "Two buys, one purse. The answer is everything you paid together."
-                    else "Două cumpărături, un singur portofel. Răspunsul e tot ce ai plătit laolaltă.",
+                    hint = if (en) "Work out each buy, then add the two together."
+                    else "Calculează fiecare cumpărătură, apoi adună-le.",
                     language = language,
-                    unit = "lei",
+                    unit = "€",
                 ),
                 stage(
                     text = if (en) {
-                        "You hand the seller a 200-lei banknote for the $spent lei of shopping. " +
+                        "You hand the seller a 200-euro banknote for the $spent euros of shopping. " +
                             "How much change do you get back?"
                     } else {
-                        "Îi dai vânzătoarei o bancnotă de 200 de lei pentru cumpărăturile " +
-                            "de ${de(spent)} lei. Cât rest primești?"
+                        "Îi dai vânzătoarei o bancnotă de 200 de euro pentru cumpărăturile " +
+                            "de ${de(spent)} euro. Cât rest primești?"
                     },
                     answer = change,
                     kind = ProblemKind.MONEY,
-                    hint = if (en) "The change is what the banknote covers beyond the shopping."
-                    else "Restul e cât acoperă bancnota peste cumpărături.",
+                    hint = if (en) "Subtract the cost from the banknote."
+                    else "Scade costul din bancnotă.",
                     language = language,
-                    unit = "lei",
+                    unit = "€",
                 ),
                 stage(
                     text = if (en) {
@@ -104,34 +104,34 @@ class DailyChallengeGenerator {
                 ),
                 stage(
                     text = if (en) {
-                        "Guests are coming over: you set aside $perKid covrigi for each " +
-                            "of the $kids kids. How many covrigi is that?"
+                        "Guests are coming over: you set aside $perKid pretzels for each " +
+                            "of the $kids kids. How many pretzels is that?"
                     } else {
                         "Vin musafiri: pui deoparte câte $perKid covrigi pentru fiecare " +
                             "dintre cei $kids copii. Câți covrigi în total?"
                     },
                     answer = perKid * kids,
                     kind = ProblemKind.WORD,
-                    hint = if (en) "The same little bundle for every child."
-                    else "Același pachețel pentru fiecare copil.",
+                    hint = if (en) "Each child gets the same amount, so multiply."
+                    else "Fiecare copil primește la fel, deci înmulțește.",
                     language = language,
                 ),
                 stage(
                     text = if (en) {
-                        "This morning you had x lei in your purse. You spent $spent lei at the " +
-                            "market and $pharmacy lei at the pharmacy, and now $leftOver lei " +
+                        "This morning you had x euros in your purse. You spent $spent euros at the " +
+                            "market and $pharmacy euros at the pharmacy, and now $leftOver euros " +
                             "are left. How much was x?"
                     } else {
-                        "Azi-dimineață aveai x lei în portofel. Ai cheltuit ${de(spent)} lei la " +
-                            "piață și ${de(pharmacy)} lei la farmacie, iar acum ți-au rămas " +
-                            "${de(leftOver)} lei. Cât era x?"
+                        "Azi-dimineață aveai x euro în portofel. Ai cheltuit ${de(spent)} euro la " +
+                            "piață și ${de(pharmacy)} euro la farmacie, iar acum ți-au rămas " +
+                            "${de(leftOver)} euro. Cât era x?"
                     },
                     answer = purse,
                     kind = ProblemKind.EQUATION,
-                    hint = if (en) "x was there before any spending. Bigger than everything that followed."
-                    else "x era acolo înainte de orice cheltuială. Mai mare decât tot ce a urmat.",
+                    hint = if (en) "Add what you spent to what's left."
+                    else "Adună ce ai cheltuit cu ce ți-a rămas.",
                     language = language,
-                    unit = "lei",
+                    unit = "€",
                 ),
             ),
         )
@@ -178,10 +178,10 @@ class DailyChallengeGenerator {
                 ),
                 stage(
                     text = if (en) {
-                        "The fence wire costs $wire lei per meter. " +
+                        "The fence wire costs $wire euros per meter. " +
                             "How much will all $fence meters cost?"
                     } else {
-                        "Plasa de gard costă $wire lei metrul. " +
+                        "Plasa de gard costă $wire euro metrul. " +
                             "Cât vor costa toți cei ${de(fence)} metri?"
                     },
                     answer = wire * fence,
@@ -189,7 +189,7 @@ class DailyChallengeGenerator {
                     hint = if (en) "Every meter of fence carries the same price."
                     else "Fiecare metru de gard costă la fel.",
                     language = language,
-                    unit = "lei",
+                    unit = "€",
                 ),
                 stage(
                     text = if (en) {
@@ -201,8 +201,8 @@ class DailyChallengeGenerator {
                     },
                     answer = squares,
                     kind = ProblemKind.GEOMETRY,
-                    hint = if (en) "The squares fill the patch like a tray of ice cubes. Count them all."
-                    else "Pătratele umplu grădina ca o tavă de cuburi. Numără-le pe toate.",
+                    hint = if (en) "Multiply the length by the width."
+                    else "Înmulțește lungimea cu lățimea.",
                     language = language,
                     diagram = Diagram.Rectangle(
                         widthLabel = "$a m",
@@ -221,8 +221,8 @@ class DailyChallengeGenerator {
                     },
                     answer = squares - flowers,
                     kind = ProblemKind.WORD,
-                    hint = if (en) "A few squares leave the vegetable count."
-                    else "Câteva pătrate ies din socoteala legumelor.",
+                    hint = if (en) "Subtract the flower squares from the total."
+                    else "Scade pătratele cu flori din total.",
                     language = language,
                 ),
                 stage(
@@ -283,10 +283,10 @@ class DailyChallengeGenerator {
                 ),
                 stage(
                     text = if (en) {
-                        "At the station shop you pick up $gifts little gifts at $price lei " +
+                        "At the station shop you pick up $gifts little gifts at $price euros " +
                             "each. How much do the gifts cost?"
                     } else {
-                        "De la magazinul din gară iei $gifts cadouri mici de câte $price lei. " +
+                        "De la magazinul din gară iei $gifts cadouri mici de câte $price euro. " +
                             "Cât costă cadourile?"
                     },
                     answer = giftCost,
@@ -294,23 +294,23 @@ class DailyChallengeGenerator {
                     hint = if (en) "The same price, once for every gift."
                     else "Același preț, o dată pentru fiecare cadou.",
                     language = language,
-                    unit = "lei",
+                    unit = "€",
                 ),
                 stage(
                     text = if (en) {
-                        "The return ticket costs x lei. The two tickets together came to " +
-                            "$tickets lei, and the ticket there was $ticketThere lei. What is x?"
+                        "The return ticket costs x euros. The two tickets together came to " +
+                            "$tickets euros, and the ticket there was $ticketThere euros. What is x?"
                     } else {
-                        "Biletul de întors costă x lei. Amândouă biletele au costat " +
-                            "${de(tickets)} lei, iar cel de dus a fost ${de(ticketThere)} lei. " +
+                        "Biletul de întors costă x euro. Amândouă biletele au costat " +
+                            "${de(tickets)} euro, iar cel de dus a fost ${de(ticketThere)} euro. " +
                             "Cât e x?"
                     },
                     answer = ticketBack,
                     kind = ProblemKind.EQUATION,
-                    hint = if (en) "Both tickets together hold x inside them."
-                    else "Amândouă biletele îl ascund pe x înăuntru.",
+                    hint = if (en) "Subtract the ticket there from the total."
+                    else "Scade biletul de dus din total.",
                     language = language,
-                    unit = "lei",
+                    unit = "€",
                 ),
                 stage(
                     text = if (en) {
@@ -322,25 +322,25 @@ class DailyChallengeGenerator {
                     },
                     answer = bus + ride,
                     kind = ProblemKind.WORD,
-                    hint = if (en) "Train first, then the bus. The whole way is both together."
-                    else "Întâi trenul, apoi autobuzul. Tot drumul le cuprinde pe amândouă.",
+                    hint = if (en) "Add the train minutes and the bus minutes."
+                    else "Adună minutele de tren cu cele de autobuz.",
                     language = language,
                     unit = "min",
                 ),
                 stage(
                     text = if (en) {
-                        "You left home with $wallet lei. After $giftCost lei for gifts and " +
-                            "$tickets lei for the two tickets, how much do you bring home?"
+                        "You left home with $wallet euros. After $giftCost euros for gifts and " +
+                            "$tickets euros for the two tickets, how much do you bring home?"
                     } else {
-                        "Ai plecat de acasă cu ${de(wallet)} lei. După ${de(giftCost)} lei pe " +
-                            "cadouri și ${de(tickets)} lei pe bilete, cu câți lei te întorci acasă?"
+                        "Ai plecat de acasă cu ${de(wallet)} euro. După ${de(giftCost)} euro pe " +
+                            "cadouri și ${de(tickets)} euro pe bilete, cu câți euro te întorci acasă?"
                     },
                     answer = leftOver,
                     kind = ProblemKind.MONEY,
-                    hint = if (en) "What comes home is what the gifts and tickets didn't take."
-                    else "Acasă ajunge ce nu au luat cadourile și biletele.",
+                    hint = if (en) "Subtract both costs from what you started with."
+                    else "Scade ambele cheltuieli din suma de la plecare.",
                     language = language,
-                    unit = "lei",
+                    unit = "€",
                 ),
             ),
         )
@@ -369,50 +369,50 @@ class DailyChallengeGenerator {
             stages = listOf(
                 stage(
                     text = if (en) {
-                        "At the shop, the flour costs $flour lei, the butter $butter lei and " +
-                            "the sugar $sugar lei. How much do the baking supplies cost?"
+                        "At the shop, the flour costs $flour euros, the butter $butter euros and " +
+                            "the sugar $sugar euros. How much do the baking supplies cost?"
                     } else {
-                        "La magazin, făina costă ${de(flour)} lei, untul ${de(butter)} lei și " +
-                            "zahărul ${de(sugar)} lei. Cât costă toate cumpărăturile?"
+                        "La magazin, făina costă ${de(flour)} euro, untul ${de(butter)} euro și " +
+                            "zahărul ${de(sugar)} euro. Cât costă toate cumpărăturile?"
                     },
                     answer = total,
                     kind = ProblemKind.MONEY,
-                    hint = if (en) "Three prices, one basket. The answer holds them all."
-                    else "Trei prețuri, un singur coș. Răspunsul le cuprinde pe toate.",
+                    hint = if (en) "Add the three prices together."
+                    else "Adună cele trei prețuri.",
                     language = language,
-                    unit = "lei",
+                    unit = "€",
                 ),
                 stage(
                     text = if (en) {
-                        "You pay with a 100-lei banknote for the $total lei of supplies. " +
+                        "You pay with a 100-euro banknote for the $total euros of supplies. " +
                             "How much change do you get?"
                     } else {
-                        "Plătești cu o bancnotă de 100 de lei pentru cumpărăturile de " +
-                            "${de(total)} lei. Cât rest primești?"
+                        "Plătești cu o bancnotă de 100 de euro pentru cumpărăturile de " +
+                            "${de(total)} euro. Cât rest primești?"
                     },
                     answer = 100 - total,
                     kind = ProblemKind.MONEY,
-                    hint = if (en) "The change is what the banknote covers beyond the shopping."
-                    else "Restul e cât acoperă bancnota peste cumpărături.",
+                    hint = if (en) "Subtract the cost from the banknote."
+                    else "Scade costul din bancnotă.",
                     language = language,
-                    unit = "lei",
+                    unit = "€",
                 ),
                 stage(
                     text = if (en) {
-                        "You bake $trays trays with $pieces covrigi on each. " +
-                            "How many covrigi in the batch?"
+                        "You bake $trays trays with $pieces pretzels on each. " +
+                            "How many pretzels in the batch?"
                     } else {
                         "Coci $trays tăvi cu câte $pieces covrigi. Câți covrigi în total?"
                     },
                     answer = batch,
                     kind = ProblemKind.WORD,
-                    hint = if (en) "Every tray carries the same little crowd."
-                    else "Fiecare tavă duce același grup mic.",
+                    hint = if (en) "Each tray holds the same number, so multiply."
+                    else "Fiecare tavă are același număr, deci înmulțește.",
                     language = language,
                 ),
                 stage(
                     text = if (en) {
-                        "Of the $batch covrigi, you take $given to the neighbours. " +
+                        "Of the $batch pretzels, you take $given to the neighbours. " +
                             "How many stay home?"
                     } else {
                         "Din cei ${de(batch)} covrigi, duci $given vecinilor. " +
@@ -420,8 +420,8 @@ class DailyChallengeGenerator {
                     },
                     answer = batch - given,
                     kind = ProblemKind.WORD,
-                    hint = if (en) "A few covrigi leave the batch."
-                    else "Câțiva covrigi pleacă din socoteală.",
+                    hint = if (en) "Subtract the ones you gave away."
+                    else "Scade covrigii pe care i-ai dat.",
                     language = language,
                 ),
                 stage(
@@ -506,8 +506,8 @@ class DailyChallengeGenerator {
                     },
                     answer = distance,
                     kind = ProblemKind.WORD,
-                    hint = if (en) "The same lap, again and again."
-                    else "Aceeași tură, iar și iar.",
+                    hint = if (en) "Multiply one lap by the number of laps."
+                    else "Înmulțește o tură cu numărul de ture.",
                     language = language,
                     unit = "m",
                 ),
@@ -521,25 +521,25 @@ class DailyChallengeGenerator {
                     },
                     answer = yesterday + distance,
                     kind = ProblemKind.WORD,
-                    hint = if (en) "Both days go into one total. Bigger than either one."
-                    else "Ambele zile intră într-un singur total. Mai mare decât fiecare.",
+                    hint = if (en) "Add the two days together."
+                    else "Adună cele două zile.",
                     language = language,
                     unit = "m",
                 ),
                 stage(
                     text = if (en) {
-                        "A lemonade at the kiosk costs x lei. You hand over 20 lei and get " +
-                            "$rest lei back. What is x?"
+                        "A lemonade at the kiosk costs x euros. You hand over 20 euros and get " +
+                            "$rest euros back. What is x?"
                     } else {
-                        "O limonadă la chioșc costă x lei. Dai 20 de lei și primești " +
-                            "$rest lei rest. Cât e x?"
+                        "O limonadă la chioșc costă x euro. Dai 20 de euro și primești " +
+                            "$rest euro rest. Cât e x?"
                     },
                     answer = 20 - rest,
                     kind = ProblemKind.EQUATION,
-                    hint = if (en) "x and the change together make up the 20 lei."
-                    else "x și restul împreună fac cei 20 de lei.",
+                    hint = if (en) "x and the change together make up the 20 euros."
+                    else "x și restul împreună fac cei 20 de euro.",
                     language = language,
-                    unit = "lei",
+                    unit = "€",
                 ),
             ),
         )
@@ -567,7 +567,7 @@ class DailyChallengeGenerator {
 
     private fun clock(minutes: Int): String = "%d:%02d".format(minutes / 60, minutes % 60)
 
-    /** Romanian counting: "12 lei" but "45 de lei". */
+    /** Romanian counting: "12 euro" but "45 de euro". */
     private fun de(n: Int): String = if (n < 20) "$n" else "$n de"
 
     companion object {

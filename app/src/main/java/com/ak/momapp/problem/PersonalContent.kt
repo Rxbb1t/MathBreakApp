@@ -9,21 +9,21 @@ import com.ak.momapp.i18n.AppLanguage
  */
 object PersonalContent {
 
-    /** Shown occasionally after a correct answer. */
+    /** shown occasionally after a correct answer */
     val ENCOURAGEMENTS: List<String> = listOf(
-        "Nice one! 💛",
+        "Nice one!",
         "Sharp as ever!",
         "Good thinking!",
         "Look at you go!",
-        "Coffee break earned ☕",
+        "You've earned that coffee.",
     )
 
     val ENCOURAGEMENTS_RO: List<String> = listOf(
-        "Bravo! 💛",
+        "Bravo!",
         "Isteț ca întotdeauna!",
         "Bine gândit!",
         "Așa se face!",
-        "Pauză de cafea meritată ☕",
+        "Cafeaua e binemeritată.",
     )
 
     fun encouragements(language: AppLanguage): List<String> = when (language) {
@@ -48,15 +48,15 @@ object PersonalContent {
      * line, so these stay short.
      */
     val BREAK_NOTIFICATION_LINES: List<String> = listOf(
-        "Time for a little brain break 🌼",
+        "Time for a little brain break.",
         "One quick problem, 30 seconds tops.",
-        "Got a minute for one problem? 😄",
+        "Got a minute for one problem?",
     )
 
     val BREAK_NOTIFICATION_LINES_RO: List<String> = listOf(
-        "E timpul pentru o mică pauză de creier 🌼",
+        "E timpul pentru o mică pauză de creier.",
         "O problemă scurtă, max 30 de secunde.",
-        "Ai un minut pentru o problemă? 😄",
+        "Ai un minut pentru o problemă?",
     )
 
     fun notificationLines(language: AppLanguage): List<String> = when (language) {
@@ -64,9 +64,9 @@ object PersonalContent {
         AppLanguage.ROMANIAN -> BREAK_NOTIFICATION_LINES_RO
     }
 
-    /** Shown by the quiet reminder ~20 min after an ignored break. */
-    const val RENUDGE_LINE = "No rush, your break is still waiting 💛"
-    const val RENUDGE_LINE_RO = "Fără grabă, pauza ta încă te așteaptă 💛"
+    /** shown by the quiet reminder ~20 min after an ignored break */
+    const val RENUDGE_LINE = "No rush, your break is still waiting."
+    const val RENUDGE_LINE_RO = "Fără grabă, pauza ta încă te așteaptă."
 
     fun renudgeLine(language: AppLanguage): String = when (language) {
         AppLanguage.ENGLISH -> RENUDGE_LINE

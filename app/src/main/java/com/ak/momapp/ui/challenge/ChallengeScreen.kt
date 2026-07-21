@@ -1,23 +1,31 @@
 package com.ak.momapp.ui.challenge
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
@@ -29,7 +37,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -52,7 +59,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ak.momapp.data.SettingsRepository
 import com.ak.momapp.i18n.LocalStrings
 import com.ak.momapp.ui.problem.ConfettiBurst
-import com.ak.momapp.ui.problem.ProblemDiagram
+import com.ak.momapp.ui.problem.ProblemTextCard
 import com.ak.momapp.ui.problem.ChimeSound
 import com.ak.momapp.ui.problem.Chimes
 import kotlinx.coroutines.delay
@@ -95,7 +102,7 @@ fun ChallengeScreen(
         modifier = modifier.fillMaxSize(),
         topBar = {
             TopAppBar(
-                title = { Text("🏆 " + strings.challengeTitle) },
+                title = { Text(strings.challengeTitle) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = strings.back)
@@ -147,6 +154,7 @@ fun ChallengeScreen(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun StageContent(
     state: ChallengeUiState,
@@ -156,6 +164,8 @@ private fun StageContent(
     onNextStage: () -> Unit,
 ) {
     val strings = LocalStrings.current
+    // While she's typing, the Hint button slides down out of the way.
+    val imeVisible = WindowInsets.isImeVisible
 
     Column(
         modifier = Modifier
@@ -172,13 +182,14 @@ private fun StageContent(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
 
+        // No scrolling: the story, the field, and the verdict fit the space
+        // between the dots and the button, the story text shrinking itself
+        // as far as it must so the whole stage stays on screen at once.
         Column(
             modifier = Modifier
                 .weight(1f)
-                .fillMaxWidth()
-                .verticalScroll(rememberScrollState()),
+                .fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
         ) {
             Spacer(Modifier.height(12.dp))
             Text(
@@ -189,29 +200,14 @@ private fun StageContent(
             )
             Spacer(Modifier.height(16.dp))
 
-            Surface(
-                shape = MaterialTheme.shapes.extraLarge,
-                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Column(
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 28.dp),
-                ) {
-                    Text(
-                        text = state.stage.text,
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    state.stage.diagram?.let { diagram ->
-                        Spacer(Modifier.height(20.dp))
-                        ProblemDiagram(diagram)
-                    }
-                }
-            }
+            ProblemTextCard(
+                text = state.stage.text,
+                baseStyle = MaterialTheme.typography.headlineMedium,
+                diagram = state.stage.diagram,
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
+            )
 
             Spacer(Modifier.height(24.dp))
 
@@ -255,31 +251,35 @@ private fun StageContent(
 
             Spacer(Modifier.height(20.dp))
 
-            when {
-                state.phase == ChallengePhase.STAGE_DONE -> Text(
-                    text = strings.correctFeedback,
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.secondary,
-                    textAlign = TextAlign.Center,
-                )
-
-                state.phase == ChallengePhase.TRY_AGAIN -> Text(
-                    text = strings.tryAgainFeedback,
-                    style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.tertiary,
-                    textAlign = TextAlign.Center,
-                )
-            }
-            state.currentHint?.let { hint ->
-                if (state.phase != ChallengePhase.STAGE_DONE) {
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        text = hint,
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                when {
+                    state.phase == ChallengePhase.STAGE_DONE -> Text(
+                        text = strings.correctFeedback,
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.secondary,
                         textAlign = TextAlign.Center,
                     )
+
+                    state.phase == ChallengePhase.TRY_AGAIN -> Text(
+                        text = strings.tryAgainFeedback,
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.tertiary,
+                        textAlign = TextAlign.Center,
+                    )
+                }
+                state.currentHint?.let { hint ->
+                    if (state.phase != ChallengePhase.STAGE_DONE) {
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            text = hint,
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center,
+                        )
+                    }
                 }
             }
             Spacer(Modifier.height(16.dp))
@@ -304,18 +304,28 @@ private fun StageContent(
             ) {
                 Text(strings.check, style = MaterialTheme.typography.titleLarge)
             }
-            Spacer(Modifier.height(8.dp))
-            FilledTonalButton(
-                onClick = onUseHint,
-                enabled = state.hintsUsed < ChallengeViewModel.MAX_HINTS,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 48.dp),
+            // The keyboard slides the Hint button away, keeping the story
+            // and hint readable and out of accidental tapping range.
+            AnimatedVisibility(
+                visible = !imeVisible,
+                enter = expandVertically() + slideInVertically { it } + fadeIn(),
+                exit = slideOutVertically { it } + shrinkVertically() + fadeOut(),
             ) {
-                Text(
-                    text = strings.hintButton(ChallengeViewModel.MAX_HINTS - state.hintsUsed),
-                    style = MaterialTheme.typography.titleMedium,
-                )
+                Column(Modifier.fillMaxWidth()) {
+                    Spacer(Modifier.height(8.dp))
+                    FilledTonalButton(
+                        onClick = onUseHint,
+                        enabled = state.hintsUsed < ChallengeViewModel.MAX_HINTS,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = 48.dp),
+                    ) {
+                        Text(
+                            text = strings.hintButton(ChallengeViewModel.MAX_HINTS - state.hintsUsed),
+                            style = MaterialTheme.typography.titleMedium,
+                        )
+                    }
+                }
             }
         }
     }

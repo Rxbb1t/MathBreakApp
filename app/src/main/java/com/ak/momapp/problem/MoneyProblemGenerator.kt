@@ -4,7 +4,7 @@ import com.ak.momapp.i18n.AppLanguage
 import kotlin.random.Random
 
 /**
- * Shopping stories in lei. Everyday market math with whole-lei answers.
+ * Shopping stories in euros. Everyday market math with whole-euro answers.
  *
  * EASY: two prices together, change from a banknote, a price per piece.
  * MEDIUM: a small basket (kilograms plus an extra item), change after
@@ -15,8 +15,8 @@ import kotlin.random.Random
  * Templates are EN/RO pairs with the usual authoring rules: keep the
  * placeholder order, keep each type's English marker phrase, write no
  * digits into the template text. The tests re-derive every answer.
- * Romanian templates use {x_de} where a counted "lei" follows, so
- * "12 lei" and "45 de lei" both come out right.
+ * Romanian templates use {x_de} where a counted "euro" follows, so
+ * "12 euro" and "45 de euro" both come out right.
  */
 class MoneyProblemGenerator(private val random: Random) {
 
@@ -54,7 +54,7 @@ class MoneyProblemGenerator(private val random: Random) {
         return result
     }
 
-    /** Romanian counting: "12 lei" but "45 de lei". */
+    /** Romanian counting: "12 euro" but "45 de euro". */
     private fun de(n: Int): String = if (n < 20) "$n" else "$n de"
 
     /** The fill entries for one number: its plain and Romanian-"de" forms. */
@@ -73,9 +73,17 @@ class MoneyProblemGenerator(private val random: Random) {
             difficulty = Difficulty.EASY,
             language = language,
             hint = when (language) {
-                AppLanguage.ENGLISH -> "Both prices land in the same purse. The answer is more than either."
-                AppLanguage.ROMANIAN -> "Ambele prețuri ajung în aceeași pungă. Răspunsul e mai mare decât fiecare."
+                AppLanguage.ENGLISH -> "Add the two prices together."
+                AppLanguage.ROMANIAN -> "Adună cele două prețuri."
             },
+            solution = listOf(
+                step(
+                    "Both things are bought, so the prices join up.",
+                    "Se cumpără amândouă, deci prețurile se adună.",
+                    language,
+                ),
+                step("$a + $b = ${a + b}", "$a + $b = ${a + b}", language),
+            ),
         )
     }
 
@@ -89,9 +97,17 @@ class MoneyProblemGenerator(private val random: Random) {
             difficulty = Difficulty.EASY,
             language = language,
             hint = when (language) {
-                AppLanguage.ENGLISH -> "The change is what's left of the banknote once the price is taken out."
-                AppLanguage.ROMANIAN -> "Restul e ce rămâne din bancnotă după ce iese prețul."
+                AppLanguage.ENGLISH -> "Subtract the price from the banknote."
+                AppLanguage.ROMANIAN -> "Scade prețul din bancnotă."
             },
+            solution = listOf(
+                step(
+                    "The change is what's left of the note after paying.",
+                    "Restul e ce rămâne din bancnotă după ce plătești.",
+                    language,
+                ),
+                step("$note − $cost = ${note - cost}", "$note − $cost = ${note - cost}", language),
+            ),
         )
     }
 
@@ -105,9 +121,17 @@ class MoneyProblemGenerator(private val random: Random) {
             difficulty = Difficulty.EASY,
             language = language,
             hint = when (language) {
-                AppLanguage.ENGLISH -> "The same price repeats for every piece."
-                AppLanguage.ROMANIAN -> "Același preț se repetă pentru fiecare bucată."
+                AppLanguage.ENGLISH -> "Same price for each one, so multiply."
+                AppLanguage.ROMANIAN -> "Același preț pentru fiecare, deci înmulțește."
             },
+            solution = listOf(
+                step(
+                    "$k of them, each the same price, so the price repeats $k times.",
+                    "$k bucăți, fiecare la același preț, deci prețul se repetă de $k ori.",
+                    language,
+                ),
+                step("$k × $p = ${k * p}", "$k × $p = ${k * p}", language),
+            ),
         )
     }
 
@@ -127,10 +151,22 @@ class MoneyProblemGenerator(private val random: Random) {
             difficulty = Difficulty.MEDIUM,
             language = language,
             hint = when (language) {
-                AppLanguage.ENGLISH -> "It's all one basket: the kilograms have their cost, the extra item its own."
-                AppLanguage.ROMANIAN -> "Totul e un singur coș: kilogramele au costul lor, produsul în plus pe al lui."
+                AppLanguage.ENGLISH -> "Work out the cost of the kilos, then add the extra item."
+                AppLanguage.ROMANIAN -> "Calculează costul kilogramelor, apoi adună produsul în plus."
             },
             notes = changeNotes(language),
+            solution = listOf(
+                step(
+                    "First the kilos: $q × $p = ${q * p}",
+                    "Întâi kilogramele: $q × $p = ${q * p}",
+                    language,
+                ),
+                step(
+                    "Then the extra item: ${q * p} + $c = ${q * p + c}",
+                    "Apoi produsul în plus: ${q * p} + $c = ${q * p + c}",
+                    language,
+                ),
+            ),
         )
     }
 
@@ -148,10 +184,22 @@ class MoneyProblemGenerator(private val random: Random) {
             difficulty = Difficulty.MEDIUM,
             language = language,
             hint = when (language) {
-                AppLanguage.ENGLISH -> "The change is what's left of the note after both prices are taken out."
-                AppLanguage.ROMANIAN -> "Restul e ce rămâne din bancnotă după ce ies ambele prețuri."
+                AppLanguage.ENGLISH -> "Add both prices, then subtract from the banknote."
+                AppLanguage.ROMANIAN -> "Adună ambele prețuri, apoi scade din bancnotă."
             },
             notes = changeNotes(language),
+            solution = listOf(
+                step(
+                    "The whole shop first: $a + $b = ${a + b}",
+                    "Întâi toate cumpărăturile: $a + $b = ${a + b}",
+                    language,
+                ),
+                step(
+                    "Then take that off the note: $note − ${a + b} = ${note - a - b}",
+                    "Apoi scazi din bancnotă: $note − ${a + b} = ${note - a - b}",
+                    language,
+                ),
+            ),
         )
     }
 
@@ -168,11 +216,19 @@ class MoneyProblemGenerator(private val random: Random) {
             difficulty = Difficulty.MEDIUM,
             language = language,
             hint = when (language) {
-                AppLanguage.ENGLISH -> "Every one costs the same, and the money is used up exactly."
-                AppLanguage.ROMANIAN -> "Fiecare costă la fel, iar banii se termină exact."
+                AppLanguage.ENGLISH -> "Divide the total money by the price of one."
+                AppLanguage.ROMANIAN -> "Împarte toți banii la prețul unuia."
             },
             notes = budgetNotes(language),
             answerUnit = "",
+            solution = listOf(
+                step(
+                    "How many times does one price fit into the money?",
+                    "De câte ori încape prețul unuia în toți banii?",
+                    language,
+                ),
+                step("${k * p} ÷ $p = $k", "${k * p} ÷ $p = $k", language),
+            ),
         )
     }
 
@@ -188,10 +244,22 @@ class MoneyProblemGenerator(private val random: Random) {
             difficulty = Difficulty.HARD,
             language = language,
             hint = when (language) {
-                AppLanguage.ENGLISH -> "The discount is the part of the price that's forgiven. You pay the rest."
-                AppLanguage.ROMANIAN -> "Reducerea e partea din preț care se iartă. Plătești restul."
+                AppLanguage.ENGLISH -> "Subtract the discount from the price."
+                AppLanguage.ROMANIAN -> "Scade reducerea din preț."
             },
             notes = percentNotes(language),
+            solution = listOf(
+                step(
+                    "$d% of the price: $p × $d ÷ 100 = ${p * d / 100}",
+                    "$d% din preț: $p × $d ÷ 100 = ${p * d / 100}",
+                    language,
+                ),
+                step(
+                    "That much comes off: $p − ${p * d / 100} = ${p - p * d / 100}",
+                    "Atât se scade: $p − ${p * d / 100} = ${p - p * d / 100}",
+                    language,
+                ),
+            ),
         )
     }
 
@@ -211,10 +279,32 @@ class MoneyProblemGenerator(private val random: Random) {
             difficulty = Difficulty.HARD,
             language = language,
             hint = when (language) {
-                AppLanguage.ENGLISH -> "The change is what's left of the banknote after the whole market haul."
-                AppLanguage.ROMANIAN -> "Restul e ce rămâne din bancnotă după toate cumpărăturile."
+                AppLanguage.ENGLISH -> "Add up the whole shop, then subtract from the banknote."
+                AppLanguage.ROMANIAN -> "Adună toate cumpărăturile, apoi scade din bancnotă."
             },
             notes = changeNotes(language),
+            solution = listOf(
+                step(
+                    "First kind: $q1 × $p1 = ${q1 * p1}",
+                    "Primul fel: $q1 × $p1 = ${q1 * p1}",
+                    language,
+                ),
+                step(
+                    "Second kind: $q2 × $p2 = ${q2 * p2}",
+                    "Al doilea fel: $q2 × $p2 = ${q2 * p2}",
+                    language,
+                ),
+                step(
+                    "The shop comes to ${q1 * p1} + ${q2 * p2} = ${q1 * p1 + q2 * p2}",
+                    "Cumpărăturile fac ${q1 * p1} + ${q2 * p2} = ${q1 * p1 + q2 * p2}",
+                    language,
+                ),
+                step(
+                    "Change: $note − ${q1 * p1 + q2 * p2} = ${note - q1 * p1 - q2 * p2}",
+                    "Restul: $note − ${q1 * p1 + q2 * p2} = ${note - q1 * p1 - q2 * p2}",
+                    language,
+                ),
+            ),
         )
     }
 
@@ -233,11 +323,23 @@ class MoneyProblemGenerator(private val random: Random) {
             difficulty = Difficulty.HARD,
             language = language,
             hint = when (language) {
-                AppLanguage.ENGLISH -> "Each week the missing part shrinks by the same amount."
-                AppLanguage.ROMANIAN -> "În fiecare săptămână, partea care lipsește scade cu aceeași sumă."
+                AppLanguage.ENGLISH -> "The amount changes by the same step each week."
+                AppLanguage.ROMANIAN -> "Suma se schimbă cu același pas în fiecare săptămână."
             },
             notes = saveUpNotes(language),
             answerUnit = "",
+            solution = listOf(
+                step(
+                    "What's still missing: $p − $s = ${p - s}",
+                    "Cât mai lipsește: $p − $s = ${p - s}",
+                    language,
+                ),
+                step(
+                    "At $m a week: ${p - s} ÷ $m = $k weeks",
+                    "Câte $m pe săptămână: ${p - s} ÷ $m = $k săptămâni",
+                    language,
+                ),
+            ),
         )
     }
 
@@ -248,7 +350,8 @@ class MoneyProblemGenerator(private val random: Random) {
         language: AppLanguage,
         hint: String,
         notes: List<String> = emptyList(),
-        answerUnit: String = "lei",
+        answerUnit: String = "€",
+        solution: List<String> = emptyList(),
     ): Problem = Problem(
         text = text,
         answer = answer,
@@ -257,7 +360,17 @@ class MoneyProblemGenerator(private val random: Random) {
         hints = listOf(hint, HintText.digits(answer, language)),
         notes = notes,
         answerUnit = answerUnit,
+        solution = solution,
     )
+
+    /**
+     * One worked step, written out with the real numbers in it. Kept as
+     * a helper so the arithmetic in the explanation is computed, never
+     * typed by hand into a string: a solution that disagreed with the
+     * answer would be worse than no solution at all.
+     */
+    private fun step(en: String, ro: String, language: AppLanguage): String =
+        if (language == AppLanguage.ROMANIAN) ro else en
 
     // ── Helper-sheet notes ───────────────────────────────────────────────
 
@@ -286,11 +399,11 @@ class MoneyProblemGenerator(private val random: Random) {
     private fun percentNotes(language: AppLanguage): List<String> = when (language) {
         AppLanguage.ENGLISH -> listOf(
             "A percent is a part of a hundred: 10% is a tenth, 25% a quarter, 50% a half.",
-            "A percent of a price: price × percent ÷ 100. Example: 25% of 200 lei is 50 lei.",
+            "A percent of a price: price × percent ÷ 100. Example: 25% of 200 euros is 50 euros.",
         )
         AppLanguage.ROMANIAN -> listOf(
             "Procentul e o parte dintr-o sută: 10% e o zecime, 25% un sfert, 50% o jumătate.",
-            "Procent dintr-un preț: preț × procent ÷ 100. Exemplu: 25% din 200 de lei e 50 de lei.",
+            "Procent dintr-un preț: preț × procent ÷ 100. Exemplu: 25% din 200 de euro e 50 de euro.",
         )
     }
 
@@ -310,150 +423,150 @@ class MoneyProblemGenerator(private val random: Random) {
         // ✏️ MONEY TEMPLATES. EN/RO pairs, same three rules as the
         // riddles: keep placeholder order, keep the English marker phrase
         // of each list, write no digits into the template text. Romanian
-        // uses {x_de} before "lei" ("12 lei" / "45 de lei").
+        // uses {x_de} before "euro" ("12 euro" / "45 de euro").
         // ════════════════════════════════════════════════════════════════
 
         // Marker: "together". {a}, {b} the two prices.
         private val TWO_ITEMS_TEMPLATES = listOf(
             Template(
-                "At the market, a kilogram of apples costs {a} lei and a kilogram of pears {b} lei.\nHow much do they cost together?",
-                "La piață, un kilogram de mere costă {a_de} lei, iar unul de pere {b_de} lei.\nCât costă împreună?",
+                "At the market, a kilogram of apples costs {a} euros and a kilogram of pears {b} euros.\nHow much do they cost together?",
+                "La piață, un kilogram de mere costă {a_de} euro, iar unul de pere {b_de} euro.\nCât costă împreună?",
             ),
             Template(
-                "At the bakery, a cozonac costs {a} lei and a tray of pastries {b} lei.\nHow much do they cost together?",
-                "La cofetărie, un cozonac costă {a_de} lei, iar o tavă de prăjituri {b_de} lei.\nCât costă împreună?",
+                "At the bakery, a sweet bread costs {a} euros and a tray of pastries {b} euros.\nHow much do they cost together?",
+                "La cofetărie, un cozonac costă {a_de} euro, iar o tavă de prăjituri {b_de} euro.\nCât costă împreună?",
             ),
             Template(
-                "A bouquet of tulips costs {a} lei and a flowerpot {b} lei.\nHow much do they cost together?",
-                "Un buchet de lalele costă {a_de} lei, iar un ghiveci {b_de} lei.\nCât costă împreună?",
+                "A bouquet of tulips costs {a} euros and a flowerpot {b} euros.\nHow much do they cost together?",
+                "Un buchet de lalele costă {a_de} euro, iar un ghiveci {b_de} euro.\nCât costă împreună?",
             ),
         )
 
         // Marker: "note" with two numbers. {c} the cost, {n} the banknote.
         private val PAY_NOTE_TEMPLATES = listOf(
             Template(
-                "A loaf of bread costs {c} lei. You pay with a {n}-lei note.\nHow much change do you get?",
-                "O pâine costă {c_de} lei. Plătești cu o bancnotă de {n_de} lei.\nCât rest primești?",
+                "A loaf of bread costs {c} euros. You pay with a {n}-euro note.\nHow much change do you get?",
+                "O pâine costă {c_de} euro. Plătești cu o bancnotă de {n_de} euro.\nCât rest primești?",
             ),
             Template(
-                "A bag of oranges costs {c} lei. You pay with a {n}-lei note.\nHow much change do you get?",
-                "O plasă de portocale costă {c_de} lei. Plătești cu o bancnotă de {n_de} lei.\nCât rest primești?",
+                "A bag of oranges costs {c} euros. You pay with a {n}-euro note.\nHow much change do you get?",
+                "O plasă de portocale costă {c_de} euro. Plătești cu o bancnotă de {n_de} euro.\nCât rest primești?",
             ),
             Template(
-                "A bottle of oil costs {c} lei. You pay with a {n}-lei note.\nHow much change do you get?",
-                "O sticlă de ulei costă {c_de} lei. Plătești cu o bancnotă de {n_de} lei.\nCât rest primești?",
+                "A bottle of oil costs {c} euros. You pay with a {n}-euro note.\nHow much change do you get?",
+                "O sticlă de ulei costă {c_de} euro. Plătești cu o bancnotă de {n_de} euro.\nCât rest primești?",
             ),
         )
 
-        // Marker: "each". {k} pieces, {p} lei apiece.
+        // Marker: "each". {k} pieces, {p} euros apiece.
         private val PER_PIECE_TEMPLATES = listOf(
             Template(
-                "You buy {k} croissants at {p} lei each.\nHow much do they cost in all?",
-                "Cumperi {k} cornuri, câte {p} lei fiecare.\nCât costă în total?",
+                "You buy {k} croissants at {p} euros each.\nHow much do they cost in all?",
+                "Cumperi {k} cornuri, câte {p} euro fiecare.\nCât costă în total?",
             ),
             Template(
-                "You buy {k} postcards at {p} lei each.\nHow much do they cost in all?",
-                "Cumperi {k} vederi, câte {p} lei fiecare.\nCât costă în total?",
+                "You buy {k} postcards at {p} euros each.\nHow much do they cost in all?",
+                "Cumperi {k} vederi, câte {p} euro fiecare.\nCât costă în total?",
             ),
             Template(
-                "You buy {k} bags of seeds at {p} lei each.\nHow much do they cost in all?",
-                "Cumperi {k} plicuri de semințe, câte {p} lei fiecare.\nCât costă în total?",
+                "You buy {k} bags of seeds at {p} euros each.\nHow much do they cost in all?",
+                "Cumperi {k} plicuri de semințe, câte {p} euro fiecare.\nCât costă în total?",
             ),
         )
 
-        // Marker: "altogether". {q} kg, {p} lei per kg, {c} the extra item.
+        // Marker: "altogether". {q} kg, {p} euros per kg, {c} the extra item.
         private val BASKET_TEMPLATES = listOf(
             Template(
-                "{q} kg of potatoes at {p} lei per kilogram, and a pumpkin for {c} lei.\nHow much is it altogether?",
-                "{q} kg de cartofi la {p} lei kilogramul și un dovleac de {c_de} lei.\nCât costă totul la un loc?",
+                "{q} kg of potatoes at {p} euros per kilogram, and a pumpkin for {c} euros.\nHow much is it altogether?",
+                "{q} kg de cartofi la {p} euro kilogramul și un dovleac de {c_de} euro.\nCât costă totul la un loc?",
             ),
             Template(
-                "{q} kg of cherries at {p} lei per kilogram, and a jar of cream for {c} lei.\nHow much is it altogether?",
-                "{q} kg de cireșe la {p} lei kilogramul și un borcan de smântână de {c_de} lei.\nCât costă totul la un loc?",
+                "{q} kg of cherries at {p} euros per kilogram, and a jar of cream for {c} euros.\nHow much is it altogether?",
+                "{q} kg de cireșe la {p} euro kilogramul și un borcan de smântână de {c_de} euro.\nCât costă totul la un loc?",
             ),
             Template(
-                "{q} kg of flour at {p} lei per kilogram, and a packet of yeast for {c} lei.\nHow much is it altogether?",
-                "{q} kg de făină la {p} lei kilogramul și un pachet de drojdie de {c_de} lei.\nCât costă totul la un loc?",
+                "{q} kg of flour at {p} euros per kilogram, and a packet of yeast for {c} euros.\nHow much is it altogether?",
+                "{q} kg de făină la {p} euro kilogramul și un pachet de drojdie de {c_de} euro.\nCât costă totul la un loc?",
             ),
         )
 
         // Marker: "note" with three numbers. {a}, {b} prices, {n} the note.
         private val PAY_TWO_TEMPLATES = listOf(
             Template(
-                "Cheese for {a} lei and a jar of honey for {b} lei, paid with a {n}-lei note.\nHow much change comes back?",
-                "Brânză de {a_de} lei și un borcan de miere de {b_de} lei, plătite cu o bancnotă de {n_de} lei.\nCât rest primești înapoi?",
+                "Cheese for {a} euros and a jar of honey for {b} euros, paid with a {n}-euro note.\nHow much change comes back?",
+                "Brânză de {a_de} euro și un borcan de miere de {b_de} euro, plătite cu o bancnotă de {n_de} euro.\nCât rest primești înapoi?",
             ),
             Template(
-                "A scarf for {a} lei and gloves for {b} lei, paid with a {n}-lei note.\nHow much change comes back?",
-                "Un fular de {a_de} lei și mănuși de {b_de} lei, plătite cu o bancnotă de {n_de} lei.\nCât rest primești înapoi?",
+                "A scarf for {a} euros and gloves for {b} euros, paid with a {n}-euro note.\nHow much change comes back?",
+                "Un fular de {a_de} euro și mănuși de {b_de} euro, plătite cu o bancnotă de {n_de} euro.\nCât rest primești înapoi?",
             ),
             Template(
-                "A cookbook for {a} lei and a teapot for {b} lei, paid with a {n}-lei note.\nHow much change comes back?",
-                "O carte de bucate de {a_de} lei și un ceainic de {b_de} lei, plătite cu o bancnotă de {n_de} lei.\nCât rest primești înapoi?",
+                "A cookbook for {a} euros and a teapot for {b} euros, paid with a {n}-euro note.\nHow much change comes back?",
+                "O carte de bucate de {a_de} euro și un ceainic de {b_de} euro, plătite cu o bancnotă de {n_de} euro.\nCât rest primești înapoi?",
             ),
         )
 
         // Marker: "exactly". {p} the price of one, {t} the exact budget.
         private val EXACT_BUDGET_TEMPLATES = listOf(
             Template(
-                "A jar of zacusca costs {p} lei. You have exactly {t} lei to spend.\nHow many jars can you buy?",
-                "Un borcan de zacuscă costă {p_de} lei. Ai exact {t_de} lei de cheltuit.\nCâte borcane poți cumpăra?",
+                "A jar of vegetable spread costs {p} euros. You have exactly {t} euros to spend.\nHow many jars can you buy?",
+                "Un borcan de zacuscă costă {p_de} euro. Ai exact {t_de} euro de cheltuit.\nCâte borcane poți cumpăra?",
             ),
             Template(
-                "A box of tea costs {p} lei. You have exactly {t} lei to spend.\nHow many boxes can you buy?",
-                "O cutie de ceai costă {p_de} lei. Ai exact {t_de} lei de cheltuit.\nCâte cutii poți cumpăra?",
+                "A box of tea costs {p} euros. You have exactly {t} euros to spend.\nHow many boxes can you buy?",
+                "O cutie de ceai costă {p_de} euro. Ai exact {t_de} euro de cheltuit.\nCâte cutii poți cumpăra?",
             ),
             Template(
-                "A ball of wool costs {p} lei. You have exactly {t} lei to spend.\nHow many balls can you buy?",
-                "Un ghem de lână costă {p_de} lei. Ai exact {t_de} lei de cheltuit.\nCâte gheme poți cumpăra?",
+                "A ball of wool costs {p} euros. You have exactly {t} euros to spend.\nHow many balls can you buy?",
+                "Un ghem de lână costă {p_de} euro. Ai exact {t_de} euro de cheltuit.\nCâte gheme poți cumpăra?",
             ),
         )
 
         // Marker: "off". {p} the full price, {d} the percent.
         private val DISCOUNT_TEMPLATES = listOf(
             Template(
-                "A coat costs {p} lei. Today it is {d}% off.\nHow much does it cost now?",
-                "Un palton costă {p_de} lei. Azi are reducere de {d}%.\nCât costă acum?",
+                "A coat costs {p} euros. Today it is {d}% off.\nHow much does it cost now?",
+                "Un palton costă {p_de} euro. Azi are reducere de {d}%.\nCât costă acum?",
             ),
             Template(
-                "A pair of shoes costs {p} lei. Today they are {d}% off.\nHow much do they cost now?",
-                "O pereche de pantofi costă {p_de} lei. Azi are reducere de {d}%.\nCât costă acum?",
+                "A pair of shoes costs {p} euros. Today they are {d}% off.\nHow much do they cost now?",
+                "O pereche de pantofi costă {p_de} euro. Azi are reducere de {d}%.\nCât costă acum?",
             ),
             Template(
-                "A kitchen mixer costs {p} lei. Today it is {d}% off.\nHow much does it cost now?",
-                "Un mixer de bucătărie costă {p_de} lei. Azi are reducere de {d}%.\nCât costă acum?",
+                "A kitchen mixer costs {p} euros. Today it is {d}% off.\nHow much does it cost now?",
+                "Un mixer de bucătărie costă {p_de} euro. Azi are reducere de {d}%.\nCât costă acum?",
             ),
         )
 
-        // Marker: "banknote". {q1} kg at {p1} lei/kg, {q2} kg at {p2} lei/kg, {n} the banknote.
+        // Marker: "banknote". {q1} kg at {p1} euros/kg, {q2} kg at {p2} euros/kg, {n} the banknote.
         private val MARKET_HAUL_TEMPLATES = listOf(
             Template(
-                "{q1} kg of tomatoes at {p1} lei per kilogram and {q2} kg of peppers at {p2} lei per kilogram, paid with a {n}-lei banknote.\nHow much change comes back?",
-                "{q1} kg de roșii la {p1} lei kilogramul și {q2} kg de ardei la {p2} lei kilogramul, plătite cu o bancnotă de {n_de} lei.\nCât rest primești înapoi?",
+                "{q1} kg of tomatoes at {p1} euros per kilogram and {q2} kg of peppers at {p2} euros per kilogram, paid with a {n}-euro banknote.\nHow much change comes back?",
+                "{q1} kg de roșii la {p1} euro kilogramul și {q2} kg de ardei la {p2} euro kilogramul, plătite cu o bancnotă de {n_de} euro.\nCât rest primești înapoi?",
             ),
             Template(
-                "{q1} kg of grapes at {p1} lei per kilogram and {q2} kg of plums at {p2} lei per kilogram, paid with a {n}-lei banknote.\nHow much change comes back?",
-                "{q1} kg de struguri la {p1} lei kilogramul și {q2} kg de prune la {p2} lei kilogramul, plătite cu o bancnotă de {n_de} lei.\nCât rest primești înapoi?",
+                "{q1} kg of grapes at {p1} euros per kilogram and {q2} kg of plums at {p2} euros per kilogram, paid with a {n}-euro banknote.\nHow much change comes back?",
+                "{q1} kg de struguri la {p1} euro kilogramul și {q2} kg de prune la {p2} euro kilogramul, plătite cu o bancnotă de {n_de} euro.\nCât rest primești înapoi?",
             ),
             Template(
-                "{q1} kg of carrots at {p1} lei per kilogram and {q2} kg of onions at {p2} lei per kilogram, paid with a {n}-lei banknote.\nHow much change comes back?",
-                "{q1} kg de morcovi la {p1} lei kilogramul și {q2} kg de ceapă la {p2} lei kilogramul, plătite cu o bancnotă de {n_de} lei.\nCât rest primești înapoi?",
+                "{q1} kg of carrots at {p1} euros per kilogram and {q2} kg of onions at {p2} euros per kilogram, paid with a {n}-euro banknote.\nHow much change comes back?",
+                "{q1} kg de morcovi la {p1} euro kilogramul și {q2} kg de ceapă la {p2} euro kilogramul, plătite cu o bancnotă de {n_de} euro.\nCât rest primești înapoi?",
             ),
         )
 
         // Marker: "week". {p} the price, {s} saved already, {m} saved weekly.
         private val SAVE_UP_TEMPLATES = listOf(
             Template(
-                "A blender costs {p} lei. You've saved {s} lei and put aside {m} lei every week.\nAfter how many weeks can you buy it?",
-                "Un blender costă {p_de} lei. Ai strâns {s_de} lei și pui deoparte câte {m_de} lei pe săptămână.\nDupă câte săptămâni îl poți cumpăra?",
+                "A blender costs {p} euros. You've saved {s} euros and put aside {m} euros every week.\nAfter how many weeks can you buy it?",
+                "Un blender costă {p_de} euro. Ai strâns {s_de} euro și pui deoparte câte {m_de} euro pe săptămână.\nDupă câte săptămâni îl poți cumpăra?",
             ),
             Template(
-                "A sewing machine costs {p} lei. You've saved {s} lei and put aside {m} lei every week.\nAfter how many weeks can you buy it?",
-                "O mașină de cusut costă {p_de} lei. Ai strâns {s_de} lei și pui deoparte câte {m_de} lei pe săptămână.\nDupă câte săptămâni o poți cumpăra?",
+                "A sewing machine costs {p} euros. You've saved {s} euros and put aside {m} euros every week.\nAfter how many weeks can you buy it?",
+                "O mașină de cusut costă {p_de} euro. Ai strâns {s_de} euro și pui deoparte câte {m_de} euro pe săptămână.\nDupă câte săptămâni o poți cumpăra?",
             ),
             Template(
-                "A garden bench costs {p} lei. You've saved {s} lei and put aside {m} lei every week.\nAfter how many weeks can you buy it?",
-                "O bancă de grădină costă {p_de} lei. Ai strâns {s_de} lei și pui deoparte câte {m_de} lei pe săptămână.\nDupă câte săptămâni o poți cumpăra?",
+                "A garden bench costs {p} euros. You've saved {s} euros and put aside {m} euros every week.\nAfter how many weeks can you buy it?",
+                "O bancă de grădină costă {p_de} euro. Ai strâns {s_de} euro și pui deoparte câte {m_de} euro pe săptămână.\nDupă câte săptămâni o poți cumpăra?",
             ),
         )
     }

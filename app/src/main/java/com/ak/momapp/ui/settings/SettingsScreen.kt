@@ -1,5 +1,7 @@
 package com.ak.momapp.ui.settings
 
+import android.appwidget.AppWidgetManager
+import android.content.ComponentName
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
@@ -72,14 +74,13 @@ import com.ak.momapp.alarm.BreakScheduler
 import com.ak.momapp.data.BrainBreakSettings
 import com.ak.momapp.i18n.AppLanguage
 import com.ak.momapp.i18n.LocalStrings
-import com.ak.momapp.i18n.Strings
+import com.ak.momapp.i18n.formatNextBreak
+import com.ak.momapp.i18n.formatTimeOfDay
 import com.ak.momapp.problem.Difficulty
 import com.ak.momapp.problem.ProblemTopic
 import com.ak.momapp.ui.theme.AppPalette
+import com.ak.momapp.widget.BrainBreakWidgetReceiver
 import java.time.DayOfWeek
-import java.time.Instant
-import java.time.LocalDate
-import java.time.ZoneId
 import java.time.format.TextStyle
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -189,28 +190,11 @@ private fun SettingsContent(
             }
         }
 
-        SettingsSection(
-            title = strings.textSizeSection,
-            subtitle = strings.textSizeSubtitle,
-        ) {
-            SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
-                listOf(false, true).forEachIndexed { index, large ->
-                    SegmentedButton(
-                        selected = settings.largeText == large,
-                        onClick = { viewModel.setLargeText(large) },
-                        shape = SegmentedButtonDefaults.itemShape(index = index, count = 2),
-                    ) {
-                        Text(if (large) strings.textSizeLarge else strings.textSizeNormal)
-                    }
-                }
-            }
-        }
-
         RemindersSection(settings = settings, viewModel = viewModel)
 
         SettingsSection(title = strings.remindMeEvery) {
             // Chips instead of a segmented row: they wrap on narrow
-            // screens when the Large text size is on.
+            // screens or at a large system font scale.
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 val options = BrainBreakSettings.MIN_INTERVAL_HOURS..BrainBreakSettings.MAX_INTERVAL_HOURS
                 options.forEach { hours ->
@@ -237,7 +221,7 @@ private fun SettingsContent(
                         .weight(1f)
                         .height(52.dp),
                 ) {
-                    Text(strings.fromTime(formatMinutes(settings.activeStartMinutes)))
+                    Text(strings.fromTime(formatTimeOfDay(settings.activeStartMinutes)))
                 }
                 OutlinedButton(
                     onClick = { showEndPicker = true },
@@ -245,7 +229,7 @@ private fun SettingsContent(
                         .weight(1f)
                         .height(52.dp),
                 ) {
-                    Text(strings.untilTime(formatMinutes(settings.activeEndMinutes)))
+                    Text(strings.untilTime(formatTimeOfDay(settings.activeEndMinutes)))
                 }
             }
         }
@@ -490,6 +474,34 @@ private fun RemindersSection(
                 )
             }
         }
+
+        AddWidgetButton()
+    }
+}
+
+/**
+ * Offers to drop the widget on the home screen from inside the app. The
+ * system widget picker is a long-press on empty wallpaper followed by a
+ * scroll through every app on the phone -- not somewhere she would ever
+ * find it. Hidden entirely on launchers that can't pin.
+ */
+@Composable
+private fun AddWidgetButton() {
+    val context = LocalContext.current
+    val strings = LocalStrings.current
+    val manager = remember { AppWidgetManager.getInstance(context) }
+    if (!manager.isRequestPinAppWidgetSupported) return
+
+    OutlinedButton(
+        onClick = {
+            manager.requestPinAppWidget(
+                ComponentName(context, BrainBreakWidgetReceiver::class.java),
+                null,
+                null,
+            )
+        },
+    ) {
+        Text(strings.addWidget)
     }
 }
 
@@ -726,18 +738,4 @@ private fun TimePickerDialog(
             }
         },
     )
-}
-
-private fun formatMinutes(minutes: Int): String =
-    "%d:%02d".format(minutes / 60, minutes % 60)
-
-private fun formatNextBreak(epochMillis: Long, strings: Strings): String {
-    val dateTime = Instant.ofEpochMilli(epochMillis).atZone(ZoneId.systemDefault()).toLocalDateTime()
-    val time = formatMinutes(dateTime.hour * 60 + dateTime.minute)
-    val today = LocalDate.now()
-    return when (dateTime.toLocalDate()) {
-        today -> strings.todayAt(time)
-        today.plusDays(1) -> strings.tomorrowAt(time)
-        else -> "${dateTime.dayOfWeek.getDisplayName(TextStyle.SHORT, strings.locale)} $time"
-    }
 }

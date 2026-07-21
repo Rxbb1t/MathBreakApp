@@ -36,14 +36,36 @@ class ComparisonProblemGenerator(private val random: Random) {
         }
         // No hints: a tapped answer is a third of a reveal already, and
         // the exercise is meant to be eyeball-and-check quick.
+        //
+        // A solution still earns its place: the reveal shows only the
+        // symbol, so without it she never finds out what the two sides
+        // were actually worth.
+        val ro = language == AppLanguage.ROMANIAN
+        val verdict = when (answer) {
+            0 -> if (ro) "$leftValue e mai mic decât $rightValue, deci <"
+            else "$leftValue is smaller than $rightValue, so <"
+            1 -> if (ro) "$leftValue și $rightValue sunt egale, deci ="
+            else "$leftValue and $rightValue are the same, so ="
+            else -> if (ro) "$leftValue e mai mare decât $rightValue, deci >"
+            else "$leftValue is bigger than $rightValue, so >"
+        }
         return Problem(
             text = "$leftText\n?\n$rightText",
             answer = answer,
             difficulty = difficulty,
             kind = ProblemKind.COMPARE,
             revealText = SYMBOLS[answer],
+            solution = listOf(
+                side(if (ro) "Stânga:" else "Left side:", leftText, leftValue),
+                side(if (ro) "Dreapta:" else "Right side:", rightText, rightValue),
+                verdict,
+            ),
         )
     }
+
+    /** "Left side: 24 + 7 = 31", or just "Left side: 31" when it is bare. */
+    private fun side(label: String, text: String, value: Int): String =
+        if (text == "$value") "$label $value" else "$label $text = $value"
 
     /** A left side built freely: sum, difference, product, and its value. */
     private fun freeExpression(difficulty: Difficulty): Pair<String, Int> {

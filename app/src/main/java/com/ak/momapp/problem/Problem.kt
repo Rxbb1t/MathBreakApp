@@ -19,7 +19,7 @@ enum class ProblemKind {
     /** Story geometry: perimeter, area, angles, Pythagoras, volume. */
     GEOMETRY,
 
-    /** Shopping stories in lei: totals, change, discounts, budgets. */
+    /** Shopping stories in euros: totals, change, discounts, budgets. */
     MONEY,
 
     /** Clock stories: durations and conversions, answered in minutes. */
@@ -67,12 +67,26 @@ data class Problem(
      */
     val notes: List<String> = emptyList(),
     /**
+     * How the answer is actually reached, one step per line, in the
+     * generation language.
+     *
+     * This is the one place step-by-step working is allowed. [hints] stay
+     * free of it on purpose: a nudge mid-problem should point at what the
+     * story means, not walk her through the buttons. A solution is only
+     * ever offered once the problem is over, right or revealed, where
+     * showing the steps teaches instead of doing it for her.
+     *
+     * Empty for problems whose working would just restate the question
+     * (a tap on ✓/✗, a "which sign fits").
+     */
+    val solution: List<String> = emptyList(),
+    /**
      * A schematic figure drawn under the text. Geometry problems carry
      * one. Labels come pre-rendered ("12 m", "?"), never the answer.
      */
     val diagram: Diagram? = null,
     /**
-     * The unit the answer is measured in ("m", "°", "lei", "min"),
+     * The unit the answer is measured in ("m", "°", "€", "min"),
      * shown inside the input field so the expected unit is never a
      * guess. Empty when the answer is a plain count. Language-blind.
      */

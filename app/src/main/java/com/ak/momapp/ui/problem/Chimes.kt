@@ -14,7 +14,7 @@ import kotlin.math.sin
 
 /** The app's little sounds, all riding the one "Sound" setting. */
 enum class ChimeSound {
-    /** Correct answer: a gentle upward E5 to A5 "ta-ding". */
+    /** Correct answer: a soft rising C-E-G major triad, cheery but low-key. */
     SUCCESS,
 
     /** Wrong answer: one soft low "boop", warm rather than punishing. */
@@ -46,25 +46,28 @@ object Chimes {
         val amplitude: Double,
         val decay: Double,
         val tailSeconds: Double,
+        /** Fade-in of each note, in seconds. Longer is softer, less "in your face". */
+        val attack: Double = 0.012,
     )
 
     private val RECIPES = mapOf(
         ChimeSound.SUCCESS to Recipe(
-            cacheName = "chime_success_v1.wav",
-            notes = listOf(659.25 to 0.11, 880.0 to 0.30),
-            amplitude = 0.22,
-            decay = 7.0,
-            tailSeconds = 0.45,
+            cacheName = "chime_success_v2.wav",
+            notes = listOf(523.25 to 0.0, 659.25 to 0.10, 783.99 to 0.20),
+            amplitude = 0.15,
+            decay = 5.0,
+            tailSeconds = 0.5,
+            attack = 0.035,
         ),
         ChimeSound.TRY_AGAIN to Recipe(
-            cacheName = "chime_try_again_v1.wav",
+            cacheName = "chime_try_again_v2.wav",
             notes = listOf(392.0 to 0.0),
             amplitude = 0.13,
             decay = 10.0,
             tailSeconds = 0.35,
         ),
         ChimeSound.FANFARE to Recipe(
-            cacheName = "chime_fanfare_v1.wav",
+            cacheName = "chime_fanfare_v2.wav",
             notes = listOf(659.25 to 0.0, 880.0 to 0.13, 1108.73 to 0.26, 1318.51 to 0.39),
             amplitude = 0.20,
             decay = 6.0,
@@ -146,13 +149,23 @@ object Chimes {
             val start = (startSeconds * SAMPLE_RATE).toInt()
             for (i in start until samples.size) {
                 val t = (i - start).toDouble() / SAMPLE_RATE
-                val attack = min(1.0, t / 0.012)
+                val attack = min(1.0, t / recipe.attack)
                 val decay = Math.exp(-t * recipe.decay)
                 samples[i] += sin(2 * PI * frequency * t) * attack * decay
             }
         }
+        // A short fade at the very end so the buffer never stops mid-swing,
+        // which would be heard as a click.
+        val fade = min((0.02 * SAMPLE_RATE).toInt(), samples.size)
+        for (i in 0 until fade) {
+            samples[samples.size - 1 - i] *= i.toDouble() / fade
+        }
         return ShortArray(samples.size) { i ->
-            (samples[i].coerceIn(-1.0, 1.0) * recipe.amplitude * Short.MAX_VALUE).toInt().toShort()
+            // Volume is applied first, then we clip -- so overlapping notes
+            // (a chord) stay a clean summed wave instead of a flat-topped,
+            // buzzy one. With these amplitudes the clip effectively never
+            // triggers; it's only a last-resort guard.
+            ((samples[i] * recipe.amplitude).coerceIn(-1.0, 1.0) * Short.MAX_VALUE).toInt().toShort()
         }
     }
 

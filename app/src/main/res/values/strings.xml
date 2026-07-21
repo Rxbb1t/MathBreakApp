@@ -1,3 +1,7 @@
 <resources>
     <string name="app_name">Brain Break</string>
+    <!-- Shown in the system widget picker, which reads platform resources
+         rather than the app's own Strings, so this one phrase is
+         translated the Android way. -->
+    <string name="widget_description">Today\'s count and the next break</string>
 </resources>

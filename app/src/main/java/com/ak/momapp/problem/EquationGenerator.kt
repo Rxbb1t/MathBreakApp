@@ -44,6 +44,19 @@ class EquationGenerator(private val random: Random) {
         } else {
             "${findXLabel(language)}\n${a}x − $b = $rhs"
         }
+        val clear = if (plus) {
+            step(
+                "Take $b off both sides: ${a}x = $rhs − $b = ${a * x}",
+                "Scade $b din ambele părți: ${a}x = $rhs − $b = ${a * x}",
+                language,
+            )
+        } else {
+            step(
+                "Add $b to both sides: ${a}x = $rhs + $b = ${a * x}",
+                "Adună $b la ambele părți: ${a}x = $rhs + $b = ${a * x}",
+                language,
+            )
+        }
         return Problem(
             text = text,
             answer = x,
@@ -51,6 +64,7 @@ class EquationGenerator(private val random: Random) {
             kind = ProblemKind.EQUATION,
             hints = listOf(shorthandHint(a, language), HintText.digits(x, language)),
             notes = listOf(balanceNote(language), shorthandNote(language)),
+            solution = listOf(clear, divideBoth(a, a * x, x, language)),
         )
     }
 
@@ -75,6 +89,41 @@ class EquationGenerator(private val random: Random) {
             random.nextBoolean() -> "x = ?" to x
             else -> "y = ?" to y
         }
+        // Adding the two lines cancels y, which is the whole trick here.
+        val solution = buildList {
+            add(
+                step(
+                    "Add the two lines: the y cancels, so 2x = $s + $d = ${s + d}",
+                    "Adună cele două rânduri: y se anulează, deci 2x = $s + $d = ${s + d}",
+                    language,
+                ),
+            )
+            add(
+                step(
+                    "x = ${s + d} ÷ 2 = $x",
+                    "x = ${s + d} ÷ 2 = $x",
+                    language,
+                ),
+            )
+            if (askProduct || answer != x) {
+                add(
+                    step(
+                        "y = $s − $x = $y",
+                        "y = $s − $x = $y",
+                        language,
+                    ),
+                )
+            }
+            if (askProduct) {
+                add(
+                    step(
+                        "x × y = $x × $y = ${x * y}",
+                        "x × y = $x × $y = ${x * y}",
+                        language,
+                    ),
+                )
+            }
+        }
         return Problem(
             text = "x + y = $s\nx − y = $d\n$question",
             answer = answer,
@@ -82,6 +131,7 @@ class EquationGenerator(private val random: Random) {
             kind = ProblemKind.EQUATION,
             hints = listOf(restateHint, HintText.digits(answer, language)),
             notes = listOf(sumDifferenceNote(language), balanceNote(language)),
+            solution = solution,
         )
     }
 
@@ -102,6 +152,19 @@ class EquationGenerator(private val random: Random) {
             kind = ProblemKind.EQUATION,
             hints = listOf(givenHint, HintText.digits(x, language)),
             notes = listOf(systemNote(language), shorthandNote(language)),
+            solution = listOf(
+                step(
+                    "Put y = $b into the first line: ${a}x + $b = $c",
+                    "Pune y = $b în primul rând: ${a}x + $b = $c",
+                    language,
+                ),
+                step(
+                    "Take $b off both sides: ${a}x = $c − $b = ${a * x}",
+                    "Scade $b din ambele părți: ${a}x = $c − $b = ${a * x}",
+                    language,
+                ),
+                divideBoth(a, a * x, x, language),
+            ),
         )
     }
 
@@ -118,6 +181,14 @@ class EquationGenerator(private val random: Random) {
                 kind = ProblemKind.EQUATION,
                 hints = listOf(rootMeaningHint(r * r, language), HintText.digits(x, language)),
                 notes = listOf(rootNote(language), balanceNote(language)),
+                solution = listOf(
+                    rootIs(r, language),
+                    step(
+                        "So x + $r = $c, which means x = $c − $r = $x",
+                        "Deci x + $r = $c, adică x = $c − $r = $x",
+                        language,
+                    ),
+                ),
             )
         }
 
@@ -132,6 +203,18 @@ class EquationGenerator(private val random: Random) {
                 kind = ProblemKind.EQUATION,
                 hints = listOf(squareMeaningHint(a, language), HintText.digits(x, language)),
                 notes = listOf(powerNote(language), balanceNote(language)),
+                solution = listOf(
+                    step(
+                        "$a² = $a × $a = ${a * a}",
+                        "$a² = $a × $a = ${a * a}",
+                        language,
+                    ),
+                    step(
+                        "So ${a * a} + x = $c, which means x = $c − ${a * a} = $x",
+                        "Deci ${a * a} + x = $c, adică x = $c − ${a * a} = $x",
+                        language,
+                    ),
+                ),
             )
         }
 
@@ -147,6 +230,18 @@ class EquationGenerator(private val random: Random) {
                     HintText.digits(x, language),
                 ),
                 notes = listOf(powerNote(language), rootNote(language)),
+                solution = listOf(
+                    step(
+                        "x² means x × x, so look for the number that times itself gives ${x * x}",
+                        "x² înseamnă x × x, deci caută numărul care înmulțit cu el însuși dă ${x * x}",
+                        language,
+                    ),
+                    step(
+                        "$x × $x = ${x * x}, so x = $x",
+                        "$x × $x = ${x * x}, deci x = $x",
+                        language,
+                    ),
+                ),
             )
         }
 
@@ -163,6 +258,18 @@ class EquationGenerator(private val random: Random) {
                 kind = ProblemKind.EQUATION,
                 hints = listOf(cubeHint, HintText.digits(x, language)),
                 notes = listOf(powerNote(language)),
+                solution = listOf(
+                    step(
+                        "x³ means x × x × x, so look for the number that gives ${x * x * x}",
+                        "x³ înseamnă x × x × x, deci caută numărul care dă ${x * x * x}",
+                        language,
+                    ),
+                    step(
+                        "$x × $x × $x = ${x * x * x}, so x = $x",
+                        "$x × $x × $x = ${x * x * x}, deci x = $x",
+                        language,
+                    ),
+                ),
             )
         }
     }
@@ -184,6 +291,14 @@ class EquationGenerator(private val random: Random) {
                 kind = ProblemKind.EQUATION,
                 hints = listOf(shorthandHint(a, language), HintText.digits(x, language)),
                 notes = listOf(balanceNote(language), shorthandNote(language)),
+                solution = listOf(
+                    step(
+                        "Move both loose numbers over: ${a}x = $rhs − $b + $c = ${a * x}",
+                        "Mută ambele numere libere: ${a}x = $rhs − $b + $c = ${a * x}",
+                        language,
+                    ),
+                    divideBoth(a, a * x, x, language),
+                ),
             )
         }
 
@@ -205,6 +320,19 @@ class EquationGenerator(private val random: Random) {
                 kind = ProblemKind.EQUATION,
                 hints = listOf(givenHint, HintText.digits(x, language)),
                 notes = listOf(systemNote(language), shorthandNote(language)),
+                solution = listOf(
+                    step(
+                        "y is $y, so ${b}y = $b × $y = ${b * y}",
+                        "y este $y, deci ${b}y = $b × $y = ${b * y}",
+                        language,
+                    ),
+                    step(
+                        "Take ${b * y} off both sides: ${a}x = $e − ${b * y} = ${a * x}",
+                        "Scade ${b * y} din ambele părți: ${a}x = $e − ${b * y} = ${a * x}",
+                        language,
+                    ),
+                    divideBoth(a, a * x, x, language),
+                ),
             )
         }
 
@@ -223,6 +351,18 @@ class EquationGenerator(private val random: Random) {
                 kind = ProblemKind.EQUATION,
                 hints = listOf(squareOfXHint(language), HintText.digits(x, language)),
                 notes = listOf(balanceNote(language), powerNote(language)),
+                solution = listOf(
+                    step(
+                        "Add $b to both sides: x² = ${x * x - b} + $b = ${x * x}",
+                        "Adună $b la ambele părți: x² = ${x * x - b} + $b = ${x * x}",
+                        language,
+                    ),
+                    step(
+                        "$x × $x = ${x * x}, so x = $x",
+                        "$x × $x = ${x * x}, deci x = $x",
+                        language,
+                    ),
+                ),
             )
         }
 
@@ -242,6 +382,19 @@ class EquationGenerator(private val random: Random) {
                     HintText.digits(answer, language),
                 ),
                 notes = listOf(rootNote(language)),
+                solution = listOf(
+                    rootIs(r, language),
+                    step(
+                        "$r × $a = ${r * a}",
+                        "$r × $a = ${r * a}",
+                        language,
+                    ),
+                    step(
+                        "${r * a} − $b = $answer",
+                        "${r * a} − $b = $answer",
+                        language,
+                    ),
+                ),
             )
         }
     }
@@ -258,20 +411,66 @@ class EquationGenerator(private val random: Random) {
         val b = random.nextInt(2, 14)
         val c = random.nextInt(2, 31)
         val cubic = random.nextBoolean()
-        val (text, answer) = if (cubic) {
+        // Three steps every time: differentiate, substitute, arrive. The
+        // constant c is named as vanishing, because that is the step she
+        // is most likely to doubt.
+        val (text, answer, solution) = if (cubic) {
             val a = random.nextInt(2, 5)
             val k = random.nextInt(2, 5)
-            "f(x) = ${a}x³ + ${b}x + $c\nf′($k) = ?" to 3 * a * k * k + b
+            val answer = 3 * a * k * k + b
+            Triple(
+                "f(x) = ${a}x³ + ${b}x + $c\nf′($k) = ?",
+                answer,
+                listOf(
+                    step(
+                        "Derive each piece: ${a}x³ becomes ${3 * a}x², ${b}x becomes $b, and the lone $c vanishes.",
+                        "Derivează fiecare bucată: ${a}x³ devine ${3 * a}x², ${b}x devine $b, iar $c singur dispare.",
+                        language,
+                    ),
+                    step(
+                        "So f′(x) = ${3 * a}x² + $b",
+                        "Deci f′(x) = ${3 * a}x² + $b",
+                        language,
+                    ),
+                    step(
+                        "Put $k in place of x: f′($k) = ${3 * a} × $k × $k + $b = $answer",
+                        "Pune $k în locul lui x: f′($k) = ${3 * a} × $k × $k + $b = $answer",
+                        language,
+                    ),
+                ),
+            )
         } else {
             val a = random.nextInt(2, 8)
             val k = random.nextInt(2, 7)
-            "f(x) = ${a}x² + ${b}x + $c\nf′($k) = ?" to 2 * a * k + b
+            val answer = 2 * a * k + b
+            Triple(
+                "f(x) = ${a}x² + ${b}x + $c\nf′($k) = ?",
+                answer,
+                listOf(
+                    step(
+                        "Derive each piece: ${a}x² becomes ${2 * a}x, ${b}x becomes $b, and the lone $c vanishes.",
+                        "Derivează fiecare bucată: ${a}x² devine ${2 * a}x, ${b}x devine $b, iar $c singur dispare.",
+                        language,
+                    ),
+                    step(
+                        "So f′(x) = ${2 * a}x + $b",
+                        "Deci f′(x) = ${2 * a}x + $b",
+                        language,
+                    ),
+                    step(
+                        "Put $k in place of x: f′($k) = ${2 * a} × $k + $b = $answer",
+                        "Pune $k în locul lui x: f′($k) = ${2 * a} × $k + $b = $answer",
+                        language,
+                    ),
+                ),
+            )
         }
         return Problem(
             text = text,
             answer = answer,
             difficulty = Difficulty.HARD,
             kind = ProblemKind.EQUATION,
+            solution = solution,
             hints = listOf(derivativeMeaningHint(language), HintText.digits(answer, language)),
             notes = listOf(
                 derivativeNote(language),
@@ -281,6 +480,26 @@ class EquationGenerator(private val random: Random) {
             ),
         )
     }
+
+    // ── Worked-solution steps ────────────────────────────────────────────
+
+    private fun step(en: String, ro: String, language: AppLanguage): String =
+        if (language == AppLanguage.ROMANIAN) ro else en
+
+    /** The last step of every "ax = total" shape: divide and land on x. */
+    private fun divideBoth(a: Int, total: Int, x: Int, language: AppLanguage): String =
+        step(
+            "Both sides ÷ $a: x = $total ÷ $a = $x",
+            "Ambele părți ÷ $a: x = $total ÷ $a = $x",
+            language,
+        )
+
+    private fun rootIs(r: Int, language: AppLanguage): String =
+        step(
+            "√${r * r} = $r, because $r × $r = ${r * r}",
+            "√${r * r} = $r, pentru că $r × $r = ${r * r}",
+            language,
+        )
 
     // ── Hint phrasing: meanings and restatements, never steps ───────────
 

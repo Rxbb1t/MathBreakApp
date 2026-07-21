@@ -72,14 +72,26 @@ class GeometryProblemGenerator(private val random: Random) {
             difficulty = Difficulty.MEDIUM,
             language = language,
             hint = when (language) {
-                AppLanguage.ENGLISH -> "The fence follows every side. A rectangle has two lengths and two widths."
-                AppLanguage.ROMANIAN -> "Gardul urmează fiecare latură. Un dreptunghi are două lungimi și două lățimi."
+                AppLanguage.ENGLISH -> "Add up all four sides. A rectangle has two lengths and two widths."
+                AppLanguage.ROMANIAN -> "Adună toate cele patru laturi. Un dreptunghi are două lungimi și două lățimi."
             },
             notes = perimeterNotes(language),
             diagram = Diagram.Rectangle(
                 widthLabel = "$a $unit",
                 heightLabel = "$b $unit",
                 aspect = a.toFloat() / b,
+            ),
+            solution = listOf(
+                step(
+                    "One length plus one width: $a + $b = ${a + b}",
+                    "O lungime plus o lățime: $a + $b = ${a + b}",
+                    language,
+                ),
+                step(
+                    "There are two of each, so P = 2 × ${a + b} = ${2 * (a + b)}",
+                    "Sunt câte două din fiecare, deci P = 2 × ${a + b} = ${2 * (a + b)}",
+                    language,
+                ),
             ),
             answerUnit = unit,
         )
@@ -96,8 +108,8 @@ class GeometryProblemGenerator(private val random: Random) {
             difficulty = Difficulty.MEDIUM,
             language = language,
             hint = when (language) {
-                AppLanguage.ENGLISH -> "Picture the floor as rows of equal squares."
-                AppLanguage.ROMANIAN -> "Imaginează-ți podeaua ca rânduri de pătrate egale."
+                AppLanguage.ENGLISH -> "Area is length times width."
+                AppLanguage.ROMANIAN -> "Aria e lungimea ori lățimea."
             },
             notes = areaNotes(language),
             diagram = Diagram.Rectangle(
@@ -105,6 +117,18 @@ class GeometryProblemGenerator(private val random: Random) {
                 heightLabel = "$b $unit",
                 aspect = a.toFloat() / b,
                 grid = true,
+            ),
+            solution = listOf(
+                step(
+                    "Area = length × width",
+                    "Aria = lungime × lățime",
+                    language,
+                ),
+                step(
+                    "$a × $b = ${a * b}",
+                    "$a × $b = ${a * b}",
+                    language,
+                ),
             ),
         )
     }
@@ -119,8 +143,8 @@ class GeometryProblemGenerator(private val random: Random) {
             difficulty = Difficulty.MEDIUM,
             language = language,
             hint = when (language) {
-                AppLanguage.ENGLISH -> "All three angles of a triangle make 180° together."
-                AppLanguage.ROMANIAN -> "Toate cele trei unghiuri ale unui triunghi fac împreună 180°."
+                AppLanguage.ENGLISH -> "The three angles of a triangle add up to 180°."
+                AppLanguage.ROMANIAN -> "Cele trei unghiuri ale unui triunghi adună 180°."
             },
             notes = angleNotes(language),
             diagram = Diagram.AngleTriangle(
@@ -129,6 +153,18 @@ class GeometryProblemGenerator(private val random: Random) {
                 leftLabel = "$x°",
                 rightLabel = "$y°",
                 topLabel = "?",
+            ),
+            solution = listOf(
+                step(
+                    "The two known angles: $x + $y = ${x + y}",
+                    "Cele două unghiuri știute: $x + $y = ${x + y}",
+                    language,
+                ),
+                step(
+                    "All three make 180, so the third is 180 − ${x + y} = ${180 - x - y}",
+                    "Toate trei fac 180, deci al treilea e 180 − ${x + y} = ${180 - x - y}",
+                    language,
+                ),
             ),
             answerUnit = "°",
         )
@@ -153,6 +189,18 @@ class GeometryProblemGenerator(private val random: Random) {
                 sideLabel = "?",
                 edgeLabel = "P = ${4 * side} $unit",
             ),
+            solution = listOf(
+                step(
+                    "A square has four equal sides, so P = 4 × side",
+                    "Un pătrat are patru laturi egale, deci P = 4 × latură",
+                    language,
+                ),
+                step(
+                    "side = ${4 * side} ÷ 4 = $side",
+                    "latura = ${4 * side} ÷ 4 = $side",
+                    language,
+                ),
+            ),
             answerUnit = unit,
         )
     }
@@ -167,8 +215,8 @@ class GeometryProblemGenerator(private val random: Random) {
             difficulty = Difficulty.MEDIUM,
             language = language,
             hint = when (language) {
-                AppLanguage.ENGLISH -> "Wall, ground and ladder form a right triangle. The ladder is its longest side."
-                AppLanguage.ROMANIAN -> "Peretele, pământul și scara formează un triunghi dreptunghic. Scara e latura cea mai lungă."
+                AppLanguage.ENGLISH -> "Wall, ground and ladder form a right triangle; the ladder is the longest side."
+                AppLanguage.ROMANIAN -> "Peretele, pământul și scara formează un triunghi dreptunghic; scara e latura cea mai lungă."
             },
             notes = pythagorasNotes(language),
             diagram = Diagram.RightTriangle(
@@ -176,6 +224,23 @@ class GeometryProblemGenerator(private val random: Random) {
                 rightLabel = "?",
                 slantLabel = "$c $unit",
                 aspect = a.toFloat() / b,
+            ),
+            solution = listOf(
+                step(
+                    "Pythagoras: the ladder is the longest side, so height² = $c² − $a²",
+                    "Pitagora: scara e latura cea mai lungă, deci înălțimea² = $c² − $a²",
+                    language,
+                ),
+                step(
+                    "${c * c} − ${a * a} = ${b * b}",
+                    "${c * c} − ${a * a} = ${b * b}",
+                    language,
+                ),
+                step(
+                    "Which number times itself gives ${b * b}? $b × $b = ${b * b}, so the height is $b",
+                    "Ce număr înmulțit cu el însuși dă ${b * b}? $b × $b = ${b * b}, deci înălțimea e $b",
+                    language,
+                ),
             ),
             answerUnit = unit,
         )
@@ -203,6 +268,23 @@ class GeometryProblemGenerator(private val random: Random) {
                 slantLabel = "?",
                 aspect = a.toFloat() / b,
             ),
+            solution = listOf(
+                step(
+                    "Pythagoras: shortcut² = $a² + $b²",
+                    "Pitagora: scurtătura² = $a² + $b²",
+                    language,
+                ),
+                step(
+                    "${a * a} + ${b * b} = ${c * c}",
+                    "${a * a} + ${b * b} = ${c * c}",
+                    language,
+                ),
+                step(
+                    "Which number times itself gives ${c * c}? $c × $c = ${c * c}, so the shortcut is $c",
+                    "Ce număr înmulțit cu el însuși dă ${c * c}? $c × $c = ${c * c}, deci scurtătura e $c",
+                    language,
+                ),
+            ),
             answerUnit = unit,
         )
     }
@@ -218,8 +300,8 @@ class GeometryProblemGenerator(private val random: Random) {
             difficulty = Difficulty.HARD,
             language = language,
             hint = when (language) {
-                AppLanguage.ENGLISH -> "The area and the length together reveal the width."
-                AppLanguage.ROMANIAN -> "Aria și lungimea, împreună, îți dezvăluie lățimea."
+                AppLanguage.ENGLISH -> "Divide the area by the length to get the width."
+                AppLanguage.ROMANIAN -> "Împarte aria la lungime ca să afli lățimea."
             },
             notes = areaNotes(language) + perimeterNotes(language).first(),
             // "A" matches the helper sheet's area formula in both languages.
@@ -227,6 +309,23 @@ class GeometryProblemGenerator(private val random: Random) {
                 widthLabel = "$a $unit",
                 heightLabel = "?",
                 innerLabel = "A = ${a * b} $unit²",
+            ),
+            solution = listOf(
+                step(
+                    "Area = length × width, so width = ${a * b} ÷ $a = $b",
+                    "Aria = lungime × lățime, deci lățimea = ${a * b} ÷ $a = $b",
+                    language,
+                ),
+                step(
+                    "One length plus one width: $a + $b = ${a + b}",
+                    "O lungime plus o lățime: $a + $b = ${a + b}",
+                    language,
+                ),
+                step(
+                    "P = 2 × ${a + b} = ${2 * (a + b)}",
+                    "P = 2 × ${a + b} = ${2 * (a + b)}",
+                    language,
+                ),
             ),
             answerUnit = unit,
         )
@@ -244,14 +343,31 @@ class GeometryProblemGenerator(private val random: Random) {
             difficulty = Difficulty.HARD,
             language = language,
             hint = when (language) {
-                AppLanguage.ENGLISH -> "The box fills up with identical layers of little cubes."
-                AppLanguage.ROMANIAN -> "Cutia se umple cu straturi identice de cuburi mici."
+                AppLanguage.ENGLISH -> "Volume is length times width times height."
+                AppLanguage.ROMANIAN -> "Volumul e lungimea ori lățimea ori înălțimea."
             },
             notes = volumeNotes(language),
             diagram = Diagram.Box(
                 lengthLabel = "$a $unit",
                 depthLabel = "$b $unit",
                 heightLabel = "$c $unit",
+            ),
+            solution = listOf(
+                step(
+                    "Volume = length × width × height",
+                    "Volumul = lungime × lățime × înălțime",
+                    language,
+                ),
+                step(
+                    "One layer first: $a × $b = ${a * b}",
+                    "Întâi un strat: $a × $b = ${a * b}",
+                    language,
+                ),
+                step(
+                    "Then $c layers: ${a * b} × $c = ${a * b * c}",
+                    "Apoi $c straturi: ${a * b} × $c = ${a * b * c}",
+                    language,
+                ),
             ),
         )
     }
@@ -265,8 +381,8 @@ class GeometryProblemGenerator(private val random: Random) {
             difficulty = Difficulty.HARD,
             language = language,
             hint = when (language) {
-                AppLanguage.ENGLISH -> "The three angles still make 180°. And two of them match."
-                AppLanguage.ROMANIAN -> "Cele trei unghiuri tot 180° fac. Iar două dintre ele sunt la fel."
+                AppLanguage.ENGLISH -> "The three angles add up to 180°, and two of them are equal."
+                AppLanguage.ROMANIAN -> "Cele trei unghiuri adună 180°, iar două dintre ele sunt egale."
             },
             notes = angleNotes(language),
             diagram = Diagram.AngleTriangle(
@@ -275,6 +391,18 @@ class GeometryProblemGenerator(private val random: Random) {
                 leftLabel = "?",
                 rightLabel = "?",
                 topLabel = "$top°",
+            ),
+            solution = listOf(
+                step(
+                    "Take the top angle off the 180: 180 − $top = ${180 - top}",
+                    "Scade unghiul de sus din 180: 180 − $top = ${180 - top}",
+                    language,
+                ),
+                step(
+                    "That ${180 - top} is shared equally by the other two: ${180 - top} ÷ 2 = ${(180 - top) / 2}",
+                    "Cele ${180 - top} se împart egal între celelalte două: ${180 - top} ÷ 2 = ${(180 - top) / 2}",
+                    language,
+                ),
             ),
             answerUnit = "°",
         )
@@ -292,8 +420,8 @@ class GeometryProblemGenerator(private val random: Random) {
             difficulty = Difficulty.HARD,
             language = language,
             hint = when (language) {
-                AppLanguage.ENGLISH -> "One lap is the whole way around the rectangle."
-                AppLanguage.ROMANIAN -> "O tură înseamnă tot ocolul dreptunghiului."
+                AppLanguage.ENGLISH -> "One lap is all four sides added together."
+                AppLanguage.ROMANIAN -> "O tură e suma tuturor celor patru laturi."
             },
             notes = perimeterNotes(language),
             diagram = Diagram.Rectangle(
@@ -301,6 +429,18 @@ class GeometryProblemGenerator(private val random: Random) {
                 heightLabel = "$b $unit",
                 aspect = a.toFloat() / b,
                 lapsLabel = "× $n",
+            ),
+            solution = listOf(
+                step(
+                    "One lap is all four sides: 2 × ($a + $b) = ${2 * (a + b)}",
+                    "O tură e suma celor patru laturi: 2 × ($a + $b) = ${2 * (a + b)}",
+                    language,
+                ),
+                step(
+                    "$n laps: ${2 * (a + b)} × $n = ${n * 2 * (a + b)}",
+                    "$n ture: ${2 * (a + b)} × $n = ${n * 2 * (a + b)}",
+                    language,
+                ),
             ),
             answerUnit = unit,
         )
@@ -314,6 +454,7 @@ class GeometryProblemGenerator(private val random: Random) {
         hint: String,
         notes: List<String>,
         diagram: Diagram,
+        solution: List<String>,
         answerUnit: String = "",
     ): Problem = Problem(
         text = text,
@@ -323,8 +464,17 @@ class GeometryProblemGenerator(private val random: Random) {
         hints = listOf(hint, HintText.digits(answer, language)),
         notes = notes,
         diagram = diagram,
+        solution = solution,
         answerUnit = answerUnit,
     )
+
+    /**
+     * Worked-solution steps. The formula is always named before it is
+     * used: the point is that she can reach for the same formula next
+     * time, not that this one answer came out right.
+     */
+    private fun step(en: String, ro: String, language: AppLanguage): String =
+        if (language == AppLanguage.ROMANIAN) ro else en
 
     // ── Helper-sheet notes ───────────────────────────────────────────────
 

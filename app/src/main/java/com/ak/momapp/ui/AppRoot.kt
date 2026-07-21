@@ -18,12 +18,14 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.ak.momapp.BreakEntry
 import com.ak.momapp.data.SettingsRepository
 import com.ak.momapp.i18n.AppLanguage
 import com.ak.momapp.i18n.LocalStrings
 import com.ak.momapp.i18n.strings
 import com.ak.momapp.ui.challenge.ChallengeScreen
 import com.ak.momapp.ui.exercises.ExercisesScreen
+import com.ak.momapp.ui.practice.PracticeScreen
 import com.ak.momapp.ui.problem.ProblemScreen
 import com.ak.momapp.ui.problem.ProblemViewModel
 import com.ak.momapp.ui.settings.SettingsScreen
@@ -33,12 +35,12 @@ import com.ak.momapp.ui.theme.MomAppTheme
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
-// Five screens still don't warrant a navigation library.
-enum class AppScreen { PROBLEM, CHALLENGE, SETTINGS, STATS, EXERCISES }
+// Six screens still don't warrant a navigation library.
+enum class AppScreen { PROBLEM, CHALLENGE, SETTINGS, STATS, EXERCISES, PRACTICE }
 
 @Composable
 fun AppRoot(
-    breakSession: Int = 0,
+    entry: BreakEntry = BreakEntry(),
     onSnooze: () -> Unit = {},
 ) {
     var screen by rememberSaveable { mutableStateOf(AppScreen.PROBLEM) }
@@ -46,9 +48,9 @@ fun AppRoot(
     val context = LocalContext.current
     val settingsRepository = remember { SettingsRepository(context.applicationContext) }
     val appearance by remember {
-        settingsRepository.settings.map { Triple(it.language, it.largeText, it.palette) }
-    }.collectAsState(initial = Triple(AppLanguage.ENGLISH, false, AppPalette.CLAY))
-    val (language, largeText, palette) = appearance
+        settingsRepository.settings.map { it.language to it.palette }
+    }.collectAsState(initial = AppLanguage.ENGLISH to AppPalette.CLAY)
+    val (language, palette) = appearance
     // Null while the first read is in flight, so neither the guide nor the
     // notification prompt can fire before the stored value is known.
     val guideShown by remember {
@@ -60,17 +62,27 @@ fun AppRoot(
     // button there acts on the same sitting the problem screen shows.
     val problemViewModel: ProblemViewModel = viewModel(factory = ProblemViewModel.Factory)
 
+    // A break notification or a widget tap asks for a problem, so that is
+    // where it lands -- whatever screen the app happened to be left on.
+    // Without this the app merely comes to the foreground still showing
+    // Settings, and the tap reads as having done nothing.
+    LaunchedEffect(entry.session) {
+        if (entry.session > 0) screen = AppScreen.PROBLEM
+    }
+
     // The system permission dialog waits its turn: it only appears once
     // the setup guide has been answered, never on top of it.
     NotificationPermissionRequest(enabled = guideShown == true)
 
-    MomAppTheme(largeText = largeText, palette = palette) {
+    MomAppTheme(palette = palette) {
         CompositionLocalProvider(LocalStrings provides language.strings()) {
             when (screen) {
                 AppScreen.PROBLEM -> ProblemScreen(
                     onOpenSettings = { screen = AppScreen.SETTINGS },
                     onOpenChallenge = { screen = AppScreen.CHALLENGE },
-                    breakSession = breakSession,
+                    onOpenPractice = { screen = AppScreen.PRACTICE },
+                    breakSession = entry.session,
+                    canSnooze = entry.snoozable,
                     onSnooze = onSnooze,
                     viewModel = problemViewModel,
                 )
@@ -105,6 +117,12 @@ fun AppRoot(
                 AppScreen.EXERCISES -> {
                     BackHandler { screen = AppScreen.SETTINGS }
                     ExercisesScreen(onBack = { screen = AppScreen.SETTINGS })
+                }
+
+                // Practice hangs off the Start screen, so back goes home.
+                AppScreen.PRACTICE -> {
+                    BackHandler { screen = AppScreen.PROBLEM }
+                    PracticeScreen(onBack = { screen = AppScreen.PROBLEM })
                 }
             }
 

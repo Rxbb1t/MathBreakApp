@@ -4,6 +4,7 @@ import android.content.Context
 import com.ak.momapp.data.BreakStateRepository
 import com.ak.momapp.data.SettingsRepository
 import com.ak.momapp.notify.BreakNotifier
+import com.ak.momapp.widget.BrainBreakWidget
 import java.time.LocalDateTime
 import java.time.ZoneId
 import kotlinx.coroutines.flow.first
@@ -88,12 +89,14 @@ object BreakCoordinator {
     private suspend fun scheduleAt(context: Context, epochMillis: Long) {
         BreakScheduler.scheduleBreak(context, epochMillis)
         BreakStateRepository(context).setNextBreakAt(epochMillis)
+        BrainBreakWidget.refresh(context)
     }
 
     private suspend fun cancelAll(context: Context) {
         BreakScheduler.cancelBreak(context)
         BreakScheduler.cancelRenudge(context)
         BreakStateRepository(context).setNextBreakAt(null)
+        BrainBreakWidget.refresh(context)
     }
 
     private fun millisFromNow(minutes: Long): Long =

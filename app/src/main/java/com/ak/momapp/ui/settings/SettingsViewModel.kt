@@ -9,6 +9,7 @@ import com.ak.momapp.alarm.BreakCoordinator
 import com.ak.momapp.data.ActiveWindow
 import com.ak.momapp.data.BrainBreakSettings
 import com.ak.momapp.data.BreakStateRepository
+import com.ak.momapp.data.ProgressRepository
 import com.ak.momapp.data.SettingsRepository
 import com.ak.momapp.i18n.AppLanguage
 import com.ak.momapp.problem.Difficulty
@@ -17,6 +18,7 @@ import com.ak.momapp.ui.theme.AppPalette
 import java.time.DayOfWeek
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -26,7 +28,16 @@ class SettingsViewModel(
     breakStateRepository: BreakStateRepository,
     // Alarm side effect as a lambda so the ViewModel stays context-free.
     private val reschedule: suspend () -> Unit = {},
+    // Null keeps the class testable off-device; only the Exercises screen
+    // needs the per-topic levels.
+    private val progressRepository: ProgressRepository? = null,
 ) : ViewModel() {
+
+    /** The level each topic is dealt at, for the Exercises rows. */
+    val topicLevels: StateFlow<Map<ProblemTopic, Difficulty>> =
+        (progressRepository?.topicLevels ?: emptyFlow())
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyMap())
+
 
     // Null while the first DataStore read is in flight.
     val settings: StateFlow<BrainBreakSettings?> = repository.settings
@@ -100,10 +111,6 @@ class SettingsViewModel(
         viewModelScope.launch { repository.setEnabledTopics(updated) }
     }
 
-    fun setLargeText(enabled: Boolean) {
-        viewModelScope.launch { repository.setLargeText(enabled) }
-    }
-
     fun setPalette(palette: AppPalette) {
         viewModelScope.launch { repository.setPalette(palette) }
     }
@@ -124,6 +131,7 @@ class SettingsViewModel(
                     repository = SettingsRepository(app),
                     breakStateRepository = BreakStateRepository(app),
                     reschedule = { BreakCoordinator.rescheduleFromNow(app) },
+                    progressRepository = ProgressRepository(app),
                 )
             }
         }

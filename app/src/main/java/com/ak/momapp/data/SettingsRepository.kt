@@ -27,9 +27,7 @@ data class BrainBreakSettings(
     val timerMinutes: Int = TIMER_OFF,
     /** Problem families the mix may draw from; never below [ProblemTopic.MIN_ENABLED]. */
     val enabledTopics: Set<ProblemTopic> = ProblemTopic.ALL,
-    /** Scales every text style by [LARGE_TEXT_SCALE] for tired eyes. */
-    val largeText: Boolean = false,
-    /** The look picked under Settings → Personalize. */
+    /** The look picked under Settings → P ersonalize. */
     val palette: AppPalette = AppPalette.CLAY,
     /** The one-time setup guide has been answered. */
     val guideShown: Boolean = false,
@@ -48,8 +46,6 @@ data class BrainBreakSettings(
         const val TIMER_OFF = 0
         /** Off by default; tricky problems stretch these via a multiplier. */
         val TIMER_OPTIONS = listOf(TIMER_OFF, 3, 5, 10)
-        /** The "Large" text option: +30%, between the 25–40% asked for. */
-        const val LARGE_TEXT_SCALE = 1.3f
         const val DEFAULT_ACTIVE_START = 9 * 60
         const val DEFAULT_ACTIVE_END = 17 * 60
         val DEFAULT_ACTIVE_DAYS: Set<DayOfWeek> = setOf(
@@ -218,7 +214,6 @@ class SettingsRepository(private val context: Context) {
         /** Old enabled-set encodings, kept readable for migration only. */
         val LEGACY_ENABLED_TOPICS_V2 = stringPreferencesKey("enabled_problem_topics_v2")
         val LEGACY_ENABLED_TOPICS_V1 = stringPreferencesKey("enabled_problem_topics")
-        val LARGE_TEXT = booleanPreferencesKey("large_text")
         val PALETTE = stringPreferencesKey("palette")
         val GUIDE_SHOWN = booleanPreferencesKey("guide_shown")
         val LANGUAGE = stringPreferencesKey("language")
@@ -242,7 +237,6 @@ class SettingsRepository(private val context: Context) {
                 prefs[Keys.LEGACY_ENABLED_TOPICS_V2],
                 prefs[Keys.LEGACY_ENABLED_TOPICS_V1],
             ),
-            largeText = prefs[Keys.LARGE_TEXT] ?: false,
             palette = SettingsSerialization.decodePalette(prefs[Keys.PALETTE]),
             guideShown = prefs[Keys.GUIDE_SHOWN] ?: false,
             language = SettingsSerialization.decodeLanguage(prefs[Keys.LANGUAGE]),
@@ -316,10 +310,6 @@ class SettingsRepository(private val context: Context) {
         context.brainBreakDataStore.edit {
             it[Keys.DISABLED_TOPICS] = SettingsSerialization.encodeTopics(topics)
         }
-    }
-
-    suspend fun setLargeText(enabled: Boolean) {
-        context.brainBreakDataStore.edit { it[Keys.LARGE_TEXT] = enabled }
     }
 
     suspend fun setPalette(palette: AppPalette) {

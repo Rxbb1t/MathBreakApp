@@ -35,8 +35,8 @@ class MoneyProblemGeneratorTest {
                 assertTrue("negative answer in '${problem.text}'", problem.answer > 0)
                 val type = verify(problem)
                 seen += type
-                // Counting answers (jars, weeks) have no unit; the rest pay in lei.
-                val expectedUnit = if (type == "exactBudget" || type == "saveUp") "" else "lei"
+                // Counting answers (jars, weeks) have no unit; the rest pay in euros.
+                val expectedUnit = if (type == "exactBudget" || type == "saveUp") "" else "€"
                 assertEquals("unit of '${problem.text}'", expectedUnit, problem.answerUnit)
             }
             assertEquals("at $difficulty", expected, seen)

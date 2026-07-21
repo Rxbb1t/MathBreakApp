@@ -70,7 +70,7 @@ class DailyChallengeGeneratorTest {
             val (s1, s2, s3, s4, s5) = stages
             val n1 = nums(s1.text)
             assertEquals("'${s1.text}'", n1[0] * n1[1] + n1[2] * n1[3], s1.answer)
-            assertEquals("lei", s1.answerUnit)
+            assertEquals("€", s1.answerUnit)
 
             val n2 = nums(s2.text)
             assertEquals("stage 2 must quote stage 1's answer", s1.answer, n2[1])
@@ -144,7 +144,7 @@ class DailyChallengeGeneratorTest {
             val (s1, s2, s3, s4, s5) = stages
             val n1 = nums(s1.text)
             assertEquals("'${s1.text}'", n1[0] + n1[1] + n1[2], s1.answer)
-            assertEquals("lei", s1.answerUnit)
+            assertEquals("€", s1.answerUnit)
 
             val n2 = nums(s2.text)
             assertEquals("stage 2 must quote stage 1's answer", s1.answer, n2[1])
@@ -183,7 +183,7 @@ class DailyChallengeGeneratorTest {
 
             val n5 = nums(s5.text)
             assertEquals("'${s5.text}'", n5[0] - n5[1], s5.answer)
-            assertEquals("lei", s5.answerUnit)
+            assertEquals("€", s5.answerUnit)
         }
     }
 

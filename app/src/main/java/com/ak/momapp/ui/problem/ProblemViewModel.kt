@@ -9,10 +9,12 @@ import com.ak.momapp.alarm.BreakCoordinator
 import com.ak.momapp.data.ChallengeRepository
 import com.ak.momapp.data.ProgressRepository
 import com.ak.momapp.data.SettingsRepository
+import com.ak.momapp.problem.Difficulty
 import com.ak.momapp.problem.PersonalContent
 import com.ak.momapp.problem.Problem
 import com.ak.momapp.problem.ProblemGenerator
 import com.ak.momapp.problem.ProblemKind
+import com.ak.momapp.problem.ProblemTopic
 import com.ak.momapp.problem.topic
 import java.time.LocalDate
 import kotlin.math.roundToInt
@@ -72,6 +74,9 @@ data class ProblemUiState(
         get() = if (hintsUsed > 0) problem.hints.getOrNull(hintsUsed - 1) else null
 }
 
+/** One drill: a single topic at a level she picked herself. */
+data class PracticeConfig(val topic: ProblemTopic, val difficulty: Difficulty)
+
 class ProblemViewModel(
     private val settingsRepository: SettingsRepository,
     private val progressRepository: ProgressRepository,
@@ -124,6 +129,34 @@ class ProblemViewModel(
     private val _started = MutableStateFlow(false)
     val started: StateFlow<Boolean> = _started.asStateFlow()
 
+    /**
+     * Non-null while she's drilling one topic instead of taking a break.
+     * Practice problems still count toward the day's total and the
+     * per-topic accuracy, but they leave the adaptive level alone and
+     * never fill the per-break cap. Held here rather than in the screen
+     * so it survives a rotation.
+     */
+    private val _practice = MutableStateFlow<PracticeConfig?>(null)
+    val practice: StateFlow<PracticeConfig?> = _practice.asStateFlow()
+
+    /** She picked a type and a level. Deal the first drill. */
+    fun startPractice(topic: ProblemTopic, difficulty: Difficulty) {
+        timerJob?.cancel()
+        _practice.value = PracticeConfig(topic, difficulty)
+        _sessionDone.value = 0
+        _started.value = true
+        _uiState.value = null
+        nextProblem()
+    }
+
+    /** Back out of a drill, to the picker. */
+    fun endPractice() {
+        timerJob?.cancel()
+        _practice.value = null
+        _started.value = false
+        _uiState.value = null
+    }
+
     fun startSession() {
         if (_started.value) return
         _started.value = true
@@ -167,7 +200,7 @@ class ProblemViewModel(
         if (state.isFinished) return
         timerJob?.cancel()
         if (state.attempts == 0) {
-            viewModelScope.launch { progressRepository.recordIncorrect(state.problem.kind.topic) }
+            recordMiss(state.problem.kind.topic)
         }
         nextProblem()
     }
@@ -243,7 +276,12 @@ class ProblemViewModel(
             val firstAttempt = state.attempts == 0
             val solveTimeMs = System.currentTimeMillis() - problemShownAtMs
             viewModelScope.launch {
-                progressRepository.recordCorrect(firstAttempt, solveTimeMs, state.problem.kind.topic)
+                progressRepository.recordCorrect(
+                    firstAttempt = firstAttempt,
+                    solveTimeMs = solveTimeMs,
+                    topic = state.problem.kind.topic,
+                    countsTowardLevel = _practice.value == null,
+                )
             }
             _uiState.update {
                 it?.copy(
@@ -254,7 +292,7 @@ class ProblemViewModel(
             notifyProblemFinished()
         } else {
             if (state.attempts == 0) {
-                viewModelScope.launch { progressRepository.recordIncorrect(state.problem.kind.topic) }
+                recordMiss(state.problem.kind.topic)
             }
             val attempts = state.attempts + 1
             // One-tap exercises offer fewer choices, so they forgive one
@@ -285,7 +323,7 @@ class ProblemViewModel(
             return
         }
         if (state.attempts == 0) {
-            viewModelScope.launch { progressRepository.recordIncorrect(state.problem.kind.topic) }
+            recordMiss(state.problem.kind.topic)
         }
         _uiState.update {
             it?.copy(phase = AnswerPhase.REVEALED, hintsUsed = MAX_HINTS, input = "")
@@ -293,8 +331,19 @@ class ProblemViewModel(
         notifyProblemFinished()
     }
 
+    /** A first-attempt miss. Drills never drag the break level down. */
+    private fun recordMiss(topic: ProblemTopic) {
+        val drilling = _practice.value != null
+        viewModelScope.launch {
+            progressRepository.recordIncorrect(topic, countsTowardLevel = !drilling)
+        }
+    }
+
     private fun notifyProblemFinished() {
         timerJob?.cancel()
+        // A drill isn't a break: there's no notification to clear and no
+        // per-break cap to fill, so she can keep going as long as she likes.
+        if (_practice.value != null) return
         _sessionDone.value++
         viewModelScope.launch {
             onProblemFinished()
@@ -311,18 +360,24 @@ class ProblemViewModel(
 
     private suspend fun deal() {
         val settings = settingsRepository.settings.first()
-        val difficulty = progressRepository.currentDifficulty.first()
+        val drill = _practice.value
+        val difficulty = drill?.difficulty ?: progressRepository.currentDifficulty.first()
+        // A drill is one topic at one level she chose herself, so it uses
+        // that flat. A break asks each topic for its own level.
+        val levels = if (drill != null) null else progressRepository.topicLevels.first()
         val problem: Problem = generator.generate(
             difficulty = difficulty,
             language = settings.language,
-            topics = settings.enabledTopics,
+            topics = drill?.let { setOf(it.topic) } ?: settings.enabledTopics,
+            levelFor = { topic -> levels?.get(topic) ?: difficulty },
         )
         problemShownAtMs = System.currentTimeMillis()
         // Tricky problems get extra time: the single highest factor
-        // (hard ×2, logic ×1.5, names ×1.25). Never stacked.
-        val timerSeconds = settings.timerMinutes.takeIf { it > 0 }?.let { minutes ->
-            (minutes * 60 * problem.timerMultiplier).roundToInt()
-        }
+        // (hard ×2, logic ×1.5, names ×1.25). Never stacked. A drill is
+        // untimed however the timer setting stands.
+        val timerSeconds = settings.timerMinutes
+            .takeIf { it > 0 && drill == null }
+            ?.let { minutes -> (minutes * 60 * problem.timerMultiplier).roundToInt() }
         _uiState.update { ProblemUiState(problem = problem, remainingSeconds = timerSeconds) }
         startTimer(timerSeconds)
     }
@@ -349,7 +404,7 @@ class ProblemViewModel(
         // Untouched problems count as a miss for the adaptive level; if she
         // already missed an attempt, that was recorded then.
         if (state.attempts == 0) {
-            viewModelScope.launch { progressRepository.recordIncorrect(state.problem.kind.topic) }
+            recordMiss(state.problem.kind.topic)
         }
         _uiState.update {
             it?.copy(

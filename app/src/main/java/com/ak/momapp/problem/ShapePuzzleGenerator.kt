@@ -121,6 +121,26 @@ class ShapePuzzleGenerator(private val random: Random) {
                 )
             }
         }
+        // The puzzle is built so that given line i reveals values[i], so
+        // reading it back top to bottom IS the solution. The last step
+        // swaps every shape for its number, which is the move she has to
+        // make herself.
+        val solution = buildList {
+            lines.forEachIndexed { index, line ->
+                val (shape, value) = values[index]
+                add(
+                    if (language == AppLanguage.ROMANIAN) "$line   deci $shape = $value"
+                    else "$line   so $shape = $value",
+                )
+            }
+            val substituted = values
+                .fold(finalLine) { line, (shape, value) -> line.replace(shape, "$value") }
+                .replace("?", "$answer")
+            add(
+                if (language == AppLanguage.ROMANIAN) "Pune numerele în ultimul rând: $substituted"
+                else "Put the numbers into the last line: $substituted",
+            )
+        }
         return Problem(
             text = (lines + finalLine).joinToString("\n"),
             answer = answer,
@@ -128,6 +148,7 @@ class ShapePuzzleGenerator(private val random: Random) {
             kind = ProblemKind.PUZZLE,
             hints = listOf(firstLineHint, valuesHint),
             notes = notes,
+            solution = solution,
         )
     }
 

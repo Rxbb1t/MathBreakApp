@@ -19,3 +19,6 @@ local.properties
 keystore.properties
 *.jks
 *.keystore
+
+# Built APKs kept in the project root for sideloading
+*.apk

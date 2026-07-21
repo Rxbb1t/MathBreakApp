@@ -8,8 +8,13 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -19,20 +24,21 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -51,12 +57,16 @@ import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.SuggestionChipDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -76,6 +86,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -87,6 +98,7 @@ import com.ak.momapp.problem.MissingOperatorGenerator
 import com.ak.momapp.problem.PersonalContent
 import com.ak.momapp.problem.Problem
 import com.ak.momapp.problem.ProblemKind
+import com.ak.momapp.problem.ProblemTopic
 import com.ak.momapp.problem.TrueFalseProblemGenerator
 import com.ak.momapp.ui.theme.MomAppTheme
 import kotlinx.coroutines.launch
@@ -96,7 +108,10 @@ fun ProblemScreen(
     onOpenSettings: () -> Unit,
     modifier: Modifier = Modifier,
     onOpenChallenge: () -> Unit = {},
+    onOpenPractice: () -> Unit = {},
     breakSession: Int = 0,
+    /** A notification can be put off; a widget tap she chose cannot. */
+    canSnooze: Boolean = false,
     onSnooze: () -> Unit = {},
     viewModel: ProblemViewModel = viewModel(factory = ProblemViewModel.Factory),
 ) {
@@ -122,6 +137,7 @@ fun ProblemScreen(
             onStart = viewModel::startSession,
             onOpenSettings = onOpenSettings,
             onOpenChallenge = onOpenChallenge,
+            onOpenPractice = onOpenPractice,
             modifier = modifier,
         )
     } else if (state == null) {
@@ -142,7 +158,7 @@ fun ProblemScreen(
             onOpenSettings = onOpenSettings,
             onOpenChallenge = onOpenChallenge,
             challengeDone = challengeDone,
-            showSnooze = breakSession > 0,
+            showSnooze = breakSession > 0 && canSnooze,
             onSnooze = onSnooze,
             soundEnabled = soundEnabled,
             sessionDone = sessionDone,
@@ -173,12 +189,18 @@ fun ProblemScreenContent(
     soundEnabled: Boolean = false,
     sessionDone: Int = 0,
     sessionLimit: Int = 0,
+    // Set while she's drilling one type: the header becomes a back arrow
+    // and the type's name instead of the trophy and the settings gear.
+    practiceTopic: ProblemTopic? = null,
+    onExitPractice: () -> Unit = {},
 ) {
     val strings = LocalStrings.current
     val focusRequester = remember { FocusRequester() }
     val keyboard = LocalSoftwareKeyboardController.current
     val haptics = LocalHapticFeedback.current
     val context = LocalContext.current
+    // While she's typing, the Hint and Skip buttons slide out of the way.
+    val imeVisible = WindowInsets.isImeVisible
 
     // The helper sheet only exists when the problem brought notes along.
     val notebookAvailable = uiState.problem.notes.isNotEmpty()
@@ -188,22 +210,15 @@ fun ProblemScreenContent(
         scope.launch { drawerState.close() }
     }
 
-    // New problem → focus the field; answered or tap-answered (no field
-    // to focus) → tuck the keyboard away.
+    // A new problem no longer yanks the keyboard up. She reads the whole
+    // thing first, in full, then taps the field when she's ready to type.
     LaunchedEffect(uiState.problem, uiState.isFinished) {
-        if (uiState.isFinished || uiState.problem.tapAnswered) {
-            keyboard?.hide()
-        } else {
-            focusRequester.requestFocus()
-        }
+        keyboard?.hide()
     }
-    // Writing space beats the keyboard; bring the keyboard back after.
+
+    // The notebook is for writing; keep the keyboard out of its way.
     LaunchedEffect(drawerState.isOpen) {
-        if (drawerState.isOpen) {
-            keyboard?.hide()
-        } else if (!uiState.isFinished && !uiState.problem.tapAnswered) {
-            focusRequester.requestFocus()
-        }
+        if (drawerState.isOpen) keyboard?.hide()
     }
     LaunchedEffect(uiState.phase) {
         when (uiState.phase) {
@@ -260,37 +275,80 @@ fun ProblemScreenContent(
                         Difficulty.HARD -> MaterialTheme.colorScheme.primaryContainer to
                             MaterialTheme.colorScheme.onPrimaryContainer
                     }
-                    SuggestionChip(
-                        onClick = {},
-                        enabled = false,
-                        label = { Text(strings.difficultyLabel(uiState.problem.difficulty)) },
-                        colors = SuggestionChipDefaults.suggestionChipColors(
-                            disabledContainerColor = chipContainer,
-                            disabledLabelColor = chipLabel,
-                        ),
-                        border = null,
-                    )
-                    Spacer(Modifier.weight(1f))
+                    val chip = @Composable {
+                        SuggestionChip(
+                            onClick = {},
+                            enabled = false,
+                            label = {
+                                Text(
+                                    text = strings.difficultyLabel(uiState.problem.difficulty),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            },
+                            colors = SuggestionChipDefaults.suggestionChipColors(
+                                disabledContainerColor = chipContainer,
+                                disabledLabelColor = chipLabel,
+                            ),
+                            border = null,
+                        )
+                    }
+                    if (practiceTopic != null) {
+                        IconButton(onClick = onExitPractice) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = strings.back,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        // The topic name is the flexible one here: it can
+                        // ellipsize, the level chip can't usefully.
+                        Text(
+                            text = strings.topicLabel(practiceTopic),
+                            style = MaterialTheme.typography.titleMedium,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f),
+                        )
+                        chip()
+                    } else {
+                        // The icons are laid out first and never shrink, so
+                        // the gear cannot be pushed off the edge however
+                        // large the system font is; the chip gives way
+                        // instead. This row used to be four inflexible
+                        // children, and at big font sizes the settings
+                        // button fell off the right of the screen.
+                        Box(Modifier.weight(1f)) { chip() }
+                        TrophyButton(challengeDone = challengeDone, onClick = onOpenChallenge)
+                        IconButton(onClick = onOpenSettings) {
+                            Icon(
+                                imageVector = Icons.Filled.Settings,
+                                contentDescription = strings.settingsIconDescription,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                }
+
+                // A drill has no cap, so no dots.
+                if (practiceTopic == null) {
+                    if (sessionLimit > 0) {
+                        Spacer(Modifier.height(10.dp))
+                        SittingProgress(done = sessionDone, limit = sessionLimit)
+                    }
+                    // The day's tally used to ride in the header, where it
+                    // was the widest thing in the row and crowded the
+                    // buttons out. It reads better under the dots anyway:
+                    // both are "how far along am I".
                     if (solvedToday > 0) {
+                        Spacer(Modifier.height(8.dp))
                         Text(
                             text = strings.solvedToday(solvedToday),
                             style = MaterialTheme.typography.labelLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center,
                         )
                     }
-                    TrophyButton(challengeDone = challengeDone, onClick = onOpenChallenge)
-                    IconButton(onClick = onOpenSettings) {
-                        Icon(
-                            imageVector = Icons.Filled.Settings,
-                            contentDescription = strings.settingsIconDescription,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
-
-                if (sessionLimit > 0) {
-                    Spacer(Modifier.height(10.dp))
-                    SittingProgress(done = sessionDone, limit = sessionLimit)
                 }
 
                 uiState.remainingSeconds?.let { seconds ->
@@ -309,66 +367,41 @@ fun ProblemScreenContent(
                     }
                 }
 
-                // Scrollable middle: with Large text and the keyboard up, a
-                // long riddle scrolls instead of colliding with the buttons.
+                // The problem, the answer, and the feedback share the room
+                // between the header and the buttons. The problem text
+                // scales itself down to fit whatever space is left, and
+                // scrolls only if even the smallest size overflows.
                 Column(
                     modifier = Modifier
                         .weight(1f)
-                        .fillMaxWidth()
-                        .verticalScroll(rememberScrollState()),
+                        .fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center,
                 ) {
-                    Spacer(Modifier.height(16.dp))
-
-                    Surface(
-                        shape = MaterialTheme.shapes.extraLarge,
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Column(
-                            Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 20.dp, vertical = 28.dp),
-                        ) {
-                            // One-tap exercises are bare numbers, so a
-                            // little instruction says what the taps mean.
-                            if (uiState.problem.submitsOnTap) {
-                                Text(
-                                    text = strings.tapPrompt(uiState.problem.kind),
-                                    style = MaterialTheme.typography.titleMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    textAlign = TextAlign.Center,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(bottom = 16.dp),
-                                )
-                            }
-                            Text(
-                                text = uiState.problem.text,
-                                style = when (uiState.problem.kind) {
-                                    ProblemKind.ARITHMETIC -> MaterialTheme.typography.displayMedium
-                                    ProblemKind.EQUATION, ProblemKind.PUZZLE, ProblemKind.COMPARE,
-                                    ProblemKind.TRUE_FALSE, ProblemKind.MISSING_OP,
-                                    ->
-                                        MaterialTheme.typography.headlineLarge
-                                    ProblemKind.WORD, ProblemKind.LOGIC, ProblemKind.GEOMETRY,
-                                    ProblemKind.MONEY, ProblemKind.TIME, ProblemKind.TARGET,
-                                    ProblemKind.SELECT, ProblemKind.SETS,
-                                    -> MaterialTheme.typography.headlineMedium
-                                },
-                                fontWeight = FontWeight.Bold,
-                                textAlign = TextAlign.Center,
-                                modifier = Modifier.fillMaxWidth(),
-                            )
-                            uiState.problem.diagram?.let { diagram ->
-                                Spacer(Modifier.height(20.dp))
-                                ProblemDiagram(diagram)
-                            }
-                        }
+                    // Short expressions get the big showy size; the text
+                    // then shrinks on its own, only as far as it must.
+                    val baseStyle = when (uiState.problem.kind) {
+                        ProblemKind.ARITHMETIC -> MaterialTheme.typography.displayMedium
+                        ProblemKind.EQUATION, ProblemKind.PUZZLE, ProblemKind.COMPARE,
+                        ProblemKind.TRUE_FALSE, ProblemKind.MISSING_OP,
+                        ->
+                            MaterialTheme.typography.headlineLarge
+                        ProblemKind.WORD, ProblemKind.LOGIC, ProblemKind.GEOMETRY,
+                        ProblemKind.MONEY, ProblemKind.TIME, ProblemKind.TARGET,
+                        ProblemKind.SELECT, ProblemKind.SETS,
+                        -> MaterialTheme.typography.headlineMedium
                     }
+                    ProblemTextCard(
+                        text = uiState.problem.text,
+                        baseStyle = baseStyle,
+                        prompt = strings.tapPrompt(uiState.problem.kind)
+                            .takeIf { uiState.problem.submitsOnTap },
+                        diagram = uiState.problem.diagram,
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth(),
+                    )
 
-                    Spacer(Modifier.height(24.dp))
+                    Spacer(Modifier.height(20.dp))
 
                     when (uiState.problem.kind) {
                         // One tap answers: < = >, ✓ ✗, or the missing sign.
@@ -431,9 +464,7 @@ fun ProblemScreenContent(
 
                     Spacer(Modifier.height(20.dp))
 
-                    FeedbackArea(uiState)
-
-                    Spacer(Modifier.height(16.dp))
+                    FeedbackArea(uiState = uiState)
                 }
 
                 when (uiState.phase) {
@@ -458,49 +489,60 @@ fun ProblemScreenContent(
                             }
                             Spacer(Modifier.height(8.dp))
                         }
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        // As the keyboard comes up these slide down out of the
+                        // way: the problem and hint text keep the room, and
+                        // there's no Hint or Skip to fat-finger while typing.
+                        AnimatedVisibility(
+                            visible = !imeVisible,
+                            enter = expandVertically() + slideInVertically { it } + fadeIn(),
+                            exit = slideOutVertically { it } + shrinkVertically() + fadeOut(),
                         ) {
-                            // Tap exercises carry no hints, so no Hint button.
-                            if (uiState.problem.hints.isNotEmpty()) {
-                                FilledTonalButton(
-                                    onClick = onUseHint,
-                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .heightIn(min = 48.dp),
+                            Column(Modifier.fillMaxWidth()) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                                 ) {
-                                    Text(
-                                        text = strings.hintButton(ProblemViewModel.MAX_HINTS - uiState.hintsUsed),
-                                        style = MaterialTheme.typography.titleMedium,
-                                        textAlign = TextAlign.Center,
-                                    )
+                                    // Tap exercises carry no hints, so no Hint button.
+                                    if (uiState.problem.hints.isNotEmpty()) {
+                                        FilledTonalButton(
+                                            onClick = onUseHint,
+                                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .heightIn(min = 48.dp),
+                                        ) {
+                                            Text(
+                                                text = strings.hintButton(ProblemViewModel.MAX_HINTS - uiState.hintsUsed),
+                                                style = MaterialTheme.typography.titleMedium,
+                                                textAlign = TextAlign.Center,
+                                            )
+                                        }
+                                    }
+                                    FilledTonalButton(
+                                        onClick = onSkip,
+                                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .heightIn(min = 48.dp),
+                                    ) {
+                                        Text(
+                                            text = strings.skipButton,
+                                            style = MaterialTheme.typography.titleMedium,
+                                            textAlign = TextAlign.Center,
+                                        )
+                                    }
                                 }
-                            }
-                            FilledTonalButton(
-                                onClick = onSkip,
-                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .heightIn(min = 48.dp),
-                            ) {
-                                Text(
-                                    text = strings.skipButton,
-                                    style = MaterialTheme.typography.titleMedium,
-                                    textAlign = TextAlign.Center,
-                                )
-                            }
-                        }
-                        if (showSnooze) {
-                            Spacer(Modifier.height(8.dp))
-                            FilledTonalButton(
-                                onClick = onSnooze,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .heightIn(min = 44.dp),
-                            ) {
-                                Text(strings.snooze15, style = MaterialTheme.typography.titleMedium)
+                                if (showSnooze) {
+                                    Spacer(Modifier.height(8.dp))
+                                    FilledTonalButton(
+                                        onClick = onSnooze,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .heightIn(min = 44.dp),
+                                    ) {
+                                        Text(strings.snooze15, style = MaterialTheme.typography.titleMedium)
+                                    }
+                                }
                             }
                         }
                     }
@@ -603,6 +645,7 @@ private fun AnswerField(
     onInputChange: (String) -> Unit,
     onSubmit: () -> Unit,
     focusRequester: FocusRequester,
+    modifier: Modifier = Modifier,
 ) {
     OutlinedTextField(
         value = uiState.input,
@@ -619,7 +662,7 @@ private fun AnswerField(
             imeAction = ImeAction.Done,
         ),
         keyboardActions = KeyboardActions(onDone = { onSubmit() }),
-        // The expected unit ("m", "°", "lei", "min") sits in
+        // The expected unit ("m", "°", "€", "min") sits in
         // the field so it's never a guess.
         suffix = uiState.problem.answerUnit
             .takeIf(String::isNotEmpty)
@@ -641,7 +684,7 @@ private fun AnswerField(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         },
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .focusRequester(focusRequester),
     )
@@ -712,6 +755,7 @@ private fun StartContent(
     onStart: () -> Unit,
     onOpenSettings: () -> Unit,
     onOpenChallenge: () -> Unit,
+    onOpenPractice: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val strings = LocalStrings.current
@@ -728,14 +772,10 @@ private fun StartContent(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
+                // Flexible on the left, fixed icons on the right: the gear
+                // keeps its place at any system font size. The day's tally
+                // moved down under the greeting, where it has room to wrap.
                 Spacer(Modifier.weight(1f))
-                if (solvedToday > 0) {
-                    Text(
-                        text = strings.solvedToday(solvedToday),
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
                 TrophyButton(challengeDone = challengeDone, onClick = onOpenChallenge)
                 IconButton(onClick = onOpenSettings) {
                     Icon(
@@ -761,6 +801,15 @@ private fun StartContent(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
                 )
+                if (solvedToday > 0) {
+                    Spacer(Modifier.height(10.dp))
+                    Text(
+                        text = strings.solvedToday(solvedToday),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                    )
+                }
                 Spacer(Modifier.height(28.dp))
                 Button(
                     onClick = onStart,
@@ -769,6 +818,17 @@ private fun StartContent(
                         .height(64.dp),
                 ) {
                     Text(strings.startButton, style = MaterialTheme.typography.titleLarge)
+                }
+                Spacer(Modifier.height(12.dp))
+                // The quieter second option: drill one type instead of
+                // taking the usual mixed break.
+                FilledTonalButton(
+                    onClick = onOpenPractice,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 52.dp),
+                ) {
+                    Text(strings.practiceButton, style = MaterialTheme.typography.titleMedium)
                 }
             }
         }
@@ -844,6 +904,71 @@ private fun FeedbackArea(uiState: ProblemUiState, modifier: Modifier = Modifier)
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
             )
+        }
+
+        if (uiState.isFinished && uiState.problem.solution.isNotEmpty()) {
+            Spacer(Modifier.height(12.dp))
+            WorkedSolution(steps = uiState.problem.solution)
+        }
+    }
+}
+
+/**
+ * The working, folded away behind a button and opened only if she wants
+ * it. Offered after a right answer as much as after a revealed one: a
+ * lucky guess and a confident one look the same from here, and the
+ * steps are worth as much either way.
+ *
+ * Closed by default. Someone who solved it cleanly shouldn't have to
+ * scroll past an explanation to reach the next problem.
+ */
+@Composable
+private fun WorkedSolution(steps: List<String>, modifier: Modifier = Modifier) {
+    val strings = LocalStrings.current
+    var open by rememberSaveable(steps) { mutableStateOf(false) }
+
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        TextButton(onClick = { open = !open }) {
+            Text(
+                text = if (open) strings.hideSolution else strings.showSolution,
+                style = MaterialTheme.typography.titleMedium,
+            )
+        }
+        AnimatedVisibility(
+            visible = open,
+            enter = expandVertically() + fadeIn(),
+            exit = shrinkVertically() + fadeOut(),
+        ) {
+            Surface(
+                shape = MaterialTheme.shapes.large,
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Column(
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    steps.forEachIndexed { index, step ->
+                        Row(verticalAlignment = Alignment.Top) {
+                            Text(
+                                text = "${index + 1}.",
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(end = 10.dp),
+                            )
+                            Text(
+                                text = step,
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurface,
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 }

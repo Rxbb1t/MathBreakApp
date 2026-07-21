@@ -71,6 +71,44 @@ class TrueFalseProblemGeneratorTest {
         }
     }
 
+    /**
+     * A false claim must not be settleable by glancing at the last
+     * digit. Before slips were added, the true and claimed last digits
+     * differed on 100% of false claims at EASY and MEDIUM and 93% at
+     * HARD, so "7 × 8 = 54" could be answered without multiplying.
+     */
+    @Test
+    fun `false claims cannot all be caught by the last digit`() {
+        // Measured for every level before asserting, so a failure
+        // reports the whole picture instead of stopping at the first.
+        val rates = Difficulty.entries.associateWith { difficulty ->
+            val generator = TrueFalseProblemGenerator(Random(seed = 21))
+            var falseClaims = 0
+            var lastDigitDiffers = 0
+            repeat(3000) {
+                val problem = generator.generate(difficulty, AppLanguage.ENGLISH)
+                if (problem.answer != 1) return@repeat
+                falseClaims++
+                val match = Regex("""^(\d+) ([+−×÷]) (\d+) = (\d+)$""").find(problem.text)!!
+                val (a, op, b, claim) = match.destructured
+                val value = when (op) {
+                    "+" -> a.toInt() + b.toInt()
+                    "−" -> a.toInt() - b.toInt()
+                    "×" -> a.toInt() * b.toInt()
+                    else -> a.toInt() / b.toInt()
+                }
+                if (value % 10 != claim.toInt() % 10) lastDigitDiffers++
+            }
+            100 * lastDigitDiffers / falseClaims
+        }
+        // It was 100 / 100 / 93 when every wrong claim was a near miss.
+        // Well under "always" is the point: a check that misfires often
+        // enough can't be leaned on in place of doing the arithmetic.
+        rates.forEach { (difficulty, percent) ->
+            assertTrue("last digit settles $percent% of false claims at $difficulty (all: $rates)", percent < 80)
+        }
+    }
+
     @Test
     fun `division claims skip easy`() {
         val problems = List(400) { generator.generate(Difficulty.EASY, AppLanguage.ENGLISH) }

@@ -98,6 +98,23 @@ class LogicProblemGenerator(private val random: Random) {
             hints = listOf(growHint, ruleHint),
             notes = if (growByStep) emptyList() else listOf(patternNote),
             diagram = Diagram.SequenceRow(terms.dropLast(1).map(Int::toString) + "?"),
+            solution = listOf(
+                step(
+                    "The rule: $ruleHint",
+                    "Regula: $ruleHint",
+                    language,
+                ),
+                step(
+                    "Check it: ${terms.dropLast(1).joinToString(", ")}",
+                    "Verifică: ${terms.dropLast(1).joinToString(", ")}",
+                    language,
+                ),
+                step(
+                    "Apply it once more after ${terms[terms.size - 2]}: ${terms.last()}",
+                    "Mai aplic-o o dată după ${terms[terms.size - 2]}: ${terms.last()}",
+                    language,
+                ),
+            ),
         )
     }
 
@@ -107,8 +124,8 @@ class LogicProblemGenerator(private val random: Random) {
         val c = random.nextInt(2, 31)
         val r = x + c
         val beforeHint = when (language) {
-            AppLanguage.ENGLISH -> "It asks how many there were at the start, before the extra came."
-            AppLanguage.ROMANIAN -> "Întreabă câte erau la început, înainte să apară restul."
+            AppLanguage.ENGLISH -> "Work backwards: subtract what was added later."
+            AppLanguage.ROMANIAN -> "Lucrează invers: scade ce s-a adăugat mai târziu."
         }
         return logicProblem(
             text = fill(
@@ -118,6 +135,18 @@ class LogicProblemGenerator(private val random: Random) {
             answer = x,
             difficulty = Difficulty.EASY,
             hints = listOf(beforeHint, HintText.digits(x, language)),
+            solution = listOf(
+                step(
+                    "The story ends at $r after $c were added.",
+                    "Povestea se termină la $r după ce s-au adăugat $c.",
+                    language,
+                ),
+                step(
+                    "Run it backwards: $r − $c = $x",
+                    "Ia-o invers: $r − $c = $x",
+                    language,
+                ),
+            ),
         )
     }
 
@@ -128,8 +157,8 @@ class LogicProblemGenerator(private val random: Random) {
         val left = random.nextInt(1, 7)
         val total = people * each + left
         val takenHint = when (language) {
-            AppLanguage.ENGLISH -> "Everyone takes the same amount. How much disappears altogether?"
-            AppLanguage.ROMANIAN -> "Fiecare ia la fel de mult. Cât dispare cu totul?"
+            AppLanguage.ENGLISH -> "Same amount each, so multiply to see how much is taken."
+            AppLanguage.ROMANIAN -> "Aceeași cantitate fiecare, deci înmulțește ca să afli cât se ia."
         }
         return logicProblem(
             text = fill(
@@ -139,6 +168,18 @@ class LogicProblemGenerator(private val random: Random) {
             answer = left,
             difficulty = Difficulty.EASY,
             hints = listOf(takenHint, HintText.digits(left, language)),
+            solution = listOf(
+                step(
+                    "Everyone takes the same amount, so multiply: $people × $each = ${people * each}",
+                    "Fiecare ia la fel, deci înmulțește: $people × $each = ${people * each}",
+                    language,
+                ),
+                step(
+                    "Take that off the pile: $total − ${people * each} = $left",
+                    "Scade din grămadă: $total − ${people * each} = $left",
+                    language,
+                ),
+            ),
         )
     }
 
@@ -148,8 +189,8 @@ class LogicProblemGenerator(private val random: Random) {
         val c = random.nextInt(2, 31)
         val r = 2 * x + c
         val beforeBothHint = when (language) {
-            AppLanguage.ENGLISH -> "The story did two things to the number. The answer is what it was before both."
-            AppLanguage.ROMANIAN -> "Povestea a făcut două lucruri cu numărul. Răspunsul e cât era înainte de amândouă."
+            AppLanguage.ENGLISH -> "Work backwards through both steps to reach the start."
+            AppLanguage.ROMANIAN -> "Lucrează invers prin ambii pași ca să ajungi la început."
         }
         val undoNote = when (language) {
             AppLanguage.ENGLISH ->
@@ -166,6 +207,18 @@ class LogicProblemGenerator(private val random: Random) {
             difficulty = Difficulty.MEDIUM,
             hints = listOf(beforeBothHint, HintText.digits(x, language)),
             notes = listOf(undoNote),
+            solution = listOf(
+                step(
+                    "Undo the last step first: $c were added, so $r − $c = ${2 * x}",
+                    "Anulează întâi ultimul pas: s-au adăugat $c, deci $r − $c = ${2 * x}",
+                    language,
+                ),
+                step(
+                    "Before that it had doubled, so halve it: ${2 * x} ÷ 2 = $x",
+                    "Înainte se dublase, deci înjumătățește: ${2 * x} ÷ 2 = $x",
+                    language,
+                ),
+            ),
         )
     }
 
@@ -176,8 +229,8 @@ class LogicProblemGenerator(private val random: Random) {
         val gap = random.nextInt(2, 16)
         val total = 2 * youngerAge + gap
         val headStartHint = when (language) {
-            AppLanguage.ENGLISH -> "If they were the same age, the total would split evenly. But one has a head start of $gap years."
-            AppLanguage.ROMANIAN -> "Dacă ar avea aceeași vârstă, totalul s-ar împărți egal. Dar unul are un avans de $gap ani."
+            AppLanguage.ENGLISH -> "Take the $gap-year gap out of the total, split the rest in two, then add the gap back to the older one."
+            AppLanguage.ROMANIAN -> "Scoate diferența de $gap ani din total, împarte restul în două, apoi adaugă diferența înapoi la cel mare."
         }
         val agesNote = when (language) {
             AppLanguage.ENGLISH ->
@@ -199,6 +252,23 @@ class LogicProblemGenerator(private val random: Random) {
             difficulty = Difficulty.MEDIUM,
             hints = listOf(headStartHint, HintText.digits(youngerAge + gap, language)),
             notes = listOf(agesNote),
+            solution = listOf(
+                step(
+                    "Take the $gap-year gap out of the total: $total − $gap = ${total - gap}",
+                    "Scoate diferența de $gap ani din total: $total − $gap = ${total - gap}",
+                    language,
+                ),
+                step(
+                    "What is left splits evenly, so $younger is ${total - gap} ÷ 2 = $youngerAge",
+                    "Ce rămâne se împarte egal, deci $younger are ${total - gap} ÷ 2 = $youngerAge",
+                    language,
+                ),
+                step(
+                    "Give the gap back to $older: $youngerAge + $gap = ${youngerAge + gap}",
+                    "Dă diferența înapoi lui $older: $youngerAge + $gap = ${youngerAge + gap}",
+                    language,
+                ),
+            ),
         )
     }
 
@@ -209,8 +279,8 @@ class LogicProblemGenerator(private val random: Random) {
         val heads = fourLegged + twoLegged
         val legs = 4 * fourLegged + 2 * twoLegged
         val extraLegsHint = when (language) {
-            AppLanguage.ENGLISH -> "Every head has at least two legs. It's the four-legged ones that bring the extras."
-            AppLanguage.ROMANIAN -> "Fiecare cap are măcar două picioare. Cele cu patru picioare aduc restul."
+            AppLanguage.ENGLISH -> "Give every head two legs first, then share out the legs left over."
+            AppLanguage.ROMANIAN -> "Dă întâi două picioare fiecărui cap, apoi împarte picioarele rămase."
         }
         val headsLegsNote = when (language) {
             AppLanguage.ENGLISH ->
@@ -232,6 +302,23 @@ class LogicProblemGenerator(private val random: Random) {
             difficulty = Difficulty.HARD,
             hints = listOf(extraLegsHint, HintText.digits(fourLegged, language)),
             notes = listOf(headsLegsNote),
+            solution = listOf(
+                step(
+                    "Give every one of the $heads animals two legs first: $heads × 2 = ${2 * heads}",
+                    "Dă întâi câte două picioare fiecăruia dintre cele $heads animale: $heads × 2 = ${2 * heads}",
+                    language,
+                ),
+                step(
+                    "That leaves $legs − ${2 * heads} = ${legs - 2 * heads} legs unaccounted for",
+                    "Rămân $legs − ${2 * heads} = ${legs - 2 * heads} picioare nefolosite",
+                    language,
+                ),
+                step(
+                    "Each four-legged animal needs exactly two extra, so ${legs - 2 * heads} ÷ 2 = $fourLegged",
+                    "Fiecare animal cu patru picioare mai cere exact două, deci ${legs - 2 * heads} ÷ 2 = $fourLegged",
+                    language,
+                ),
+            ),
         )
     }
 
@@ -244,8 +331,8 @@ class LogicProblemGenerator(private val random: Random) {
         if ((m * x + c) % 2 != 0) c++
         val r = (m * x + c) / 2
         val threeChangesHint = when (language) {
-            AppLanguage.ENGLISH -> "The number went through three changes. The answer is what it was before any of them."
-            AppLanguage.ROMANIAN -> "Numărul a trecut prin trei schimbări. Răspunsul e cât era înainte de toate."
+            AppLanguage.ENGLISH -> "Undo all three changes in reverse to get back to the start."
+            AppLanguage.ROMANIAN -> "Anulează toate cele trei schimbări în ordine inversă ca să ajungi la început."
         }
         val reverseNote = when (language) {
             AppLanguage.ENGLISH ->
@@ -256,12 +343,31 @@ class LogicProblemGenerator(private val random: Random) {
         return logicProblem(
             text = fill(
                 pick(THREE_STEP_TEMPLATES, language),
-                mapOf("m" to "$m", "c" to "$c", "r" to "$r"),
+                // {c_de} for the Romanian template that counts a noun with
+                // it ("21 de linguri"); {c} for the ones that don't.
+                mapOf("m" to "$m", "c" to "$c", "c_de" to de(c), "r" to "$r"),
             ),
             answer = x,
             difficulty = Difficulty.HARD,
             hints = listOf(threeChangesHint, HintText.digits(x, language)),
             notes = listOf(reverseNote),
+            solution = listOf(
+                step(
+                    "Last step first: it was halved to reach $r, so double back: $r × 2 = ${m * x + c}",
+                    "Ultimul pas primul: s-a înjumătățit până la $r, deci dublează înapoi: $r × 2 = ${m * x + c}",
+                    language,
+                ),
+                step(
+                    "Before that $c had been added: ${m * x + c} − $c = ${m * x}",
+                    "Înainte se adăugaseră $c: ${m * x + c} − $c = ${m * x}",
+                    language,
+                ),
+                step(
+                    "And before that it was multiplied by $m: ${m * x} ÷ $m = $x",
+                    "Iar înainte fusese înmulțit cu $m: ${m * x} ÷ $m = $x",
+                    language,
+                ),
+            ),
         )
     }
 
@@ -271,8 +377,8 @@ class LogicProblemGenerator(private val random: Random) {
         val youngerAge = random.nextInt(5, 41)
         val total = 3 * youngerAge
         val partsHint = when (language) {
-            AppLanguage.ENGLISH -> "Twice as old means the older one counts for two of the younger. Together they make 3 equal parts."
-            AppLanguage.ROMANIAN -> "De două ori mai mare înseamnă că cel mare face cât doi ca cel mic. Împreună fac 3 părți egale."
+            AppLanguage.ENGLISH -> "Twice as old means 3 equal parts in total. Divide to find one part."
+            AppLanguage.ROMANIAN -> "De două ori mai mare înseamnă 3 părți egale în total. Împarte ca să afli o parte."
         }
         val partsNote = when (language) {
             AppLanguage.ENGLISH ->
@@ -289,6 +395,23 @@ class LogicProblemGenerator(private val random: Random) {
             difficulty = Difficulty.HARD,
             hints = listOf(partsHint, HintText.digits(2 * youngerAge, language)),
             notes = listOf(partsNote),
+            solution = listOf(
+                step(
+                    "Twice as old means $younger is 1 share and $older is 2, so the total is 3 shares.",
+                    "De două ori mai mare înseamnă că $younger e 1 parte și $older e 2, deci totalul e 3 părți.",
+                    language,
+                ),
+                step(
+                    "One share: $total ÷ 3 = $youngerAge",
+                    "O parte: $total ÷ 3 = $youngerAge",
+                    language,
+                ),
+                step(
+                    "$older has two shares: $youngerAge × 2 = ${2 * youngerAge}",
+                    "$older are două părți: $youngerAge × 2 = ${2 * youngerAge}",
+                    language,
+                ),
+            ),
         )
     }
 
@@ -297,6 +420,7 @@ class LogicProblemGenerator(private val random: Random) {
         answer: Int,
         difficulty: Difficulty,
         hints: List<String>,
+        solution: List<String>,
         notes: List<String> = emptyList(),
         diagram: Diagram? = null,
     ): Problem = Problem(
@@ -307,7 +431,16 @@ class LogicProblemGenerator(private val random: Random) {
         hints = hints,
         notes = notes,
         diagram = diagram,
+        solution = solution,
     )
+
+    /**
+     * Worked-solution steps. A riddle's solution has to say WHY the move
+     * works ("undo the story backwards", "two legs each first"), not just
+     * show the arithmetic -- the arithmetic was never the hard part.
+     */
+    private fun step(en: String, ro: String, language: AppLanguage): String =
+        if (language == AppLanguage.ROMANIAN) ro else en
 
     /** Two distinct people from the given pool. */
     private fun names(familyNames: List<String>): Pair<String, String> {
@@ -323,8 +456,11 @@ class LogicProblemGenerator(private val random: Random) {
     /** Romanian counts years as "17 ani" but "26 de ani". */
     private fun yearsFor(total: Int, language: AppLanguage): String = when (language) {
         AppLanguage.ENGLISH -> "$total"
-        AppLanguage.ROMANIAN -> if (total < 20) "$total ani" else "$total de ani"
+        AppLanguage.ROMANIAN -> "${de(total)} ani"
     }
+
+    /** The same rule on its own, for templates that count something else. */
+    private fun de(n: Int): String = if (n < 20) "$n" else "$n de"
 
     private fun pow(base: Int, exponent: Int): Int {
         var result = 1
@@ -562,7 +698,7 @@ class LogicProblemGenerator(private val random: Random) {
             ),
             Template(
                 "A recipe multiplies the sugar by {m}, adds {c} spoons, then halves the mix, leaving {r}.\nHow much sugar was there first?",
-                "O rețetă înmulțește zahărul cu {m}, adaugă {c} linguri, apoi înjumătățește amestecul: rămân {r}.\nCât zahăr era la început?",
+                "O rețetă înmulțește zahărul cu {m}, adaugă {c_de} linguri, apoi înjumătățește amestecul: rămân {r}.\nCât zahăr era la început?",
             ),
             Template(
                 "The teacher's trick: multiply by {m}, add {c}, halve it. Result: {r}.\nWhat was the starting number?",

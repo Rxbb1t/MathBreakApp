@@ -42,6 +42,20 @@ class Strings(
     val startButton: String,
     val readyLine: String,
     val oneMore: String,
+    // Practice mode: drill one exercise type at a level she picks
+    val practiceTitle: String,
+    val practiceIntro: String,
+    val practiceButton: String,
+    val practiceLevel: String,
+    val showSolution: String,
+    val hideSolution: String,
+    // Home-screen widget. The button lives in Settings; the other two are
+    // drawn on the widget itself and are kept to a few words, since it
+    // has to stay legible at one cell tall and the system, not the app,
+    // decides how much room it gets.
+    val addWidget: String,
+    val widgetTapPrompt: String,
+    val widgetRemindersOff: String,
     // Notebook (scratch paper drawer, MEDIUM/HARD only)
     val notebookTitle: String,
     val notebookSubtitle: String,
@@ -57,10 +71,6 @@ class Strings(
     val settingsTitle: String,
     val back: String,
     val languageSection: String,
-    val textSizeSection: String,
-    val textSizeSubtitle: String,
-    val textSizeNormal: String,
-    val textSizeLarge: String,
     val remindersSection: String,
     val breakReminders: String,
     val notificationsOffHint: String,
@@ -97,6 +107,8 @@ class Strings(
     /** The Settings summary row: (switched on, total) → "8 of 10 on". */
     val exerciseTypesSummary: (Int, Int) -> String,
     val problemTypesSubtitle: String,
+    /** One line under the Exercises heading explaining the level markers. */
+    val topicLevelsHint: String,
     val topicGroupLabel: (TopicGroup) -> String,
     val topicLabel: (ProblemTopic) -> String,
     /** The little instruction over a one-tap exercise; empty for typed kinds. */
@@ -143,19 +155,28 @@ val EnglishStrings = Strings(
     solvedToday = { "Solved today: $it" },
     statsIconDescription = "Your numbers",
     settingsIconDescription = "Settings",
-    correctFeedback = "That's right! ✓",
-    tryAgainFeedback = "Not quite. Try again 💛",
-    hintButton = { "💡 Hint ($it)" },
-    skipButton = "⏭ Skip",
+    correctFeedback = "That's right!",
+    tryAgainFeedback = "Not quite. Give it another go!",
+    hintButton = { "Hint ($it)" },
+    skipButton = "Skip",
     revealedFeedback = { "The answer was $it.\nOn to the next one!" },
     timeUpFeedback = { "Time's up! The answer was $it.\nOn to the next one!" },
     check = "Check",
     startButton = "Start",
     readyLine = "Ready when you are.",
     oneMore = "One more?",
+    practiceTitle = "Practice",
+    practiceIntro = "Pick one type and a level. No timer and no limit here, so take as long as you like.",
+    practiceButton = "Practice a type",
+    practiceLevel = "Level",
+    showSolution = "Show me why",
+    hideSolution = "Hide",
+    addWidget = "Add to home screen",
+    widgetTapPrompt = "Tap for a problem",
+    widgetRemindersOff = "Reminders are off",
     notebookTitle = "Helper sheet",
     notebookSubtitle = "The rules, formulas and definitions that fit this problem.",
-    guideTitle = "Welcome! 🌼",
+    guideTitle = "Welcome!",
     guideIntro = "Pick how you want your breaks to work. You can change everything later in Settings.",
     presetTitle = {
         when (it) {
@@ -175,7 +196,7 @@ val EnglishStrings = Strings(
         }
     },
     snooze15 = "Snooze 15 min",
-    breakDone = "That's your break! See you at the next one 🌼",
+    breakDone = "That's your break! See you at the next one.",
     difficultyLabel = {
         when (it) {
             Difficulty.EASY -> "Easy"
@@ -186,10 +207,6 @@ val EnglishStrings = Strings(
     settingsTitle = "Settings",
     back = "Back",
     languageSection = "Language",
-    textSizeSection = "Text size",
-    textSizeSubtitle = "Large makes everything bigger and easier on the eyes.",
-    textSizeNormal = "Normal",
-    textSizeLarge = "Large",
     remindersSection = "Reminders",
     breakReminders = "Break reminders",
     notificationsOffHint = "Notifications are turned off, so reminders can't appear.",
@@ -232,6 +249,7 @@ val EnglishStrings = Strings(
     exerciseTypesTitle = "Exercise types",
     exerciseTypesSummary = { on, total -> "$on of $total switched on" },
     problemTypesSubtitle = "Pick which problem types show up. At least one always stays on.",
+    topicLevelsHint = "Each type finds its own level: it climbs where you are quick and eases off where you are not.",
     topicGroupLabel = {
         when (it) {
             TopicGroup.NUMBERS -> "Numbers"
@@ -267,7 +285,7 @@ val EnglishStrings = Strings(
             ProblemTopic.PUZZLE -> "Grids where little shapes stand for numbers."
             ProblemTopic.LOGIC -> "Short riddles with a numeric answer."
             ProblemTopic.GEOMETRY -> "Perimeter, area and angles, from Normal up."
-            ProblemTopic.MONEY -> "Shopping in lei: totals, change, discounts."
+            ProblemTopic.MONEY -> "Shopping in euros: totals, change, discounts."
             ProblemTopic.TIME -> "Clocks, durations and minutes."
             ProblemTopic.WORD -> "Little number stories about everyday things."
             ProblemTopic.COMPARE -> "Tap <, = or > between two expressions, plus quick true-or-false checks."
@@ -286,7 +304,7 @@ val EnglishStrings = Strings(
     challengeTomorrow = "A fresh one arrives tomorrow.",
     activeFromTitle = "Active from",
     activeUntilTitle = "Active until",
-    personalize = "🎨 Personalize",
+    personalize = "Personalize",
     personalizeTitle = "Pick your colors",
     paletteName = {
         when (it) {
@@ -305,9 +323,9 @@ val EnglishStrings = Strings(
     accuracyCard = "right first try",
     fastestCard = "fastest solve",
     allTimeCard = "all time",
-    statsLineToday = "Every little break counts 💛",
-    statsLineWeek = "Fresh day, fresh brain 🌼",
-    statsLineFreshWeek = "Fresh week, fresh brain 🌼",
+    statsLineToday = "Every little break counts.",
+    statsLineWeek = "Fresh day, fresh brain.",
+    statsLineFreshWeek = "Fresh week, fresh brain.",
     topicBreakdownTitle = "Right first try, by exercise",
     activityChartTitle = "Your last two weeks",
     soundSection = "Sound",
@@ -321,19 +339,28 @@ val RomanianStrings = Strings(
     solvedToday = { "Rezolvate azi: $it" },
     statsIconDescription = "Cifrele tale",
     settingsIconDescription = "Setări",
-    correctFeedback = "Corect! ✓",
-    tryAgainFeedback = "Nu chiar. Mai încearcă 💛",
-    hintButton = { "💡 Indiciu ($it)" },
-    skipButton = "⏭ Sari peste",
+    correctFeedback = "Corect!",
+    tryAgainFeedback = "Nu chiar. Mai încearcă o dată!",
+    hintButton = { "Indiciu ($it)" },
+    skipButton = "Sari peste",
     revealedFeedback = { "Răspunsul era $it.\nMergem la următoarea!" },
     timeUpFeedback = { "S-a scurs timpul! Răspunsul era $it.\nMergem la următoarea!" },
     check = "Verifică",
     startButton = "Începe",
     readyLine = "Gata când ești tu.",
     oneMore = "Încă una?",
+    practiceTitle = "Exersează",
+    practiceIntro = "Alege un tip și un nivel. Aici nu e nici cronometru, nici limită, așa că poți sta cât vrei.",
+    practiceButton = "Exersează un tip",
+    practiceLevel = "Nivel",
+    showSolution = "Arată-mi de ce",
+    hideSolution = "Ascunde",
+    addWidget = "Adaugă pe ecranul principal",
+    widgetTapPrompt = "Apasă pentru o problemă",
+    widgetRemindersOff = "Notificările sunt oprite",
     notebookTitle = "Foaie de ajutor",
     notebookSubtitle = "Regulile, formulele și definițiile potrivite problemei.",
-    guideTitle = "Bun venit! 🌼",
+    guideTitle = "Bun venit!",
     guideIntro = "Alege cum vrei să arate pauzele tale. Poți schimba orice mai târziu din Setări.",
     presetTitle = {
         when (it) {
@@ -353,7 +380,7 @@ val RomanianStrings = Strings(
         }
     },
     snooze15 = "Amână 15 min",
-    breakDone = "Gata pauza! Ne vedem la următoarea 🌼",
+    breakDone = "Gata pauza! Ne vedem la următoarea.",
     difficultyLabel = {
         when (it) {
             Difficulty.EASY -> "Ușor"
@@ -364,10 +391,6 @@ val RomanianStrings = Strings(
     settingsTitle = "Setări",
     back = "Înapoi",
     languageSection = "Limbă",
-    textSizeSection = "Mărimea textului",
-    textSizeSubtitle = "„Mare” face totul mai mare și mai ușor de citit.",
-    textSizeNormal = "Normal",
-    textSizeLarge = "Mare",
     remindersSection = "Notificări",
     breakReminders = "Notificări de pauză",
     notificationsOffHint = "Notificările sunt oprite, așa că aplicația nu te poate anunța.",
@@ -410,6 +433,7 @@ val RomanianStrings = Strings(
     exerciseTypesTitle = "Tipuri de exerciții",
     exerciseTypesSummary = { on, total -> "$on din $total pornite" },
     problemTypesSubtitle = "Alege ce tipuri de probleme apar. Cel puțin unul rămâne mereu pornit.",
+    topicLevelsHint = "Fiecare tip își găsește nivelul lui: urcă unde mergi repede și coboară unde nu.",
     topicGroupLabel = {
         when (it) {
             TopicGroup.NUMBERS -> "Numere"
@@ -445,7 +469,7 @@ val RomanianStrings = Strings(
             ProblemTopic.PUZZLE -> "Grile în care formele țin locul numerelor."
             ProblemTopic.LOGIC -> "Ghicitori scurte cu răspuns numeric."
             ProblemTopic.GEOMETRY -> "Perimetru, arie și unghiuri, de la Normal în sus."
-            ProblemTopic.MONEY -> "Cumpărături în lei: totaluri, rest, reduceri."
+            ProblemTopic.MONEY -> "Cumpărături în euro: totaluri, rest, reduceri."
             ProblemTopic.TIME -> "Ceasuri, durate și minute."
             ProblemTopic.WORD -> "Povești scurte cu numere din viața de zi cu zi."
             ProblemTopic.COMPARE -> "Atinge <, = sau > între două expresii, plus verificări rapide adevărat-fals."
@@ -467,7 +491,7 @@ val RomanianStrings = Strings(
     challengeTomorrow = "Mâine te așteaptă una nouă.",
     activeFromTitle = "Activ de la",
     activeUntilTitle = "Activ până la",
-    personalize = "🎨 Personalizează",
+    personalize = "Personalizează",
     personalizeTitle = "Alege-ți culorile",
     paletteName = {
         when (it) {
@@ -492,9 +516,9 @@ val RomanianStrings = Strings(
     accuracyCard = "corecte din prima",
     fastestCard = "cea mai rapidă",
     allTimeCard = "în total",
-    statsLineToday = "Fiecare pauză mică contează 💛",
-    statsLineWeek = "Zi nouă, minte proaspătă 🌼",
-    statsLineFreshWeek = "Săptămână nouă, minte proaspătă 🌼",
+    statsLineToday = "Fiecare pauză mică contează.",
+    statsLineWeek = "Zi nouă, minte proaspătă.",
+    statsLineFreshWeek = "Săptămână nouă, minte proaspătă.",
     topicBreakdownTitle = "Corecte din prima, pe exerciții",
     activityChartTitle = "Ultimele două săptămâni",
     soundSection = "Sunet",

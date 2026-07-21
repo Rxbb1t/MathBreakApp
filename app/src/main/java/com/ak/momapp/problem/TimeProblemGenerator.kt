@@ -79,10 +79,40 @@ class TimeProblemGenerator(private val random: Random) {
             difficulty = difficulty,
             language = language,
             hint = when (language) {
-                AppLanguage.ENGLISH -> "It asks how much time passed between the two clock readings."
-                AppLanguage.ROMANIAN -> "Întreabă cât timp a trecut între cele două ore de pe ceas."
+                AppLanguage.ENGLISH -> "Count the minutes between the two clock times."
+                AppLanguage.ROMANIAN -> "Numără minutele dintre cele două ore de pe ceas."
             },
             notes = if (difficulty == Difficulty.EASY) emptyList() else clockNotes(language),
+            solution = buildList {
+                add(
+                    step(
+                        "From ${clock(start)} to ${clock(start + length)}.",
+                        "De la ${clock(start)} la ${clock(start + length)}.",
+                        language,
+                    ),
+                )
+                // Under an hour there's nothing to break down, and a
+                // "0 h" line would only get in the way.
+                if (length >= 60) {
+                    add(
+                        step(
+                            "That's ${length / 60} h and ${length % 60} min: " +
+                                "${length / 60} × 60 + ${length % 60} = $length",
+                            "Adică ${length / 60} h și ${length % 60} min: " +
+                                "${length / 60} × 60 + ${length % 60} = $length",
+                            language,
+                        ),
+                    )
+                } else {
+                    add(
+                        step(
+                            "Counting the minutes between them gives $length.",
+                            "Numărând minutele dintre ele iese $length.",
+                            language,
+                        ),
+                    )
+                }
+            },
         )
     }
 
@@ -95,9 +125,17 @@ class TimeProblemGenerator(private val random: Random) {
             difficulty = Difficulty.EASY,
             language = language,
             hint = when (language) {
-                AppLanguage.ENGLISH -> "Every single hour brings the same number of minutes."
-                AppLanguage.ROMANIAN -> "Fiecare oră aduce același număr de minute."
+                AppLanguage.ENGLISH -> "Each hour is 60 minutes, so multiply."
+                AppLanguage.ROMANIAN -> "Fiecare oră are 60 de minute, deci înmulțește."
             },
+            solution = listOf(
+                step(
+                    "One hour is 60 minutes, and there are $h of them.",
+                    "O oră are 60 de minute, iar aici sunt $h ore.",
+                    language,
+                ),
+                step("$h × 60 = ${60 * h}", "$h × 60 = ${60 * h}", language),
+            ),
         )
     }
 
@@ -114,10 +152,22 @@ class TimeProblemGenerator(private val random: Random) {
             difficulty = Difficulty.MEDIUM,
             language = language,
             hint = when (language) {
-                AppLanguage.ENGLISH -> "The hours hide minutes of their own. The loose minutes join them."
-                AppLanguage.ROMANIAN -> "Orele ascund propriile lor minute. Minutele răzlețe li se alătură."
+                AppLanguage.ENGLISH -> "Turn the hours into minutes, then add the loose minutes."
+                AppLanguage.ROMANIAN -> "Transformă orele în minute, apoi adună minutele rămase."
             },
             notes = clockNotes(language),
+            solution = listOf(
+                step(
+                    "The hours first: $h × 60 = ${60 * h}",
+                    "Întâi orele: $h × 60 = ${60 * h}",
+                    language,
+                ),
+                step(
+                    "Then the loose minutes: ${60 * h} + $m = ${60 * h + m}",
+                    "Apoi minutele rămase: ${60 * h} + $m = ${60 * h + m}",
+                    language,
+                ),
+            ),
         )
     }
 
@@ -145,10 +195,29 @@ class TimeProblemGenerator(private val random: Random) {
             difficulty = Difficulty.HARD,
             language = language,
             hint = when (language) {
-                AppLanguage.ENGLISH -> "Away in total means from stepping out to stepping back in. The stops in between are part of it."
-                AppLanguage.ROMANIAN -> "Plecată în total înseamnă de la ieșire până la întoarcere. Opririle de pe drum se pun și ele."
+                AppLanguage.ENGLISH -> "Count from when you left to when you got back."
+                AppLanguage.ROMANIAN -> "Numără de când ai plecat până când te-ai întors."
             },
             notes = clockNotes(language) + journeyNote(language),
+            solution = listOf(
+                step(
+                    "Only the leaving time and the coming-home time matter: " +
+                        "${clock(start)} and ${clock(start + leg1 + stay + leg2)}.",
+                    "Contează doar ora plecării și ora întoarcerii: " +
+                        "${clock(start)} și ${clock(start + leg1 + stay + leg2)}.",
+                    language,
+                ),
+                step(
+                    "The way there took $leg1 min, the stay $stay min, the way back $leg2 min.",
+                    "Dusul a durat $leg1 min, șederea $stay min, întorsul $leg2 min.",
+                    language,
+                ),
+                step(
+                    "$leg1 + $stay + $leg2 = ${leg1 + stay + leg2}",
+                    "$leg1 + $stay + $leg2 = ${leg1 + stay + leg2}",
+                    language,
+                ),
+            ),
         )
     }
 
@@ -159,6 +228,7 @@ class TimeProblemGenerator(private val random: Random) {
         language: AppLanguage,
         hint: String,
         notes: List<String> = emptyList(),
+        solution: List<String> = emptyList(),
     ): Problem = Problem(
         text = text,
         answer = answer,
@@ -167,7 +237,12 @@ class TimeProblemGenerator(private val random: Random) {
         hints = listOf(hint, HintText.digits(answer, language)),
         notes = notes,
         answerUnit = "min",
+        solution = solution,
     )
+
+    /** Picks the language's wording for one worked step. */
+    private fun step(en: String, ro: String, language: AppLanguage): String =
+        if (language == AppLanguage.ROMANIAN) ro else en
 
     // ── Helper-sheet notes ───────────────────────────────────────────────
 
@@ -184,10 +259,10 @@ class TimeProblemGenerator(private val random: Random) {
 
     private fun journeyNote(language: AppLanguage): List<String> = when (language) {
         AppLanguage.ENGLISH -> listOf(
-            "The total time away runs from the first clock reading to the last. Everything in between already lives inside it.",
+            "The total time away runs from the first clock reading to the last, with everything in between already counted.",
         )
         AppLanguage.ROMANIAN -> listOf(
-            "Timpul total de plecare curge de la prima oră de pe ceas până la ultima. Tot ce e între ele e deja cuprins.",
+            "Timpul total de plecare curge de la prima oră de pe ceas până la ultima, cu tot ce e între ele deja cuprins.",
         )
     }
 

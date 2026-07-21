@@ -13,8 +13,8 @@ internal object HintText {
         val text = answer.toString()
         return if (text.length == 1) {
             when (language) {
-                AppLanguage.ENGLISH -> "The answer is a single digit 😉"
-                AppLanguage.ROMANIAN -> "Răspunsul e o singură cifră 😉"
+                AppLanguage.ENGLISH -> "The answer is a single digit."
+                AppLanguage.ROMANIAN -> "Răspunsul e o singură cifră."
             }
         } else {
             when (language) {

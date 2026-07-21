@@ -71,7 +71,45 @@ class SetProblemGenerator(private val random: Random) {
             kind = ProblemKind.SETS,
             hints = listOf(opHint(op, language), HintText.digits(answer, language)),
             notes = notesFor(op, language),
+            solution = solutionFor(op, shared, onlyA, sizeA, sizeB, answer, language),
         )
+    }
+
+    /**
+     * Names the actual elements before counting them. A bare "the answer
+     * is 3" would prove nothing; seeing WHICH numbers were shared is the
+     * part that carries over to the next one.
+     */
+    private fun solutionFor(
+        op: Op,
+        shared: List<Int>,
+        onlyA: List<Int>,
+        sizeA: Int,
+        sizeB: Int,
+        answer: Int,
+        language: AppLanguage,
+    ): List<String> {
+        val ro = language == AppLanguage.ROMANIAN
+        val sharedList = shared.sorted().joinToString(", ")
+        return when (op) {
+            Op.INTERSECT -> listOf(
+                if (ro) "Numerele aflate în ambele liste: $sharedList"
+                else "The numbers sitting in both lists: $sharedList",
+                if (ro) "Le numeri: $answer" else "Counting them: $answer",
+            )
+            Op.UNION -> listOf(
+                if (ro) "A are $sizeA elemente, B are $sizeB, iar ${shared.size} sunt comune ($sharedList)"
+                else "A has $sizeA elements, B has $sizeB, and ${shared.size} are shared ($sharedList)",
+                if (ro) "Comunele se numără o singură dată: $sizeA + $sizeB − ${shared.size} = $answer"
+                else "The shared ones count once, not twice: $sizeA + $sizeB − ${shared.size} = $answer",
+            )
+            Op.DIFFERENCE -> listOf(
+                if (ro) "Taie din A numerele care apar și în B: $sharedList"
+                else "Cross out of A the numbers that also appear in B: $sharedList",
+                if (ro) "Rămâne ${onlyA.sorted().joinToString(", ")}, adică $answer"
+                else "What is left is ${onlyA.sorted().joinToString(", ")}, so $answer",
+            )
+        }
     }
 
     private fun opHint(op: Op, language: AppLanguage): String = when (op) {

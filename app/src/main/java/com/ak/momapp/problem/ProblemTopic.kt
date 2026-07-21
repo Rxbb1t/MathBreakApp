@@ -20,7 +20,7 @@ enum class ProblemTopic(val group: TopicGroup) {
     /** Story geometry (appears at MEDIUM and HARD). */
     GEOMETRY(TopicGroup.THINKING),
 
-    /** Shopping stories in lei. */
+    /** Shopping stories in euros. */
     MONEY(TopicGroup.STORIES),
 
     /** Clock stories in minutes. */

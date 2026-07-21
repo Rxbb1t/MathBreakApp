@@ -1,5 +1,6 @@
 package com.ak.momapp.ui.exercises
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -32,6 +33,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ak.momapp.i18n.LocalStrings
+import com.ak.momapp.problem.Difficulty
 import com.ak.momapp.problem.ProblemTopic
 import com.ak.momapp.problem.TopicGroup
 import com.ak.momapp.ui.settings.SettingsViewModel
@@ -51,6 +53,7 @@ fun ExercisesScreen(
     viewModel: SettingsViewModel = viewModel(factory = SettingsViewModel.Factory),
 ) {
     val settings by viewModel.settings.collectAsState()
+    val topicLevels by viewModel.topicLevels.collectAsState()
     val strings = LocalStrings.current
 
     Scaffold(
@@ -91,11 +94,18 @@ fun ExercisesScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = 4.dp),
                 )
+                Text(
+                    text = strings.topicLevelsHint,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 4.dp),
+                )
                 val enabledTopics = current.enabledTopics
                 TopicGroup.entries.forEach { group ->
                     TopicGroupCard(
                         group = group,
                         enabledTopics = enabledTopics,
+                        topicLevels = topicLevels,
                         onToggle = viewModel::toggleTopic,
                     )
                 }
@@ -109,6 +119,7 @@ fun ExercisesScreen(
 private fun TopicGroupCard(
     group: TopicGroup,
     enabledTopics: Set<ProblemTopic>,
+    topicLevels: Map<ProblemTopic, Difficulty>,
     onToggle: (ProblemTopic) -> Unit,
 ) {
     val strings = LocalStrings.current
@@ -128,10 +139,16 @@ private fun TopicGroupCard(
             )
             ProblemTopic.entries.filter { it.group == group }.forEach { topic ->
                 val isOn = topic in enabledTopics
+                val level = topicLevels[topic]
+                // The last topic standing can't be switched off.
+                val canToggle = !isOn || enabledTopics.size > ProblemTopic.MIN_ENABLED
                 Row(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        // The whole row is the target, not just the switch.
+                        .clickable(enabled = canToggle) { onToggle(topic) },
                 ) {
                     Column(Modifier.weight(1f)) {
                         Text(
@@ -143,11 +160,20 @@ private fun TopicGroupCard(
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
+                        // The level is meaningless for a topic that never
+                        // gets dealt, so it goes quiet with the switch.
+                        if (isOn && level != null) {
+                            Text(
+                                text = strings.difficultyLabel(level),
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
                     }
                     Spacer(Modifier.width(12.dp))
                     Switch(
                         checked = isOn,
-                        enabled = !isOn || enabledTopics.size > ProblemTopic.MIN_ENABLED,
+                        enabled = canToggle,
                         onCheckedChange = { onToggle(topic) },
                     )
                 }

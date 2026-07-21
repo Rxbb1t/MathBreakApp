@@ -2,6 +2,7 @@ package com.ak.momapp.problem
 
 import com.ak.momapp.i18n.AppLanguage
 import kotlin.random.Random
+import kotlin.random.nextInt
 
 /**
  * Number hunt: a spread of distinct number cards and a rule. Tap every
@@ -15,17 +16,20 @@ class NumberHuntGenerator(private val random: Random) {
 
     private enum class Rule { EVEN, ODD, MULTIPLE, LARGEST_PRIME }
 
-    fun generate(difficulty: Difficulty, language: AppLanguage): Problem {
-        // Primes wait until MEDIUM; EASY hunts stay purely visual rules.
-        val rule = when (difficulty) {
-            Difficulty.EASY -> listOf(Rule.EVEN, Rule.ODD, Rule.MULTIPLE).random(random)
-            else -> Rule.entries.random(random)
+    fun generate(level: Level, language: AppLanguage): Problem {
+        // Primes are the one rule that has to be taught rather than seen,
+        // so they arrive gradually instead of on a band boundary. Low down
+        // the hunts stay purely visual.
+        val rules = if (random.nextDouble() < level.ramp(PRIMES_FROM, PRIMES_BY)) {
+            Rule.entries
+        } else {
+            listOf(Rule.EVEN, Rule.ODD, Rule.MULTIPLE)
         }
-        return when (rule) {
-            Rule.LARGEST_PRIME -> largestPrime(difficulty, language)
-            Rule.MULTIPLE -> ruleHunt(difficulty, multipleOf(difficulty, language))
-            Rule.EVEN -> ruleHunt(difficulty, HuntRule.even(language))
-            Rule.ODD -> ruleHunt(difficulty, HuntRule.odd(language))
+        return when (rules.random(random)) {
+            Rule.LARGEST_PRIME -> largestPrime(level, language)
+            Rule.MULTIPLE -> ruleHunt(level, multipleOf(level, language))
+            Rule.EVEN -> ruleHunt(level, HuntRule.even(language))
+            Rule.ODD -> ruleHunt(level, HuntRule.odd(language))
         }
     }
 
@@ -65,13 +69,17 @@ class NumberHuntGenerator(private val random: Random) {
         }
     }
 
-    private fun multipleOf(difficulty: Difficulty, language: AppLanguage): HuntRule {
-        // EASY sticks to the last-digit divisors; the digit-sum trick for
-        // 3 and 9 arrives with the levels that can enjoy it.
-        val k = when (difficulty) {
-            Difficulty.EASY -> listOf(5, 10).random(random)
-            Difficulty.MEDIUM -> listOf(3, 5, 10).random(random)
-            Difficulty.HARD -> listOf(3, 9).random(random)
+    private fun multipleOf(level: Level, language: AppLanguage): HuntRule {
+        // Low down this sticks to the last-digit divisors; the digit-sum
+        // trick for 3 and 9 arrives with the levels that can enjoy it, and
+        // the last-digit ones thin out as it does.
+        val digitSum = random.nextDouble() < level.ramp(Level.EASY_TOP - 6, Level.HARD_ANCHOR)
+        val k = when {
+            !digitSum -> listOf(5, 10).random(random)
+            // Nine is the harder digit sum, so it shares with three rather
+            // than replacing it.
+            random.nextDouble() < level.ramp(Level.MEDIUM_ANCHOR, Level.HARD_ANCHOR) * 0.5 -> 9
+            else -> 3
         }
         return HuntRule(
             prompt = when (language) {
@@ -98,11 +106,11 @@ class NumberHuntGenerator(private val random: Random) {
         )
     }
 
-    private fun ruleHunt(difficulty: Difficulty, rule: HuntRule): Problem {
-        val spread = spreadFor(difficulty)
+    private fun ruleHunt(level: Level, rule: HuntRule): Problem {
+        val spread = spreadFor(level)
         // Always at least two to find and two to leave alone.
         val matchCount = random.nextInt(2, spread - 1)
-        val range = valueRange(difficulty)
+        val range = valueRange(level)
         val matches = distinctValues(matchCount, range, rule.fits)
         val decoys = distinctValues(spread - matchCount, range) { !rule.fits(it) }
         val correct = matches.toSet()
@@ -110,7 +118,7 @@ class NumberHuntGenerator(private val random: Random) {
         return Problem(
             text = rule.prompt,
             answer = matches.sum(),
-            difficulty = difficulty,
+            level = level,
             kind = ProblemKind.SELECT,
             notes = rule.notes,
             cards = (matches + decoys).shuffled(random),
@@ -119,12 +127,14 @@ class NumberHuntGenerator(private val random: Random) {
         )
     }
 
-    private fun largestPrime(difficulty: Difficulty, language: AppLanguage): Problem {
-        val (primes, traps) = when (difficulty) {
-            Difficulty.HARD -> PRIMES_HARD to TRAPS_HARD
-            else -> PRIMES_MEDIUM to TRAPS_MEDIUM
-        }
-        val spread = spreadFor(difficulty)
+    private fun largestPrime(level: Level, language: AppLanguage): Problem {
+        val (primes, traps) =
+            if (random.nextDouble() < level.ramp(Level.MEDIUM_ANCHOR, Level.HARD_ANCHOR)) {
+                PRIMES_HARD to TRAPS_HARD
+            } else {
+                PRIMES_MEDIUM to TRAPS_MEDIUM
+            }
+        val spread = spreadFor(level)
         // Three real primes so "largest" is a real question, the rest
         // composite lookalikes.
         val planted = primes.shuffled(random).take(3)
@@ -138,7 +148,7 @@ class NumberHuntGenerator(private val random: Random) {
         return Problem(
             text = text,
             answer = answer,
-            difficulty = difficulty,
+            level = level,
             kind = ProblemKind.SELECT,
             notes = primeNotes(language),
             cards = (planted + decoys).shuffled(random),
@@ -166,17 +176,9 @@ class NumberHuntGenerator(private val random: Random) {
         )
     }
 
-    private fun spreadFor(difficulty: Difficulty): Int = when (difficulty) {
-        Difficulty.EASY -> 6
-        Difficulty.MEDIUM -> 8
-        Difficulty.HARD -> 9
-    }
+    private fun spreadFor(level: Level): Int = level.between(6, 8, 9)
 
-    private fun valueRange(difficulty: Difficulty): IntRange = when (difficulty) {
-        Difficulty.EASY -> 2..49
-        Difficulty.MEDIUM -> 10..99
-        Difficulty.HARD -> 100..999
-    }
+    private fun valueRange(level: Level): IntRange = level.span(2..49, 10..99, 100..999)
 
     private fun distinctValues(count: Int, range: IntRange, fits: (Int) -> Boolean): List<Int> {
         val values = mutableSetOf<Int>()
@@ -188,6 +190,10 @@ class NumberHuntGenerator(private val random: Random) {
     }
 
     companion object {
+        /** Where prime hunts start appearing, and where they are routine. */
+        private const val PRIMES_FROM = Level.EASY_TOP - 6
+        private const val PRIMES_BY = Level.MEDIUM_ANCHOR
+
         private val PRIMES_MEDIUM = listOf(11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97)
         private val TRAPS_MEDIUM = listOf(21, 27, 33, 39, 49, 51, 57, 63, 69, 77, 87, 91, 93)
         private val PRIMES_HARD = listOf(101, 103, 107, 109, 113, 127, 131, 137, 139, 149, 151, 157, 163, 167, 173, 179, 181, 191, 193, 197, 199)

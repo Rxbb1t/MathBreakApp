@@ -38,7 +38,7 @@ class TrueFalseProblemGeneratorTest {
     fun `every claim's verdict matches the arithmetic`() {
         for (difficulty in Difficulty.entries) {
             repeat(400) {
-                verify(generator.generate(difficulty, AppLanguage.ENGLISH))
+                verify(generator.generate(difficulty.toLevel(), AppLanguage.ENGLISH))
             }
         }
     }
@@ -46,7 +46,7 @@ class TrueFalseProblemGeneratorTest {
     @Test
     fun `both verdicts appear and claims never go negative`() {
         for (difficulty in Difficulty.entries) {
-            val problems = List(400) { generator.generate(difficulty, AppLanguage.ENGLISH) }
+            val problems = List(400) { generator.generate(difficulty.toLevel(), AppLanguage.ENGLISH) }
             val answers = problems.map { it.answer }.toSet()
             assertEquals("one-sided claims at $difficulty", setOf(0, 1), answers)
             for (problem in problems) {
@@ -61,8 +61,8 @@ class TrueFalseProblemGeneratorTest {
             val enGenerator = TrueFalseProblemGenerator(Random(seed = 99))
             val roGenerator = TrueFalseProblemGenerator(Random(seed = 99))
             repeat(100) {
-                val en = enGenerator.generate(difficulty, AppLanguage.ENGLISH)
-                val ro = roGenerator.generate(difficulty, AppLanguage.ROMANIAN)
+                val en = enGenerator.generate(difficulty.toLevel(), AppLanguage.ENGLISH)
+                val ro = roGenerator.generate(difficulty.toLevel(), AppLanguage.ROMANIAN)
                 assertEquals("language leaked into '${en.text}'", en.text, ro.text)
                 assertTrue("hints on tap kind", en.hints.isEmpty())
                 assertTrue(en.tapAnswered)
@@ -86,7 +86,7 @@ class TrueFalseProblemGeneratorTest {
             var falseClaims = 0
             var lastDigitDiffers = 0
             repeat(3000) {
-                val problem = generator.generate(difficulty, AppLanguage.ENGLISH)
+                val problem = generator.generate(difficulty.toLevel(), AppLanguage.ENGLISH)
                 if (problem.answer != 1) return@repeat
                 falseClaims++
                 val match = Regex("""^(\d+) ([+−×÷]) (\d+) = (\d+)$""").find(problem.text)!!
@@ -111,7 +111,7 @@ class TrueFalseProblemGeneratorTest {
 
     @Test
     fun `division claims skip easy`() {
-        val problems = List(400) { generator.generate(Difficulty.EASY, AppLanguage.ENGLISH) }
+        val problems = List(400) { generator.generate(Difficulty.EASY.toLevel(), AppLanguage.ENGLISH) }
         assertTrue("÷ claim at EASY", problems.none { "÷" in it.text })
     }
 }

@@ -558,7 +558,7 @@ class DailyChallengeGenerator {
     ): Problem = Problem(
         text = text,
         answer = answer,
-        difficulty = Difficulty.MEDIUM,
+        level = STAGE_LEVEL,
         kind = kind,
         hints = listOf(hint, HintText.digits(answer, language)),
         diagram = diagram,
@@ -572,5 +572,13 @@ class DailyChallengeGenerator {
 
     companion object {
         const val ARC_COUNT = 5
+
+        /**
+         * The daily story sits at one fixed level for everyone, on purpose.
+         * It is the same challenge on the same day whoever opens it, so it
+         * cannot follow a personal ladder without stopping being that. The
+         * adaptive scale belongs to the breaks.
+         */
+        val STAGE_LEVEL: Level = Difficulty.MEDIUM.toLevel()
     }
 }

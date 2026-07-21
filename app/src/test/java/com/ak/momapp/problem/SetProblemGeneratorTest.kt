@@ -14,7 +14,7 @@ class SetProblemGeneratorTest {
     private fun manyProblems(
         difficulty: Difficulty,
         language: AppLanguage = AppLanguage.ENGLISH,
-    ): List<Problem> = List(SAMPLE_SIZE) { generator.generate(difficulty, language) }
+    ): List<Problem> = List(SAMPLE_SIZE) { generator.generate(difficulty.toLevel(), language) }
 
     private fun parseElements(line: String): List<Int> =
         line.substringAfter("{").substringBefore("}").split(",").map { it.trim().toInt() }

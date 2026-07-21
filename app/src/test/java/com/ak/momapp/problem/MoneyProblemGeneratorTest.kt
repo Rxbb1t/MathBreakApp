@@ -15,7 +15,7 @@ class MoneyProblemGeneratorTest {
     private val generator = MoneyProblemGenerator(Random(seed = 11))
 
     private fun many(difficulty: Difficulty, language: AppLanguage = AppLanguage.ENGLISH): List<Problem> =
-        List(SAMPLE_SIZE) { generator.generate(difficulty, language) }
+        List(SAMPLE_SIZE) { generator.generate(difficulty.toLevel(), language) }
 
     private fun numbersIn(text: String): List<Int> =
         Regex("""\d+""").findAll(text).map { it.value.toInt() }.toList()

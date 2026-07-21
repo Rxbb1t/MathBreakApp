@@ -23,7 +23,7 @@ class ProblemQualityTest {
         seed: Int = 7,
     ): List<Problem> {
         val generator = ProblemGenerator(Random(seed))
-        return List(count) { generator.generate(difficulty, AppLanguage.ENGLISH) }
+        return List(count) { generator.generate(difficulty.toLevel(), AppLanguage.ENGLISH) }
     }
 
     /**
@@ -100,7 +100,7 @@ class ProblemQualityTest {
             val generator = ProblemGenerator(Random(3))
             repeat(30) {
                 val problem = generator.generate(
-                    Difficulty.MEDIUM,
+                    Difficulty.MEDIUM.toLevel(),
                     AppLanguage.ENGLISH,
                     setOf(topic),
                 )
@@ -119,7 +119,7 @@ class ProblemQualityTest {
     fun `card exercises keep their variety through the repeat filter`() {
         val generator = ProblemGenerator(Random(9))
         val hunts = List(200) {
-            generator.generate(Difficulty.MEDIUM, AppLanguage.ENGLISH, setOf(ProblemTopic.NUMBERS))
+            generator.generate(Difficulty.MEDIUM.toLevel(), AppLanguage.ENGLISH, setOf(ProblemTopic.NUMBERS))
         }.filter { it.cards.isNotEmpty() }
 
         assertTrue("expected card exercises, got none", hunts.size > 50)
@@ -143,7 +143,7 @@ class ProblemQualityTest {
     fun `word problems come in more than one shape and each adds up`() {
         val generator = ProblemGenerator(Random(13))
         val words = List(1200) {
-            generator.generate(Difficulty.HARD, AppLanguage.ENGLISH, setOf(ProblemTopic.WORD))
+            generator.generate(Difficulty.HARD.toLevel(), AppLanguage.ENGLISH, setOf(ProblemTopic.WORD))
         }.filter { it.kind == ProblemKind.WORD }
 
         val numbersOf = { text: String ->
@@ -194,7 +194,7 @@ class ProblemQualityTest {
             for (difficulty in Difficulty.entries) {
                 val generator = ProblemGenerator(Random(31))
                 repeat(SAMPLE) {
-                    val problem = generator.generate(difficulty, language)
+                    val problem = generator.generate(difficulty.toLevel(), language)
                     val steps = problem.solution
                     if (steps.isEmpty() || problem.tapAnswered) return@repeat
                     val lastNumber = Regex("\\d+").findAll(steps.last())
@@ -222,7 +222,7 @@ class ProblemQualityTest {
             for (difficulty in Difficulty.entries) {
                 val generator = ProblemGenerator(Random(23))
                 repeat(SAMPLE) {
-                    val problem = generator.generate(difficulty, language)
+                    val problem = generator.generate(difficulty.toLevel(), language)
                     if (!problem.tapAnswered || problem.solution.isEmpty()) return@repeat
                     // TRUE_FALSE reveals "✗ (= 56)"; the symbol is the head of it.
                     val symbol = problem.revealText.substringBefore(" ")
@@ -250,7 +250,7 @@ class ProblemQualityTest {
             for (difficulty in Difficulty.entries) {
                 val generator = ProblemGenerator(Random(41))
                 repeat(SAMPLE * 4) {
-                    val problem = generator.generate(difficulty, language)
+                    val problem = generator.generate(difficulty.toLevel(), language)
                     seen.add(problem.kind)
                     if (problem.solution.isNotEmpty()) withSolution.add(problem.kind)
                 }
@@ -276,7 +276,7 @@ class ProblemQualityTest {
         val withSolution = mutableSetOf<ProblemKind>()
         for (difficulty in Difficulty.entries) {
             repeat(SAMPLE * 2) {
-                val problem = generator.generate(difficulty, AppLanguage.ENGLISH)
+                val problem = generator.generate(difficulty.toLevel(), AppLanguage.ENGLISH)
                 if (problem.solution.isNotEmpty()) withSolution.add(problem.kind)
             }
         }
@@ -289,7 +289,7 @@ class ProblemQualityTest {
     fun `money answers are denominated in euro`() {
         val generator = MoneyProblemGenerator(Random(5))
         val units = Difficulty.entries.flatMap { difficulty ->
-            List(60) { generator.generate(difficulty, AppLanguage.ENGLISH).answerUnit }
+            List(60) { generator.generate(difficulty.toLevel(), AppLanguage.ENGLISH).answerUnit }
         }.toSet()
         // Counting answers (jars, weeks) carry no unit; the rest pay in euro.
         assertEquals(setOf("", "€"), units)
@@ -306,11 +306,11 @@ class ProblemQualityTest {
         val generator = ProblemGenerator(Random(19))
         val problems = List(SAMPLE * 4) {
             generator.generate(
-                difficulty = Difficulty.EASY,
+                level = Difficulty.EASY.toLevel(),
                 language = AppLanguage.ENGLISH,
                 topics = setOf(ProblemTopic.MONEY, ProblemTopic.TIME),
                 levelFor = { topic ->
-                    if (topic == ProblemTopic.MONEY) Difficulty.HARD else Difficulty.EASY
+                    if (topic == ProblemTopic.MONEY) Difficulty.HARD.toLevel() else Difficulty.EASY.toLevel()
                 },
             )
         }
@@ -335,7 +335,7 @@ class ProblemQualityTest {
     fun `without per-topic levels every problem uses the one passed in`() {
         val generator = ProblemGenerator(Random(27))
         val levels = List(SAMPLE * 2) {
-            generator.generate(Difficulty.MEDIUM, AppLanguage.ENGLISH).difficulty
+            generator.generate(Difficulty.MEDIUM.toLevel(), AppLanguage.ENGLISH).difficulty
         }.toSet()
         assertEquals(setOf(Difficulty.MEDIUM), levels)
     }

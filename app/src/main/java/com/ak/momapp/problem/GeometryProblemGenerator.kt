@@ -22,22 +22,28 @@ import kotlin.random.Random
  */
 class GeometryProblemGenerator(private val random: Random) {
 
-    fun generate(difficulty: Difficulty, language: AppLanguage): Problem =
-        if (difficulty == Difficulty.HARD) {
+    /**
+     * The five harder figures (working back from an area, volume, the
+     * right-angle shortcut) fade in over the top half of the scale rather
+     * than replacing the simpler five outright, so the two sets overlap
+     * around the middle instead of swapping over on one answer.
+     */
+    fun generate(level: Level, language: AppLanguage): Problem =
+        if (random.nextDouble() < level.ramp(Level.MEDIUM_ANCHOR, Level.HARD_ANCHOR)) {
             when (random.nextInt(5)) {
-                0 -> shortcut(language)
-                1 -> borderFromArea(language)
-                2 -> boxVolume(language)
-                3 -> isoscelesAngles(language)
-                else -> laps(language)
+                0 -> shortcut(level, language)
+                1 -> borderFromArea(level, language)
+                2 -> boxVolume(level, language)
+                3 -> isoscelesAngles(level, language)
+                else -> laps(level, language)
             }
         } else {
             when (random.nextInt(5)) {
-                0 -> perimeterFence(language)
-                1 -> areaTiles(language)
-                2 -> thirdAngle(language)
-                3 -> squareSide(language)
-                else -> ladder(language)
+                0 -> perimeterFence(level, language)
+                1 -> areaTiles(level, language)
+                2 -> thirdAngle(level, language)
+                3 -> squareSide(level, language)
+                else -> ladder(level, language)
             }
         }
 
@@ -62,14 +68,14 @@ class GeometryProblemGenerator(private val random: Random) {
     // ── MEDIUM ───────────────────────────────────────────────────────────
 
     /** Marker: "all the way around". Order: {a}, {b}. Answer 2(a+b). */
-    private fun perimeterFence(language: AppLanguage): Problem {
+    private fun perimeterFence(level: Level, language: AppLanguage): Problem {
         val a = random.nextInt(12, 61)
         val b = random.nextInt(8, a)
         val (template, unit) = pick(PERIMETER_TEMPLATES, language)
         return geometry(
             text = fill(template, mapOf("a" to "$a", "b" to "$b")),
             answer = 2 * (a + b),
-            difficulty = Difficulty.MEDIUM,
+            level = level,
             language = language,
             hint = when (language) {
                 AppLanguage.ENGLISH -> "Add up all four sides. A rectangle has two lengths and two widths."
@@ -98,14 +104,14 @@ class GeometryProblemGenerator(private val random: Random) {
     }
 
     /** Marker: "one square meter". Order: {a}, {b}. Answer a×b. */
-    private fun areaTiles(language: AppLanguage): Problem {
+    private fun areaTiles(level: Level, language: AppLanguage): Problem {
         val a = random.nextInt(4, 21)
         val b = random.nextInt(3, 16)
         val (template, unit) = pick(AREA_TEMPLATES, language)
         return geometry(
             text = fill(template, mapOf("a" to "$a", "b" to "$b")),
             answer = a * b,
-            difficulty = Difficulty.MEDIUM,
+            level = level,
             language = language,
             hint = when (language) {
                 AppLanguage.ENGLISH -> "Area is length times width."
@@ -134,13 +140,13 @@ class GeometryProblemGenerator(private val random: Random) {
     }
 
     /** Marker: "third angle". Order: {x}, {y}. Answer 180−x−y. */
-    private fun thirdAngle(language: AppLanguage): Problem {
+    private fun thirdAngle(level: Level, language: AppLanguage): Problem {
         val x = random.nextInt(30, 101)
         val y = random.nextInt(25, 161 - x)
         return geometry(
             text = fill(pick(THIRD_ANGLE_TEMPLATES, language).first, mapOf("x" to "$x", "y" to "$y")),
             answer = 180 - x - y,
-            difficulty = Difficulty.MEDIUM,
+            level = level,
             language = language,
             hint = when (language) {
                 AppLanguage.ENGLISH -> "The three angles of a triangle add up to 180°."
@@ -171,13 +177,13 @@ class GeometryProblemGenerator(private val random: Random) {
     }
 
     /** Marker: "one side". Order: {p}. Answer p ÷ 4. */
-    private fun squareSide(language: AppLanguage): Problem {
+    private fun squareSide(level: Level, language: AppLanguage): Problem {
         val side = random.nextInt(6, 61)
         val (template, unit) = pick(SQUARE_SIDE_TEMPLATES, language)
         return geometry(
             text = fill(template, mapOf("p" to "${4 * side}")),
             answer = side,
-            difficulty = Difficulty.MEDIUM,
+            level = level,
             language = language,
             hint = when (language) {
                 AppLanguage.ENGLISH -> "All four sides of a square are the same length."
@@ -206,13 +212,13 @@ class GeometryProblemGenerator(private val random: Random) {
     }
 
     /** Marker: "ladder". Order: {c}, {a}. Answer √(c²−a²), whole by construction. */
-    private fun ladder(language: AppLanguage): Problem {
+    private fun ladder(level: Level, language: AppLanguage): Problem {
         val (c, a, b) = LADDER_TRIPLES.random(random)
         val (template, unit) = pick(LADDER_TEMPLATES, language)
         return geometry(
             text = fill(template, mapOf("c" to "$c", "a" to "$a")),
             answer = b,
-            difficulty = Difficulty.MEDIUM,
+            level = level,
             language = language,
             hint = when (language) {
                 AppLanguage.ENGLISH -> "Wall, ground and ladder form a right triangle; the ladder is the longest side."
@@ -249,13 +255,13 @@ class GeometryProblemGenerator(private val random: Random) {
     // ── HARD ─────────────────────────────────────────────────────────────
 
     /** Marker: "right angle". Order: {a}, {b}. Answer √(a²+b²), whole. */
-    private fun shortcut(language: AppLanguage): Problem {
+    private fun shortcut(level: Level, language: AppLanguage): Problem {
         val (a, b, c) = SHORTCUT_TRIPLES.random(random)
         val (template, unit) = pick(SHORTCUT_TEMPLATES, language)
         return geometry(
             text = fill(template, mapOf("a" to "$a", "b" to "$b")),
             answer = c,
-            difficulty = Difficulty.HARD,
+            level = level,
             language = language,
             hint = when (language) {
                 AppLanguage.ENGLISH -> "The straight line is the longest side of a right triangle."
@@ -290,14 +296,14 @@ class GeometryProblemGenerator(private val random: Random) {
     }
 
     /** Marker: "border". Order: {A}, {a}. Answer 2(a + A÷a). */
-    private fun borderFromArea(language: AppLanguage): Problem {
+    private fun borderFromArea(level: Level, language: AppLanguage): Problem {
         val a = random.nextInt(8, 26)
         val b = random.nextInt(5, 21)
         val (template, unit) = pick(BORDER_TEMPLATES, language)
         return geometry(
             text = fill(template, mapOf("A" to "${a * b}", "a" to "$a")),
             answer = 2 * (a + b),
-            difficulty = Difficulty.HARD,
+            level = level,
             language = language,
             hint = when (language) {
                 AppLanguage.ENGLISH -> "Divide the area by the length to get the width."
@@ -332,7 +338,7 @@ class GeometryProblemGenerator(private val random: Random) {
     }
 
     /** Marker: "cubes". Order: {a}, {b}, {c}. Answer a×b×c. */
-    private fun boxVolume(language: AppLanguage): Problem {
+    private fun boxVolume(level: Level, language: AppLanguage): Problem {
         val a = random.nextInt(4, 13)
         val b = random.nextInt(3, 13)
         val c = random.nextInt(3, 13)
@@ -340,7 +346,7 @@ class GeometryProblemGenerator(private val random: Random) {
         return geometry(
             text = fill(template, mapOf("a" to "$a", "b" to "$b", "c" to "$c")),
             answer = a * b * c,
-            difficulty = Difficulty.HARD,
+            level = level,
             language = language,
             hint = when (language) {
                 AppLanguage.ENGLISH -> "Volume is length times width times height."
@@ -373,12 +379,12 @@ class GeometryProblemGenerator(private val random: Random) {
     }
 
     /** Marker: "equal". Order: {t}. Answer (180−t)÷2, whole via even t. */
-    private fun isoscelesAngles(language: AppLanguage): Problem {
+    private fun isoscelesAngles(level: Level, language: AppLanguage): Problem {
         val top = 2 * random.nextInt(10, 61)
         return geometry(
             text = fill(pick(ISOSCELES_TEMPLATES, language).first, mapOf("t" to "$top")),
             answer = (180 - top) / 2,
-            difficulty = Difficulty.HARD,
+            level = level,
             language = language,
             hint = when (language) {
                 AppLanguage.ENGLISH -> "The three angles add up to 180°, and two of them are equal."
@@ -409,7 +415,7 @@ class GeometryProblemGenerator(private val random: Random) {
     }
 
     /** Marker: "laps". Order: {a}, {b}, {n}. Answer n×2(a+b). */
-    private fun laps(language: AppLanguage): Problem {
+    private fun laps(level: Level, language: AppLanguage): Problem {
         val a = random.nextInt(25, 61)
         val b = random.nextInt(15, 46)
         val n = random.nextInt(2, 7)
@@ -417,7 +423,7 @@ class GeometryProblemGenerator(private val random: Random) {
         return geometry(
             text = fill(template, mapOf("a" to "$a", "b" to "$b", "n" to "$n")),
             answer = n * 2 * (a + b),
-            difficulty = Difficulty.HARD,
+            level = level,
             language = language,
             hint = when (language) {
                 AppLanguage.ENGLISH -> "One lap is all four sides added together."
@@ -449,7 +455,7 @@ class GeometryProblemGenerator(private val random: Random) {
     private fun geometry(
         text: String,
         answer: Int,
-        difficulty: Difficulty,
+        level: Level,
         language: AppLanguage,
         hint: String,
         notes: List<String>,
@@ -459,7 +465,7 @@ class GeometryProblemGenerator(private val random: Random) {
     ): Problem = Problem(
         text = text,
         answer = answer,
-        difficulty = difficulty,
+        level = level,
         kind = ProblemKind.GEOMETRY,
         hints = listOf(hint, HintText.digits(answer, language)),
         notes = notes,

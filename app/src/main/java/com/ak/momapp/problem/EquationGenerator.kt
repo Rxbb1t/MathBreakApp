@@ -2,6 +2,7 @@ package com.ak.momapp.problem
 
 import com.ak.momapp.i18n.AppLanguage
 import kotlin.random.Random
+import kotlin.random.nextInt
 
 /**
  * Unknown-value problems for MEDIUM and HARD: solve for x (sometimes with
@@ -17,27 +18,35 @@ import kotlin.random.Random
  */
 class EquationGenerator(private val random: Random) {
 
-    fun generate(difficulty: Difficulty, language: AppLanguage): Problem = when (difficulty) {
-        Difficulty.HARD -> rollHard(language)
-        else -> rollMedium(language)
-    }
+    /**
+     * The harder shapes (two coefficients, x², derivatives) do not switch
+     * on the moment she is called Hard. They fade in across the lower half
+     * of the band, so the first Hard sittings are mostly familiar work with
+     * the occasional new shape, rather than a wall.
+     */
+    fun generate(level: Level, language: AppLanguage): Problem =
+        if (random.nextDouble() < level.ramp(Level.MEDIUM_TOP, Level.HARD_ANCHOR)) {
+            rollHard(level, language)
+        } else {
+            rollMedium(level, language)
+        }
 
-    // ── MEDIUM: 3–5 numbers, one or two unknowns, everything ≤ 3500 ─────
+    // ── The everyday shapes: one or two unknowns, numbers led by the level ──
 
-    private fun rollMedium(language: AppLanguage): Problem = when (random.nextInt(5)) {
-        0, 1 -> findX(language)
-        2 -> sumDifferenceSystem(language, maxSmaller = 1200, askProduct = false)
-        3 -> substitutionSystem(language)
-        else -> rootOrPower(language)
+    private fun rollMedium(level: Level, language: AppLanguage): Problem = when (random.nextInt(5)) {
+        0, 1 -> findX(level, language)
+        2 -> sumDifferenceSystem(level, language, askProduct = false)
+        3 -> substitutionSystem(level, language)
+        else -> rootOrPower(level, language)
     }
 
     /** "3x + 7 = 25". The bread and butter. */
-    private fun findX(language: AppLanguage): Problem {
-        val a = random.nextInt(2, 10)
-        val x = random.nextInt(2, 13)
+    private fun findX(level: Level, language: AppLanguage): Problem {
+        val a = random.nextInt(level.span(2..5, 2..9, 3..9))
+        val x = random.nextInt(level.span(2..8, 2..12, 3..15))
         val plus = random.nextBoolean()
         // The minus variant keeps the right-hand side positive.
-        val b = if (plus) random.nextInt(1, 3001) else random.nextInt(1, a * x)
+        val b = if (plus) random.nextInt(level.span(1..40, 1..3000, 1..3000)) else random.nextInt(1, a * x)
         val rhs = if (plus) a * x + b else a * x - b
         val text = if (plus) {
             "${findXLabel(language)}\n${a}x + $b = $rhs"
@@ -60,7 +69,7 @@ class EquationGenerator(private val random: Random) {
         return Problem(
             text = text,
             answer = x,
-            difficulty = Difficulty.MEDIUM,
+            level = level,
             kind = ProblemKind.EQUATION,
             hints = listOf(shorthandHint(a, language), HintText.digits(x, language)),
             notes = listOf(balanceNote(language), shorthandNote(language)),
@@ -72,11 +81,17 @@ class EquationGenerator(private val random: Random) {
      * "x + y = 24, x − y = 6". Ask for x, y, or (at HARD) their product.
      */
     private fun sumDifferenceSystem(
+        level: Level,
         language: AppLanguage,
-        maxSmaller: Int,
         askProduct: Boolean,
     ): Problem {
-        val y = random.nextInt(1, maxSmaller + 1)
+        // Asking for the product needs both numbers small enough to
+        // multiply in her head; asking for one of them does not.
+        val y = if (askProduct) {
+            random.nextInt(1, 61)
+        } else {
+            random.nextInt(level.span(1..80, 1..1200, 1..1200))
+        }
         val d = random.nextInt(2, 16)
         val x = y + d
         val s = x + y
@@ -127,7 +142,7 @@ class EquationGenerator(private val random: Random) {
         return Problem(
             text = "x + y = $s\nx − y = $d\n$question",
             answer = answer,
-            difficulty = if (askProduct) Difficulty.HARD else Difficulty.MEDIUM,
+            level = level,
             kind = ProblemKind.EQUATION,
             hints = listOf(restateHint, HintText.digits(answer, language)),
             notes = listOf(sumDifferenceNote(language), balanceNote(language)),
@@ -136,10 +151,10 @@ class EquationGenerator(private val random: Random) {
     }
 
     /** "4x + y = 31, y = 3". Substitute, then solve. */
-    private fun substitutionSystem(language: AppLanguage): Problem {
-        val a = random.nextInt(2, 7)
-        val x = random.nextInt(2, 13)
-        val b = random.nextInt(1, 2001)
+    private fun substitutionSystem(level: Level, language: AppLanguage): Problem {
+        val a = random.nextInt(level.span(2..4, 2..6, 2..6))
+        val x = random.nextInt(level.span(2..8, 2..12, 2..12))
+        val b = random.nextInt(level.span(1..30, 1..2000, 1..2000))
         val c = a * x + b
         val givenHint = when (language) {
             AppLanguage.ENGLISH -> "The second line already tells you exactly what y is."
@@ -148,7 +163,7 @@ class EquationGenerator(private val random: Random) {
         return Problem(
             text = "${a}x + y = $c\ny = $b\nx = ?",
             answer = x,
-            difficulty = Difficulty.MEDIUM,
+            level = level,
             kind = ProblemKind.EQUATION,
             hints = listOf(givenHint, HintText.digits(x, language)),
             notes = listOf(systemNote(language), shorthandNote(language)),
@@ -169,15 +184,15 @@ class EquationGenerator(private val random: Random) {
     }
 
     /** Square roots and small powers, kept whole and small. */
-    private fun rootOrPower(language: AppLanguage): Problem = when (random.nextInt(4)) {
+    private fun rootOrPower(level: Level, language: AppLanguage): Problem = when (random.nextInt(4)) {
         0 -> {
-            val r = random.nextInt(2, 16)
-            val x = random.nextInt(1, 3401)
+            val r = random.nextInt(level.span(2..8, 2..15, 2..15))
+            val x = random.nextInt(level.span(1..50, 1..3400, 1..3400))
             val c = x + r
             Problem(
                 text = "x + √${r * r} = $c\nx = ?",
                 answer = x,
-                difficulty = Difficulty.MEDIUM,
+                level = level,
                 kind = ProblemKind.EQUATION,
                 hints = listOf(rootMeaningHint(r * r, language), HintText.digits(x, language)),
                 notes = listOf(rootNote(language), balanceNote(language)),
@@ -193,13 +208,13 @@ class EquationGenerator(private val random: Random) {
         }
 
         1 -> {
-            val a = random.nextInt(3, 13)
-            val x = random.nextInt(5, 3301)
+            val a = random.nextInt(level.span(3..7, 3..12, 3..12))
+            val x = random.nextInt(level.span(5..60, 5..3300, 5..3300))
             val c = a * a + x
             Problem(
                 text = "$a² + x = $c\nx = ?",
                 answer = x,
-                difficulty = Difficulty.MEDIUM,
+                level = level,
                 kind = ProblemKind.EQUATION,
                 hints = listOf(squareMeaningHint(a, language), HintText.digits(x, language)),
                 notes = listOf(powerNote(language), balanceNote(language)),
@@ -219,11 +234,11 @@ class EquationGenerator(private val random: Random) {
         }
 
         2 -> {
-            val x = random.nextInt(3, 16)
+            val x = random.nextInt(level.span(3..9, 3..15, 3..15))
             Problem(
                 text = "x² = ${x * x}\nx = ?",
                 answer = x,
-                difficulty = Difficulty.MEDIUM,
+                level = level,
                 kind = ProblemKind.EQUATION,
                 hints = listOf(
                     rootMeaningHint(x * x, language),
@@ -254,7 +269,7 @@ class EquationGenerator(private val random: Random) {
             Problem(
                 text = "x³ = ${x * x * x}\nx = ?",
                 answer = x,
-                difficulty = Difficulty.MEDIUM,
+                level = level,
                 kind = ProblemKind.EQUATION,
                 hints = listOf(cubeHint, HintText.digits(x, language)),
                 notes = listOf(powerNote(language)),
@@ -276,18 +291,18 @@ class EquationGenerator(private val random: Random) {
 
     // ── HARD: 4–7 numbers, up to two unknowns, bigger values ────────────
 
-    private fun rollHard(language: AppLanguage): Problem = when (random.nextInt(6)) {
+    private fun rollHard(level: Level, language: AppLanguage): Problem = when (random.nextInt(6)) {
         0 -> {
             // "5x + 12 − 7 = 65"
-            val a = random.nextInt(3, 10)
-            val x = random.nextInt(3, 16)
+            val a = random.nextInt(level.span(3..7, 3..9, 3..9))
+            val x = random.nextInt(level.span(3..10, 3..15, 3..15))
             val b = random.nextInt(2, 41)
             val c = random.nextInt(2, minOf(41, a * x + b))
             val rhs = a * x + b - c
             Problem(
                 text = "${findXLabel(language)}\n${a}x + $b − $c = $rhs",
                 answer = x,
-                difficulty = Difficulty.HARD,
+                level = level,
                 kind = ProblemKind.EQUATION,
                 hints = listOf(shorthandHint(a, language), HintText.digits(x, language)),
                 notes = listOf(balanceNote(language), shorthandNote(language)),
@@ -304,10 +319,10 @@ class EquationGenerator(private val random: Random) {
 
         1 -> {
             // "3x + 4y = 53, y = 5"
-            val a = random.nextInt(2, 10)
-            val b = random.nextInt(2, 10)
-            val x = random.nextInt(2, 16)
-            val y = random.nextInt(2, 13)
+            val a = random.nextInt(level.span(2..6, 2..9, 2..9))
+            val b = random.nextInt(level.span(2..6, 2..9, 2..9))
+            val x = random.nextInt(level.span(2..10, 2..15, 2..15))
+            val y = random.nextInt(level.span(2..8, 2..12, 2..12))
             val e = a * x + b * y
             val givenHint = when (language) {
                 AppLanguage.ENGLISH -> "The second line already tells you exactly what y is."
@@ -316,7 +331,7 @@ class EquationGenerator(private val random: Random) {
             Problem(
                 text = "${a}x + ${b}y = $e\ny = $y\nx = ?",
                 answer = x,
-                difficulty = Difficulty.HARD,
+                level = level,
                 kind = ProblemKind.EQUATION,
                 hints = listOf(givenHint, HintText.digits(x, language)),
                 notes = listOf(systemNote(language), shorthandNote(language)),
@@ -336,18 +351,18 @@ class EquationGenerator(private val random: Random) {
             )
         }
 
-        2 -> sumDifferenceSystem(language, maxSmaller = 60, askProduct = true)
+        2 -> sumDifferenceSystem(level, language, askProduct = true)
 
-        3 -> derivative(language)
+        3 -> derivative(level, language)
 
         4 -> {
             // "x² − 9 = 40"
-            val x = random.nextInt(4, 21)
+            val x = random.nextInt(level.span(4..12, 4..20, 4..20))
             val b = random.nextInt(1, x * x)
             Problem(
                 text = "x² − $b = ${x * x - b}\nx = ?",
                 answer = x,
-                difficulty = Difficulty.HARD,
+                level = level,
                 kind = ProblemKind.EQUATION,
                 hints = listOf(squareOfXHint(language), HintText.digits(x, language)),
                 notes = listOf(balanceNote(language), powerNote(language)),
@@ -368,14 +383,14 @@ class EquationGenerator(private val random: Random) {
 
         else -> {
             // "√81 × 7 − 13 = ?". No unknown, the root is the twist.
-            val r = random.nextInt(3, 13)
-            val a = random.nextInt(2, 10)
+            val r = random.nextInt(level.span(3..8, 3..12, 3..12))
+            val a = random.nextInt(level.span(2..6, 2..9, 2..9))
             val b = random.nextInt(1, r * a + 1)
             val answer = r * a - b
             Problem(
                 text = "√${r * r} × $a − $b = ?",
                 answer = answer,
-                difficulty = Difficulty.HARD,
+                level = level,
                 kind = ProblemKind.EQUATION,
                 hints = listOf(
                     rootMeaningHint(r * r, language),
@@ -407,10 +422,11 @@ class EquationGenerator(private val random: Random) {
      * f′ of ax² + bx + c at k is 2ak + b; of ax³ + bx + c it is 3ak² + b;
      * whole and positive by construction.
      */
-    private fun derivative(language: AppLanguage): Problem {
+    private fun derivative(level: Level, language: AppLanguage): Problem {
         val b = random.nextInt(2, 14)
         val c = random.nextInt(2, 31)
-        val cubic = random.nextBoolean()
+        // The cubic is the harder of the two, so it arrives later.
+        val cubic = random.nextDouble() < level.ramp(Level.HARD_ANCHOR - 8, Level.MAX)
         // Three steps every time: differentiate, substitute, arrive. The
         // constant c is named as vanishing, because that is the step she
         // is most likely to doubt.
@@ -468,7 +484,7 @@ class EquationGenerator(private val random: Random) {
         return Problem(
             text = text,
             answer = answer,
-            difficulty = Difficulty.HARD,
+            level = level,
             kind = ProblemKind.EQUATION,
             solution = solution,
             hints = listOf(derivativeMeaningHint(language), HintText.digits(answer, language)),

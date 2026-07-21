@@ -15,7 +15,7 @@ class ProblemGeneratorTest {
         difficulty: Difficulty,
         language: AppLanguage = AppLanguage.ENGLISH,
     ): List<Problem> = List(SAMPLE_SIZE) {
-        generator.generate(difficulty, language)
+        generator.generate(difficulty.toLevel(), language)
     }
 
     @Test
@@ -208,7 +208,7 @@ class ProblemGeneratorTest {
     @Test
     fun `geometry is about as common as riddles at normal and hard`() {
         for (difficulty in listOf(Difficulty.MEDIUM, Difficulty.HARD)) {
-            val problems = List(2_000) { generator.generate(difficulty) }
+            val problems = List(2_000) { generator.generate(difficulty.toLevel()) }
             val geometryShare = problems.count { it.kind == ProblemKind.GEOMETRY } / 2_000.0
             val logicShare = problems.count { it.kind == ProblemKind.LOGIC } / 2_000.0
             assertTrue("geometry share at $difficulty was $geometryShare", geometryShare in 0.12..0.26)
@@ -239,7 +239,7 @@ class ProblemGeneratorTest {
             for (disabled in ProblemTopic.entries.filter { it != ProblemTopic.CORE }) {
                 val kinds = List(SAMPLE_SIZE) {
                     generator.generate(
-                        difficulty, AppLanguage.ENGLISH,
+                        difficulty.toLevel(), AppLanguage.ENGLISH,
                         topics = ProblemTopic.ALL - disabled,
                     )
                 }.map { it.kind }.toSet()
@@ -255,7 +255,7 @@ class ProblemGeneratorTest {
         for (difficulty in Difficulty.entries) {
             val enabled = setOf(ProblemTopic.MONEY, ProblemTopic.TIME)
             val kinds = List(SAMPLE_SIZE) {
-                generator.generate(difficulty, AppLanguage.ENGLISH, topics = enabled)
+                generator.generate(difficulty.toLevel(), AppLanguage.ENGLISH, topics = enabled)
             }.map { it.kind }.toSet()
             assertEquals(
                 "unexpected kinds at $difficulty: $kinds",
@@ -270,7 +270,7 @@ class ProblemGeneratorTest {
         for (difficulty in Difficulty.entries) {
             val kinds = List(SAMPLE_SIZE) {
                 generator.generate(
-                    difficulty, AppLanguage.ENGLISH,
+                    difficulty.toLevel(), AppLanguage.ENGLISH,
                     topics = setOf(ProblemTopic.CORE, ProblemTopic.LOGIC),
                 )
             }.map { it.kind }.toSet()
@@ -285,7 +285,7 @@ class ProblemGeneratorTest {
         // to deal — core covers it.
         val kinds = List(SAMPLE_SIZE) {
             generator.generate(
-                Difficulty.EASY, AppLanguage.ENGLISH,
+                Difficulty.EASY.toLevel(), AppLanguage.ENGLISH,
                 topics = setOf(ProblemTopic.GEOMETRY),
             )
         }.map { it.kind }.toSet()

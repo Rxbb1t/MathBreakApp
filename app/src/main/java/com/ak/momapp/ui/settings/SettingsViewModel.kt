@@ -11,6 +11,7 @@ import com.ak.momapp.data.BrainBreakSettings
 import com.ak.momapp.data.BreakStateRepository
 import com.ak.momapp.data.ProgressRepository
 import com.ak.momapp.data.SettingsRepository
+import com.ak.momapp.data.SetupPreset
 import com.ak.momapp.i18n.AppLanguage
 import com.ak.momapp.problem.Difficulty
 import com.ak.momapp.problem.ProblemTopic
@@ -33,9 +34,13 @@ class SettingsViewModel(
     private val progressRepository: ProgressRepository? = null,
 ) : ViewModel() {
 
-    /** The level each topic is dealt at, for the Exercises rows. */
+    /**
+     * The NAME each topic is at, for the Exercises rows. The fine points
+     * underneath are deliberately not exposed: she sees Easy, Normal or
+     * Hard, and there is no number to chase.
+     */
     val topicLevels: StateFlow<Map<ProblemTopic, Difficulty>> =
-        (progressRepository?.topicLevels ?: emptyFlow())
+        (progressRepository?.topicBands ?: emptyFlow())
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyMap())
 
 
@@ -47,6 +52,16 @@ class SettingsViewModel(
     /** Epoch millis of the next scheduled break, for display. */
     val nextBreakAt: StateFlow<Long?> = breakStateRepository.nextBreakAt
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    /**
+     * Applies one of the setup presets from Settings, the same way the
+     * first-run guide does. It restarts the adaptive level and clears the
+     * per-topic ladders, which is the point: she is saying the app has the
+     * wrong idea of her, so keeping what it worked out would defeat it.
+     */
+    fun applyPreset(preset: SetupPreset) {
+        viewModelScope.launch { repository.applyPreset(preset) }
+    }
 
     fun setRemindersEnabled(enabled: Boolean) {
         viewModelScope.launch {

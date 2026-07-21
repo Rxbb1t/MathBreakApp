@@ -15,7 +15,7 @@ class ComparisonProblemGeneratorTest {
     private val generator = ComparisonProblemGenerator(Random(seed = 7))
 
     private fun many(difficulty: Difficulty): List<Problem> =
-        List(SAMPLE_SIZE) { generator.generate(difficulty, AppLanguage.ENGLISH) }
+        List(SAMPLE_SIZE) { generator.generate(difficulty.toLevel(), AppLanguage.ENGLISH) }
 
     /** Evaluates "a + b", "a − b", "a × b", or a plain number. */
     private fun evalSide(side: String): Int {

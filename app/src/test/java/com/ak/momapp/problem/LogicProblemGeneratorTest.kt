@@ -16,7 +16,7 @@ class LogicProblemGeneratorTest {
     private val names = listOf("Toni", "Vera")
 
     private fun many(difficulty: Difficulty, language: AppLanguage = AppLanguage.ENGLISH): List<Problem> =
-        List(SAMPLE_SIZE) { generator.generate(difficulty, names, language) }
+        List(SAMPLE_SIZE) { generator.generate(difficulty.toLevel(), names, language) }
 
     private fun numbersIn(text: String): List<Int> =
         Regex("""\d+""").findAll(text).map { it.value.toInt() }.toList()

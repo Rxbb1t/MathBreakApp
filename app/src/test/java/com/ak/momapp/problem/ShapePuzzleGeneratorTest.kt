@@ -16,7 +16,7 @@ class ShapePuzzleGeneratorTest {
     private val generator = ShapePuzzleGenerator(Random(seed = 5))
 
     private fun many(difficulty: Difficulty): List<Problem> =
-        List(SAMPLE_SIZE) { generator.generate(difficulty, AppLanguage.ENGLISH) }
+        List(SAMPLE_SIZE) { generator.generate(difficulty.toLevel(), AppLanguage.ENGLISH) }
 
     @Test
     fun `every puzzle is solvable line by line and computes correctly`() {

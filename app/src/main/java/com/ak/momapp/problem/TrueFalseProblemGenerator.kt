@@ -2,6 +2,7 @@ package com.ak.momapp.problem
 
 import com.ak.momapp.i18n.AppLanguage
 import kotlin.random.Random
+import kotlin.random.nextInt
 
 /**
  * A single claim like "7 × 8 = 54"; she taps ✓ or ✗. [Problem.answer]
@@ -11,11 +12,11 @@ import kotlin.random.Random
  */
 class TrueFalseProblemGenerator(private val random: Random) {
 
-    fun generate(difficulty: Difficulty, language: AppLanguage): Problem {
-        val statement = statement(difficulty)
+    fun generate(level: Level, language: AppLanguage): Problem {
+        val statement = statement(level)
         val (a, op, b, value) = statement
         val isTrue = random.nextInt(100) < TRUE_CHANCE_PERCENT
-        val claim = if (isTrue) value else falseClaim(statement, difficulty)
+        val claim = if (isTrue) value else falseClaim(statement, level)
 
         val answer = if (isTrue) 0 else 1
         // No hints: with two buttons a tapped answer is half a reveal already.
@@ -34,7 +35,7 @@ class TrueFalseProblemGenerator(private val random: Random) {
         return Problem(
             text = "$a $op $b = $claim",
             answer = answer,
-            difficulty = difficulty,
+            level = level,
             kind = ProblemKind.TRUE_FALSE,
             revealText = if (isTrue) CHOICES[0] else "${CHOICES[1]} (= $value)",
             solution = listOf(
@@ -63,10 +64,10 @@ class TrueFalseProblemGenerator(private val random: Random) {
      * false claims at EASY and MEDIUM, 93% at HARD. Slips close that
      * shortcut on about half of them.
      */
-    private fun falseClaim(statement: Statement, difficulty: Difficulty): Int {
+    private fun falseClaim(statement: Statement, level: Level): Int {
         val value = statement.value
         val nearMiss = {
-            val size = random.nextInt(1, deltaMax(difficulty) + 1)
+            val size = random.nextInt(1, deltaMax(level) + 1)
             if (random.nextBoolean() && value - size >= 0) value - size else value + size
         }
         // Division answers are small quotients: knocking ten off one
@@ -77,18 +78,21 @@ class TrueFalseProblemGenerator(private val random: Random) {
 
         if (random.nextBoolean()) return nearMiss()
 
+        // A dropped hundred only makes sense once the numbers are long
+        // enough to have one, which happens gradually up the scale.
+        val bigCarry = random.nextDouble() < level.ramp(Level.MEDIUM_TOP, Level.HARD_ANCHOR)
         val slip = when (statement.op) {
             // Carrying is what gets dropped, so the claim comes out ten
             // (or a hundred, once the numbers are long enough) short.
-            "+" -> if (difficulty == Difficulty.HARD && random.nextBoolean()) 100 else 10
+            "+" -> if (bigCarry) 100 else 10
             // A forgotten borrow leaves the answer too big by the same.
-            "−" -> -(if (difficulty == Difficulty.HARD && random.nextBoolean()) 100 else 10)
+            "−" -> -(if (bigCarry) 100 else 10)
             // Two ways to get a product wrong. One group too few (7 × 8
             // offered as 48, which is 6 × 8), or, once a multiplicand
             // has two digits, a dropped ten from the carry. The second
             // only makes sense when there's a ten to drop.
             else -> when {
-                difficulty != Difficulty.EASY && random.nextBoolean() -> 10
+                statement.a >= 10 || statement.b >= 10 -> if (random.nextBoolean()) 10 else statement.a
                 random.nextBoolean() -> statement.a
                 else -> statement.b
             }
@@ -98,52 +102,41 @@ class TrueFalseProblemGenerator(private val random: Random) {
         return if (claimed >= 0 && claimed != value) claimed else nearMiss()
     }
 
-    private fun statement(difficulty: Difficulty): Statement =
-        when (random.nextInt(if (difficulty == Difficulty.EASY) 3 else 4)) {
+    private fun statement(level: Level): Statement {
+        // Division claims arrive after the other three: a whole-number
+        // quotient is the one of the four that has to be reasoned about
+        // rather than counted out.
+        val division = random.nextDouble() < level.ramp(Level.EASY_TOP - 8, Level.MEDIUM_ANCHOR)
+        return when (if (division) random.nextInt(4) else random.nextInt(3)) {
             0 -> {
-                val (a, b) = when (difficulty) {
-                    Difficulty.EASY -> random.nextInt(7, 60) to random.nextInt(7, 60)
-                    Difficulty.MEDIUM -> random.nextInt(35, 300) to random.nextInt(35, 300)
-                    Difficulty.HARD -> random.nextInt(150, 900) to random.nextInt(150, 900)
-                }
+                val span = level.span(7..59, 35..299, 150..899)
+                val a = random.nextInt(span)
+                val b = random.nextInt(span)
                 Statement(a, "+", b, a + b)
             }
 
             1 -> {
-                val a = when (difficulty) {
-                    Difficulty.EASY -> random.nextInt(20, 90)
-                    Difficulty.MEDIUM -> random.nextInt(80, 500)
-                    Difficulty.HARD -> random.nextInt(300, 1000)
-                }
+                val a = random.nextInt(level.span(20..89, 80..499, 300..999))
                 val b = random.nextInt(a / 3, a)
                 Statement(a, "−", b, a - b)
             }
 
             2 -> {
-                val (a, b) = when (difficulty) {
-                    Difficulty.EASY -> random.nextInt(3, 10) to random.nextInt(3, 10)
-                    Difficulty.MEDIUM -> random.nextInt(6, 16) to random.nextInt(4, 13)
-                    Difficulty.HARD -> random.nextInt(12, 26) to random.nextInt(11, 20)
-                }
+                val a = random.nextInt(level.span(3..9, 6..15, 12..25))
+                val b = random.nextInt(level.span(3..9, 4..12, 11..19))
                 Statement(a, "×", b, a * b)
             }
 
-            // Division claims skip EASY; the quotient is always whole.
             else -> {
-                val (quotient, divisor) = when (difficulty) {
-                    Difficulty.EASY -> 0 to 0 // unreachable
-                    Difficulty.MEDIUM -> random.nextInt(4, 16) to random.nextInt(3, 10)
-                    Difficulty.HARD -> random.nextInt(8, 26) to random.nextInt(6, 20)
-                }
+                val quotient = random.nextInt(level.span(4..9, 4..15, 8..25))
+                val divisor = random.nextInt(level.span(2..9, 3..9, 6..19))
                 Statement(quotient * divisor, "÷", divisor, quotient)
             }
         }
-
-    private fun deltaMax(difficulty: Difficulty): Int = when (difficulty) {
-        Difficulty.EASY -> 4
-        Difficulty.MEDIUM -> 9
-        Difficulty.HARD -> 15
     }
+
+    /** How close a false claim sits to the truth. Closer is harder. */
+    private fun deltaMax(level: Level): Int = level.between(4, 9, 15)
 
     companion object {
         val CHOICES = listOf("✓", "✗")

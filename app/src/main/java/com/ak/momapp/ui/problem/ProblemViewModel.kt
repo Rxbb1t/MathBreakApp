@@ -14,7 +14,9 @@ import com.ak.momapp.problem.PersonalContent
 import com.ak.momapp.problem.Problem
 import com.ak.momapp.problem.ProblemGenerator
 import com.ak.momapp.problem.ProblemKind
+import com.ak.momapp.problem.ProblemShape
 import com.ak.momapp.problem.ProblemTopic
+import com.ak.momapp.problem.toLevel
 import com.ak.momapp.problem.topic
 import java.time.LocalDate
 import kotlin.math.roundToInt
@@ -281,6 +283,7 @@ class ProblemViewModel(
                     solveTimeMs = solveTimeMs,
                     topic = state.problem.kind.topic,
                     countsTowardLevel = _practice.value == null,
+                    shape = ProblemShape.of(state.problem),
                 )
             }
             _uiState.update {
@@ -334,8 +337,13 @@ class ProblemViewModel(
     /** A first-attempt miss. Drills never drag the break level down. */
     private fun recordMiss(topic: ProblemTopic) {
         val drilling = _practice.value != null
+        val shape = _uiState.value?.problem?.let(ProblemShape::of)
         viewModelScope.launch {
-            progressRepository.recordIncorrect(topic, countsTowardLevel = !drilling)
+            progressRepository.recordIncorrect(
+                topic = topic,
+                countsTowardLevel = !drilling,
+                shape = shape,
+            )
         }
     }
 
@@ -361,15 +369,23 @@ class ProblemViewModel(
     private suspend fun deal() {
         val settings = settingsRepository.settings.first()
         val drill = _practice.value
-        val difficulty = drill?.difficulty ?: progressRepository.currentDifficulty.first()
+        val level = drill?.difficulty?.toLevel() ?: progressRepository.currentLevel.first()
         // A drill is one topic at one level she chose herself, so it uses
         // that flat. A break asks each topic for its own level.
         val levels = if (drill != null) null else progressRepository.topicLevels.first()
+        // A drill is already aimed at one topic she picked, so nothing needs
+        // steering toward anything; the queue only shapes ordinary breaks.
+        val review = if (drill != null) {
+            null
+        } else {
+            progressRepository.dueReview(settings.enabledTopics)
+        }
         val problem: Problem = generator.generate(
-            difficulty = difficulty,
+            level = level,
             language = settings.language,
             topics = drill?.let { setOf(it.topic) } ?: settings.enabledTopics,
-            levelFor = { topic -> levels?.get(topic) ?: difficulty },
+            levelFor = { topic -> levels?.get(topic) ?: level },
+            review = review,
         )
         problemShownAtMs = System.currentTimeMillis()
         // Tricky problems get extra time: the single highest factor

@@ -27,38 +27,38 @@ import kotlin.random.Random
  */
 class ShowpieceGenerator(private val random: Random) {
 
-    fun generate(language: AppLanguage): Problem = when (random.nextInt(30)) {
-        0 -> handshakes(language)
-        1 -> gaussSum(language)
-        2 -> logCuts(language)
-        3 -> fencePosts(language)
-        4 -> clockStrikes(language)
-        5 -> snailWell(language)
-        6 -> twoTaps(language)
-        7 -> walkersMeet(language)
-        8 -> twiceAsOldIn(language)
-        9 -> balanceScale(language)
-        10 -> sharingRemainder(language)
-        11 -> averageJoins(language)
-        12 -> missingBasket(language)
-        13 -> coinMix(language)
-        14 -> bulkSaving(language)
-        15 -> twoDiscounts(language)
-        16 -> waterRises(language)
-        17 -> clockAngle(language)
-        18 -> candleBurn(language)
-        19 -> doublingLily(language)
-        20 -> borderSlabs(language)
-        21 -> pageDigits(language)
-        22 -> teaAndCoffee(language)
-        23 -> ropeFolds(language)
-        24 -> billSplit(language)
-        25 -> backwardsShopping(language)
-        26 -> savingUp(language)
-        27 -> leakyBarrel(language)
-        28 -> postcards(language)
-        29 -> treePlanting(language)
-        else -> handshakes(language)
+    fun generate(level: Level, language: AppLanguage): Problem = when (random.nextInt(30)) {
+        0 -> handshakes(level, language)
+        1 -> gaussSum(level, language)
+        2 -> logCuts(level, language)
+        3 -> fencePosts(level, language)
+        4 -> clockStrikes(level, language)
+        5 -> snailWell(level, language)
+        6 -> twoTaps(level, language)
+        7 -> walkersMeet(level, language)
+        8 -> twiceAsOldIn(level, language)
+        9 -> balanceScale(level, language)
+        10 -> sharingRemainder(level, language)
+        11 -> averageJoins(level, language)
+        12 -> missingBasket(level, language)
+        13 -> coinMix(level, language)
+        14 -> bulkSaving(level, language)
+        15 -> twoDiscounts(level, language)
+        16 -> waterRises(level, language)
+        17 -> clockAngle(level, language)
+        18 -> candleBurn(level, language)
+        19 -> doublingLily(level, language)
+        20 -> borderSlabs(level, language)
+        21 -> pageDigits(level, language)
+        22 -> teaAndCoffee(level, language)
+        23 -> ropeFolds(level, language)
+        24 -> billSplit(level, language)
+        25 -> backwardsShopping(level, language)
+        26 -> savingUp(level, language)
+        27 -> leakyBarrel(level, language)
+        28 -> postcards(level, language)
+        29 -> treePlanting(level, language)
+        else -> handshakes(level, language)
     }
 
     // ── Plumbing ─────────────────────────────────────────────────────────
@@ -79,6 +79,7 @@ class ShowpieceGenerator(private val random: Random) {
     private fun de(n: Int): String = if (n < 20) "$n" else "$n de"
 
     private fun piece(
+        level: Level,
         language: AppLanguage,
         text: Pair<String, String>,
         answer: Int,
@@ -89,7 +90,7 @@ class ShowpieceGenerator(private val random: Random) {
     ): Problem = Problem(
         text = text.pick(language),
         answer = answer,
-        difficulty = Difficulty.HARD,
+        level = level,
         kind = ProblemKind.LOGIC,
         hints = listOf(hint.pick(language), HintText.digits(answer, language)),
         notes = listOf(note.pick(language)),
@@ -100,10 +101,11 @@ class ShowpieceGenerator(private val random: Random) {
     // ── The thirty ───────────────────────────────────────────────────────
 
     /** Everyone shakes everyone's hand once: n(n−1)/2, halved for sharing. */
-    private fun handshakes(language: AppLanguage): Problem {
+    private fun handshakes(level: Level, language: AppLanguage): Problem {
         val n = random.nextInt(5, 11)
         val pairs = n * (n - 1) / 2
         return piece(
+            level,
             language,
             text = "There are $n people at a small gathering, and everyone shakes hands with everyone else exactly once.\nHow many handshakes is that?" to
                 "La o adunare mică sunt $n persoane și fiecare dă mâna cu fiecare exact o dată.\nCâte strângeri de mână sunt?",
@@ -122,10 +124,11 @@ class ShowpieceGenerator(private val random: Random) {
     }
 
     /** 1 + 2 + … + n, by pairing the ends. */
-    private fun gaussSum(language: AppLanguage): Problem {
+    private fun gaussSum(level: Level, language: AppLanguage): Problem {
         val n = listOf(10, 12, 16, 20, 24, 30, 40, 50).random(random)
         val total = n * (n + 1) / 2
         return piece(
+            level,
             language,
             text = "A staircase has $n steps. You count 1 on the first, 2 on the second, and so on up to $n on the last.\nWhat do all the counts add up to?" to
                 "O scară are ${de(n)} trepte. Numeri 1 pe prima, 2 pe a doua, și tot așa până la $n pe ultima.\nCât fac toate la un loc?",
@@ -144,10 +147,11 @@ class ShowpieceGenerator(private val random: Random) {
     }
 
     /** Pieces need one cut fewer than there are pieces. */
-    private fun logCuts(language: AppLanguage): Problem {
+    private fun logCuts(level: Level, language: AppLanguage): Problem {
         val pieces = random.nextInt(4, 10)
         val minutes = random.nextInt(2, 7)
         return piece(
+            level,
             language,
             text = "A log is sawn into $pieces pieces. Every cut takes $minutes minutes.\nHow many minutes of sawing is that?" to
                 "Un buștean e tăiat în $pieces bucăți. Fiecare tăietură durează $minutes minute.\nCâte minute de tăiat sunt în total?",
@@ -167,11 +171,12 @@ class ShowpieceGenerator(private val random: Random) {
     }
 
     /** Posts along a straight run: gaps plus one. */
-    private fun fencePosts(language: AppLanguage): Problem {
+    private fun fencePosts(level: Level, language: AppLanguage): Problem {
         val spacing = listOf(2, 3, 4, 5).random(random)
         val gaps = random.nextInt(6, 16)
         val length = spacing * gaps
         return piece(
+            level,
             language,
             text = "A straight fence is $length m long, with a post every $spacing m and one at each end.\nHow many posts are there?" to
                 "Un gard drept are $length m, cu câte un stâlp la fiecare $spacing m și câte unul la fiecare capăt.\nCâți stâlpi sunt?",
@@ -190,11 +195,12 @@ class ShowpieceGenerator(private val random: Random) {
     }
 
     /** The time is in the gaps between strikes, not in the strikes. */
-    private fun clockStrikes(language: AppLanguage): Problem {
+    private fun clockStrikes(level: Level, language: AppLanguage): Problem {
         val perGap = random.nextInt(1, 4)
         val first = random.nextInt(4, 8)
         val second = random.nextInt(9, 13)
         return piece(
+            level,
             language,
             text = "A clock takes ${perGap * (first - 1)} seconds to strike $first o'clock.\nHow many seconds does it take to strike $second o'clock?" to
                 "Un ceas bate ora $first în ${perGap * (first - 1)} secunde.\nÎn câte secunde bate ora $second?",
@@ -214,12 +220,13 @@ class ShowpieceGenerator(private val random: Random) {
     }
 
     /** The last climb doesn't slip back. */
-    private fun snailWell(language: AppLanguage): Problem {
+    private fun snailWell(level: Level, language: AppLanguage): Problem {
         val climb = random.nextInt(3, 6)
         val slip = random.nextInt(1, climb)
         val days = random.nextInt(5, 10)
         val depth = (climb - slip) * (days - 1) + climb
         return piece(
+            level,
             language,
             text = "A snail sits at the bottom of a $depth m well. Each day it climbs $climb m, and each night it slips back $slip m.\nOn which day does it get out?" to
                 "Un melc e pe fundul unei fântâni de $depth m. Ziua urcă $climb m, iar noaptea alunecă înapoi $slip m.\nÎn a câta zi iese?",
@@ -240,12 +247,13 @@ class ShowpieceGenerator(private val random: Random) {
     }
 
     /** Working together, rates add. */
-    private fun twoTaps(language: AppLanguage): Problem {
+    private fun twoTaps(level: Level, language: AppLanguage): Problem {
         val first = random.nextInt(2, 6)
         val second = random.nextInt(2, 6)
         val minutes = random.nextInt(4, 10)
         val buckets = (first + second) * minutes
         return piece(
+            level,
             language,
             text = "One tap fills $first buckets a minute, another fills $second. Together they fill a tub that holds $buckets buckets.\nHow many minutes does it take?" to
                 "Un robinet umple $first găleți pe minut, altul umple $second. Împreună umplu o cadă de ${de(buckets)} găleți.\nÎn câte minute?",
@@ -265,12 +273,13 @@ class ShowpieceGenerator(private val random: Random) {
     }
 
     /** Two walkers close the gap at the sum of their speeds. */
-    private fun walkersMeet(language: AppLanguage): Problem {
+    private fun walkersMeet(level: Level, language: AppLanguage): Problem {
         val first = random.nextInt(40, 91)
         val second = random.nextInt(40, 91)
         val minutes = random.nextInt(3, 10)
         val apart = (first + second) * minutes
         return piece(
+            level,
             language,
             text = "Two friends set off toward each other from $apart m apart. One walks $first m a minute, the other $second m a minute.\nAfter how many minutes do they meet?" to
                 "Doi prieteni pornesc unul spre altul de la $apart m distanță. Unul merge $first m pe minut, celălalt $second m pe minut.\nDupă câte minute se întâlnesc?",
@@ -290,11 +299,12 @@ class ShowpieceGenerator(private val random: Random) {
     }
 
     /** The gap between two ages never changes. */
-    private fun twiceAsOldIn(language: AppLanguage): Problem {
+    private fun twiceAsOldIn(level: Level, language: AppLanguage): Problem {
         val child = random.nextInt(8, 17)
         val years = random.nextInt(2, 13)
         val parent = 2 * child + years
         return piece(
+            level,
             language,
             text = "A mother is $parent and her child is $child.\nIn how many years will she be exactly twice the child's age?" to
                 "O mamă are ${de(parent)} ani, iar copilul ei are $child.\nPeste câți ani va fi exact de două ori mai în vârstă decât copilul?",
@@ -315,11 +325,12 @@ class ShowpieceGenerator(private val random: Random) {
     }
 
     /** Trade one side of a balance for the other. */
-    private fun balanceScale(language: AppLanguage): Problem {
+    private fun balanceScale(level: Level, language: AppLanguage): Problem {
         val apple = random.nextInt(20, 61)
         val pear = apple * 3 / 2
         val sixPears = 6 * pear
         return piece(
+            level,
             language,
             text = "Three apples balance two pears exactly. Six pears weigh $sixPears grams.\nHow many grams does one apple weigh?" to
                 "Trei mere cântăresc exact cât două pere. Șase pere cântăresc ${de(sixPears)} grame.\nCâte grame are un măr?",
@@ -341,12 +352,13 @@ class ShowpieceGenerator(private val random: Random) {
     }
 
     /** Divide, and let the remainder be a remainder. */
-    private fun sharingRemainder(language: AppLanguage): Problem {
+    private fun sharingRemainder(level: Level, language: AppLanguage): Problem {
         val children = random.nextInt(3, 8)
         val each = random.nextInt(4, 13)
         val left = random.nextInt(1, children)
         val total = children * each + left
         return piece(
+            level,
             language,
             text = "You share $total biscuits among $children grandchildren, as evenly as they will go.\nHow many does each one get?" to
                 "Împarți ${de(total)} biscuiți la $children nepoți, cât se poate de egal.\nCâți primește fiecare?",
@@ -365,12 +377,13 @@ class ShowpieceGenerator(private val random: Random) {
     }
 
     /** Rebuild the total, then divide by the new count. */
-    private fun averageJoins(language: AppLanguage): Problem {
+    private fun averageJoins(level: Level, language: AppLanguage): Problem {
         val count = random.nextInt(3, 7)
         val average = random.nextInt(8, 21)
         val joiner = average + count + 1
         val total = count * average
         return piece(
+            level,
             language,
             text = "The average of $count numbers is $average. One more number joins them: $joiner.\nWhat is the average now?" to
                 "Media a $count numere este $average. Li se alătură încă un număr: $joiner.\nCare e media acum?",
@@ -391,13 +404,14 @@ class ShowpieceGenerator(private val random: Random) {
     }
 
     /** The total the average demands, minus what is already there. */
-    private fun missingBasket(language: AppLanguage): Problem {
+    private fun missingBasket(level: Level, language: AppLanguage): Problem {
         val average = random.nextInt(10, 26)
         val first = random.nextInt(5, average + 6)
         val second = random.nextInt(5, average + 6)
         val third = random.nextInt(5, average + 6)
         val needed = 4 * average - (first + second + third)
         return piece(
+            level,
             language,
             text = "Four baskets should hold $average plums each on average. The first three hold $first, $second and $third.\nHow many must the fourth hold?" to
                 "Patru coșuri ar trebui să aibă în medie ${de(average)} prune fiecare. Primele trei au $first, $second și $third.\nCâte trebuie să aibă al patrulea?",
@@ -418,12 +432,13 @@ class ShowpieceGenerator(private val random: Random) {
     }
 
     /** Assume the cheaper coin everywhere, then explain the shortfall. */
-    private fun coinMix(language: AppLanguage): Problem {
+    private fun coinMix(level: Level, language: AppLanguage): Problem {
         val fives = random.nextInt(2, 7)
         val twos = random.nextInt(2, 9)
         val coins = fives + twos
         val total = 5 * fives + 2 * twos
         return piece(
+            level,
             language,
             text = "You have $coins coins in your purse, some worth 2 euros and some worth 5, $total euros in all.\nHow many of them are 5-euro coins?" to
                 "Ai $coins monede în portofel, unele de 2 euro și altele de 5, în total ${de(total)} euro.\nCâte sunt de 5 euro?",
@@ -444,7 +459,7 @@ class ShowpieceGenerator(private val random: Random) {
     }
 
     /** Bring two prices to the same number of items before comparing. */
-    private fun bulkSaving(language: AppLanguage): Problem {
+    private fun bulkSaving(level: Level, language: AppLanguage): Problem {
         val perPack = random.nextInt(4, 7)
         val loose = random.nextInt(3, 7)
         val savedPerPack = random.nextInt(2, 6)
@@ -452,6 +467,7 @@ class ShowpieceGenerator(private val random: Random) {
         val packs = random.nextInt(2, 5)
         val bars = perPack * packs
         return piece(
+            level,
             language,
             text = "A pack of $perPack bars costs $packPrice euros. Loose bars cost $loose euros each.\nHow many euros do you save buying $bars bars in packs?" to
                 "Un pachet de $perPack batoane costă ${de(packPrice)} euro. Batoanele la bucată costă $loose euro fiecare.\nCâți euro economisești cumpărând ${de(bars)} batoane la pachet?",
@@ -473,11 +489,12 @@ class ShowpieceGenerator(private val random: Random) {
     }
 
     /** The second cut comes off the new price, not the old one. */
-    private fun twoDiscounts(language: AppLanguage): Problem {
+    private fun twoDiscounts(level: Level, language: AppLanguage): Problem {
         val price = 100 * random.nextInt(2, 8)
         val afterFirst = price - price / 10
         val afterSecond = afterFirst - afterFirst / 10
         return piece(
+            level,
             language,
             text = "A coat costs $price euros. In the sale it drops by a tenth. The week after, the new price drops by another tenth.\nHow many euros is it now?" to
                 "Un palton costă ${de(price)} euro. La reduceri scade cu o zecime. Săptămâna următoare, noul preț scade cu încă o zecime.\nCât costă acum?",
@@ -497,12 +514,13 @@ class ShowpieceGenerator(private val random: Random) {
     }
 
     /** What you sink pushes up its own volume. */
-    private fun waterRises(language: AppLanguage): Problem {
+    private fun waterRises(level: Level, language: AppLanguage): Problem {
         val base = listOf(20, 40).random(random)
         val stones = listOf(2, 4, 5).random(random)
         val rise = random.nextInt(2, 6)
         val each = base * rise / stones
         return piece(
+            level,
             language,
             text = "A tank's base is $base square centimeters. You lower $stones stones into the water, each taking up $each cubic centimeters.\nBy how many centimeters does the water rise?" to
                 "Baza unui vas are ${de(base)} centimetri pătrați. Cobori în apă $stones pietre, fiecare ocupând ${de(each)} centimetri cubi.\nCu câți centimetri urcă apa?",
@@ -522,9 +540,10 @@ class ShowpieceGenerator(private val random: Random) {
     }
 
     /** Twelve hour marks divide the full turn. */
-    private fun clockAngle(language: AppLanguage): Problem {
+    private fun clockAngle(level: Level, language: AppLanguage): Problem {
         val hour = random.nextInt(2, 6)
         return piece(
+            level,
             language,
             text = "How many degrees is the angle between the hands of a clock at exactly $hour o'clock?" to
                 "Câte grade are unghiul dintre acele ceasului la fix ora $hour?",
@@ -544,12 +563,13 @@ class ShowpieceGenerator(private val random: Random) {
     }
 
     /** Find the amount that changes, then divide by the rate. */
-    private fun candleBurn(language: AppLanguage): Problem {
+    private fun candleBurn(level: Level, language: AppLanguage): Problem {
         val rate = random.nextInt(2, 5)
         val hours = random.nextInt(3, 9)
         val leftOver = random.nextInt(1, 6)
         val height = leftOver + rate * hours
         return piece(
+            level,
             language,
             text = "A candle is $height cm tall and burns $rate cm every hour.\nAfter how many hours is $leftOver cm of it left?" to
                 "O lumânare are $height cm și arde $rate cm pe oră.\nDupă câte ore mai rămân $leftOver cm din ea?",
@@ -569,9 +589,10 @@ class ShowpieceGenerator(private val random: Random) {
     }
 
     /** Doubling forwards is halving backwards. */
-    private fun doublingLily(language: AppLanguage): Problem {
+    private fun doublingLily(level: Level, language: AppLanguage): Problem {
         val day = random.nextInt(12, 41)
         return piece(
+            level,
             language,
             text = "A water lily doubles in size every day, and covers the whole pond on day $day.\nOn which day did it cover half the pond?" to
                 "Un nufăr își dublează mărimea în fiecare zi și acoperă tot iazul în ziua $day.\nÎn ce zi acoperea jumătate din iaz?",
@@ -590,9 +611,10 @@ class ShowpieceGenerator(private val random: Random) {
     }
 
     /** Four sides count each corner twice. */
-    private fun borderSlabs(language: AppLanguage): Problem {
+    private fun borderSlabs(level: Level, language: AppLanguage): Problem {
         val side = random.nextInt(5, 16)
         return piece(
+            level,
             language,
             text = "A square patio is $side slabs by $side slabs.\nHow many slabs run along its edge?" to
                 "O terasă pătrată are $side dale pe $side dale.\nCâte dale sunt pe margine?",
@@ -611,10 +633,11 @@ class ShowpieceGenerator(private val random: Random) {
     }
 
     /** Count by how long the numbers are, not how many there are. */
-    private fun pageDigits(language: AppLanguage): Problem {
+    private fun pageDigits(level: Level, language: AppLanguage): Problem {
         val pages = random.nextInt(20, 100)
         val digits = 9 + 2 * (pages - 9)
         return piece(
+            level,
             language,
             text = "A booklet is numbered from page 1 to page $pages.\nHow many digits are printed in all?" to
                 "O broșură e numerotată de la pagina 1 la pagina $pages.\nCâte cifre sunt tipărite în total?",
@@ -635,13 +658,14 @@ class ShowpieceGenerator(private val random: Random) {
     }
 
     /** Two overlapping groups count the overlap twice. */
-    private fun teaAndCoffee(language: AppLanguage): Problem {
+    private fun teaAndCoffee(level: Level, language: AppLanguage): Problem {
         val both = random.nextInt(3, 9)
         val tea = both + random.nextInt(4, 12)
         val coffee = both + random.nextInt(4, 12)
         val neither = random.nextInt(2, 8)
         val people = tea + coffee - both + neither
         return piece(
+            level,
             language,
             text = "At a gathering of $people people, $tea drink tea, $coffee drink coffee, and $both drink both.\nHow many drink neither?" to
                 "La o adunare de ${de(people)} persoane, $tea beau ceai, $coffee beau cafea, iar $both beau și una și alta.\nCâte nu beau niciuna?",
@@ -660,11 +684,12 @@ class ShowpieceGenerator(private val random: Random) {
     }
 
     /** Each fold doubles the layers; one cut through L layers gives L + 1. */
-    private fun ropeFolds(language: AppLanguage): Problem {
+    private fun ropeFolds(level: Level, language: AppLanguage): Problem {
         val folds = random.nextInt(2, 6)
         var layers = 1
         repeat(folds) { layers *= 2 }
         return piece(
+            level,
             language,
             text = "A rope is folded in half $folds times, then cut straight through, once.\nHow many pieces of rope are there?" to
                 "O frânghie e împăturită în două de $folds ori, apoi tăiată drept, o singură dată.\nCâte bucăți de frânghie sunt?",
@@ -683,11 +708,12 @@ class ShowpieceGenerator(private val random: Random) {
     }
 
     /** Divide by the number who actually pay. */
-    private fun billSplit(language: AppLanguage): Problem {
+    private fun billSplit(level: Level, language: AppLanguage): Problem {
         val friends = random.nextInt(5, 10)
         val each = random.nextInt(6, 21)
         val total = (friends - 2) * each
         return piece(
+            level,
             language,
             text = "A bill of $total euros was going to be split evenly between $friends friends, but 2 of them left their purses at home.\nHow many euros does each of the rest pay?" to
                 "O notă de plată de ${de(total)} euro urma să fie împărțită egal între $friends prieteni, dar 2 dintre ei și-au uitat portofelele acasă.\nCâți euro plătește fiecare dintre ceilalți?",
@@ -707,11 +733,12 @@ class ShowpieceGenerator(private val random: Random) {
     }
 
     /** Undo the story from the end. */
-    private fun backwardsShopping(language: AppLanguage): Problem {
+    private fun backwardsShopping(level: Level, language: AppLanguage): Problem {
         val bakery = random.nextInt(3, 16)
         val left = random.nextInt(4, 26)
         val half = bakery + left
         return piece(
+            level,
             language,
             text = "You spend half your money at the market, then $bakery euros at the bakery, and $left euros are left.\nHow many euros did you set out with?" to
                 "Cheltui jumătate din bani la piață, apoi $bakery euro la brutărie, și îți rămân ${de(left)} euro.\nCu câți euro ai plecat de acasă?",
@@ -731,12 +758,13 @@ class ShowpieceGenerator(private val random: Random) {
     }
 
     /** Take off what is already there, then count the weeks. */
-    private fun savingUp(language: AppLanguage): Problem {
+    private fun savingUp(level: Level, language: AppLanguage): Problem {
         val already = random.nextInt(10, 61)
         val weekly = random.nextInt(5, 16)
         val weeks = random.nextInt(4, 13)
         val target = already + weekly * weeks
         return piece(
+            level,
             language,
             text = "You have $already euros put by and add $weekly euros every week.\nAfter how many weeks do you have $target euros?" to
                 "Ai ${de(already)} euro puși deoparte și adaugi $weekly euro în fiecare săptămână.\nDupă câte săptămâni ai ${de(target)} euro?",
@@ -755,12 +783,13 @@ class ShowpieceGenerator(private val random: Random) {
     }
 
     /** Filling and emptying at once: the net rate is the difference. */
-    private fun leakyBarrel(language: AppLanguage): Problem {
+    private fun leakyBarrel(level: Level, language: AppLanguage): Problem {
         val inflow = random.nextInt(5, 13)
         val leak = random.nextInt(1, inflow)
         val minutes = random.nextInt(4, 13)
         val capacity = (inflow - leak) * minutes
         return piece(
+            level,
             language,
             text = "A barrel holds $capacity liters. A hose pours in $inflow liters a minute, but a crack lets out $leak.\nAfter how many minutes is it full?" to
                 "Un butoi ține ${de(capacity)} litri. Un furtun toarnă $inflow litri pe minut, dar o crăpătură lasă să iasă $leak.\nDupă câte minute e plin?",
@@ -780,9 +809,10 @@ class ShowpieceGenerator(private val random: Random) {
     }
 
     /** A postcard goes one way, so nothing is halved. */
-    private fun postcards(language: AppLanguage): Problem {
+    private fun postcards(level: Level, language: AppLanguage): Problem {
         val cousins = random.nextInt(4, 10)
         return piece(
+            level,
             language,
             text = "Each of $cousins cousins sends a postcard to every other one of them.\nHow many postcards are sent?" to
                 "Fiecare dintre cei $cousins veri trimite câte o vedere fiecăruia dintre ceilalți.\nCâte vederi se trimit?",
@@ -801,11 +831,12 @@ class ShowpieceGenerator(private val random: Random) {
     }
 
     /** Gaps plus one, then twice over for the second side. */
-    private fun treePlanting(language: AppLanguage): Problem {
+    private fun treePlanting(level: Level, language: AppLanguage): Problem {
         val spacing = listOf(4, 5, 6, 10).random(random)
         val gaps = random.nextInt(5, 13)
         val length = spacing * gaps
         return piece(
+            level,
             language,
             text = "Trees are planted every $spacing m along both sides of a $length m road, with one at each end.\nHow many trees are planted?" to
                 "Se plantează câte un copac la fiecare $spacing m pe ambele părți ale unui drum de $length m, cu câte unul la fiecare capăt.\nCâți copaci se plantează?",

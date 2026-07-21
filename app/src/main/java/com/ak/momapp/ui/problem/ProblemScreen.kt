@@ -100,6 +100,7 @@ import com.ak.momapp.problem.Problem
 import com.ak.momapp.problem.ProblemKind
 import com.ak.momapp.problem.ProblemTopic
 import com.ak.momapp.problem.TrueFalseProblemGenerator
+import com.ak.momapp.problem.toLevel
 import com.ak.momapp.ui.theme.MomAppTheme
 import kotlinx.coroutines.launch
 
@@ -979,7 +980,7 @@ private fun ProblemScreenPreview() {
     MomAppTheme {
         ProblemScreenContent(
             uiState = ProblemUiState(
-                problem = Problem("23 + 48 = ?", 71, Difficulty.EASY),
+                problem = Problem("23 + 48 = ?", 71, Difficulty.EASY.toLevel()),
             ),
             solvedToday = 0,
             onInputChange = {},
@@ -996,7 +997,7 @@ private fun ProblemScreenCorrectDarkPreview() {
     MomAppTheme {
         ProblemScreenContent(
             uiState = ProblemUiState(
-                problem = Problem("23 + 48 = ?", 71, Difficulty.EASY),
+                problem = Problem("23 + 48 = ?", 71, Difficulty.EASY.toLevel()),
                 input = "71",
                 phase = AnswerPhase.CORRECT,
                 encouragementSeed = 1,

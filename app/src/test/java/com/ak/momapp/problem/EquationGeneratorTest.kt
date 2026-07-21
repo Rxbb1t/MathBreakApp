@@ -16,7 +16,7 @@ class EquationGeneratorTest {
     private val generator = EquationGenerator(Random(seed = 11))
 
     private fun many(difficulty: Difficulty): List<Problem> =
-        List(SAMPLE_SIZE) { generator.generate(difficulty, AppLanguage.ENGLISH) }
+        List(SAMPLE_SIZE) { generator.generate(difficulty.toLevel(), AppLanguage.ENGLISH) }
 
     @Test
     fun `medium equations compute correctly and every shape appears`() {
@@ -163,7 +163,7 @@ class EquationGeneratorTest {
     @Test
     fun `romanian equations use the romanian label`() {
         val romanian = List(SAMPLE_SIZE) {
-            generator.generate(Difficulty.MEDIUM, AppLanguage.ROMANIAN)
+            generator.generate(Difficulty.MEDIUM.toLevel(), AppLanguage.ROMANIAN)
         }
         assertTrue(romanian.none { it.text.startsWith("Find x") })
         assertTrue(

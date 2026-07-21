@@ -11,7 +11,7 @@ class TargetProblemGeneratorTest {
     private val generator = TargetProblemGenerator(Random(seed = 3))
 
     private fun many(difficulty: Difficulty, language: AppLanguage = AppLanguage.ENGLISH): List<Problem> =
-        List(SAMPLE_SIZE) { generator.generate(difficulty, language) }
+        List(SAMPLE_SIZE) { generator.generate(difficulty.toLevel(), language) }
 
     @Test
     fun `a valid pick always exists among the cards`() {

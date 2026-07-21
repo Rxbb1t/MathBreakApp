@@ -2,6 +2,7 @@ package com.ak.momapp.problem
 
 import com.ak.momapp.i18n.AppLanguage
 import kotlin.random.Random
+import kotlin.random.nextInt
 
 /**
  * Clock stories answered in whole minutes, so the plain number keyboard
@@ -20,28 +21,51 @@ import kotlin.random.Random
  */
 class TimeProblemGenerator(private val random: Random) {
 
-    fun generate(difficulty: Difficulty, language: AppLanguage): Problem = when (difficulty) {
-        Difficulty.EASY ->
-            if (random.nextInt(3) < 2) {
-                duration(language, DURATION_TEMPLATES, Difficulty.EASY, startHours = 7..18, span = 15..55)
-            } else {
-                wholeHours(language)
-            }
-
-        Difficulty.MEDIUM ->
-            if (random.nextBoolean()) {
-                duration(language, DURATION_TEMPLATES, Difficulty.MEDIUM, startHours = 6..15, span = 70..240)
-            } else {
-                conversion(language)
-            }
-
-        Difficulty.HARD ->
-            if (random.nextBoolean()) {
-                duration(language, LONG_DURATION_TEMPLATES, Difficulty.HARD, startHours = 6..12, span = 150..420)
-            } else {
-                journey(language)
-            }
+    /**
+     * The clock stories arrive in the order they get harder: reading a gap
+     * between two times all the way down, converting hours-and-minutes from
+     * the middle, and the multi-leg journey with its distractor readings
+     * only at the top. The gap itself widens with the level, so even the
+     * plain duration keeps growing after the shapes have stopped changing.
+     */
+    fun generate(level: Level, language: AppLanguage): Problem {
+        // Reading the gap between two clock times is the backbone and never
+        // goes away; the other three are the ones that come and go. Written
+        // as weights so that a shape arriving cannot silently drive the
+        // backbone out at the top of its window.
+        val shape = random.pickWeighted(
+            listOf(
+                Shape.DURATION to 1.0,
+                // Whole hours in minutes is the gentlest, and it is done
+                // with by the time the clock stories get interesting.
+                Shape.WHOLE_HOURS to level.fade(Level.EASY_TOP, Level.MEDIUM_ANCHOR) * 0.5,
+                // Converting h-and-m belongs to the middle of the scale.
+                Shape.CONVERSION to level.ramp(Level.EASY_TOP - 8, Level.MEDIUM_ANCHOR) *
+                    level.fade(Level.MEDIUM_TOP, Level.HARD_ANCHOR),
+                // The multi-leg journey with its distractor readings is the
+                // hardest, so it only turns up near the top.
+                Shape.JOURNEY to level.ramp(Level.MEDIUM_ANCHOR, Level.HARD_ANCHOR),
+            ),
+        )
+        return when (shape) {
+            Shape.WHOLE_HOURS -> wholeHours(level, language)
+            Shape.CONVERSION -> conversion(level, language)
+            Shape.JOURNEY -> journey(level, language)
+            Shape.DURATION -> duration(
+                language = language,
+                templates = if (level.points > Level.MEDIUM_TOP) {
+                    LONG_DURATION_TEMPLATES
+                } else {
+                    DURATION_TEMPLATES
+                },
+                level = level,
+                startHours = level.span(7..18, 6..15, 6..12),
+                span = level.span(15..55, 70..240, 150..420),
+            )
+        }
     }
+
+    private enum class Shape { DURATION, WHOLE_HOURS, CONVERSION, JOURNEY }
 
     /** An EN/RO pair telling the same story. */
     private data class Template(val en: String, val ro: String)
@@ -64,7 +88,7 @@ class TimeProblemGenerator(private val random: Random) {
     private fun duration(
         language: AppLanguage,
         templates: List<Template>,
-        difficulty: Difficulty,
+        level: Level,
         startHours: IntRange,
         span: IntRange,
     ): Problem {
@@ -76,13 +100,13 @@ class TimeProblemGenerator(private val random: Random) {
                 mapOf("t1" to clock(start), "t2" to clock(start + length)),
             ),
             answer = length,
-            difficulty = difficulty,
+            level = level,
             language = language,
             hint = when (language) {
                 AppLanguage.ENGLISH -> "Count the minutes between the two clock times."
                 AppLanguage.ROMANIAN -> "Numără minutele dintre cele două ore de pe ceas."
             },
-            notes = if (difficulty == Difficulty.EASY) emptyList() else clockNotes(language),
+            notes = if (level.band == Difficulty.EASY) emptyList() else clockNotes(language),
             solution = buildList {
                 add(
                     step(
@@ -117,12 +141,12 @@ class TimeProblemGenerator(private val random: Random) {
     }
 
     /** Marker: "hours" with one number. Order: {h}. Answer 60 × h. */
-    private fun wholeHours(language: AppLanguage): Problem {
+    private fun wholeHours(level: Level, language: AppLanguage): Problem {
         val h = random.nextInt(2, 6)
         return time(
             text = fill(pick(WHOLE_HOURS_TEMPLATES, language), mapOf("h" to "$h")),
             answer = 60 * h,
-            difficulty = Difficulty.EASY,
+            level = level,
             language = language,
             hint = when (language) {
                 AppLanguage.ENGLISH -> "Each hour is 60 minutes, so multiply."
@@ -140,7 +164,7 @@ class TimeProblemGenerator(private val random: Random) {
     }
 
     /** Marker: "hours" with two numbers. Order: {h}, {m}. Answer 60h + m. */
-    private fun conversion(language: AppLanguage): Problem {
+    private fun conversion(level: Level, language: AppLanguage): Problem {
         val h = random.nextInt(2, 5)
         val m = random.nextInt(5, 56)
         return time(
@@ -149,7 +173,7 @@ class TimeProblemGenerator(private val random: Random) {
                 mapOf("h" to "$h", "m" to "$m", "m_de" to if (m < 20) "$m" else "$m de"),
             ),
             answer = 60 * h + m,
-            difficulty = Difficulty.MEDIUM,
+            level = level,
             language = language,
             hint = when (language) {
                 AppLanguage.ENGLISH -> "Turn the hours into minutes, then add the loose minutes."
@@ -176,7 +200,7 @@ class TimeProblemGenerator(private val random: Random) {
      * first and last matter. The middle two try to distract.
      * Answer t4 − t1.
      */
-    private fun journey(language: AppLanguage): Problem {
+    private fun journey(level: Level, language: AppLanguage): Problem {
         val start = random.nextInt(8, 15) * 60 + random.nextInt(0, 60)
         val leg1 = random.nextInt(15, 61)
         val stay = random.nextInt(20, 91)
@@ -192,7 +216,7 @@ class TimeProblemGenerator(private val random: Random) {
                 ),
             ),
             answer = leg1 + stay + leg2,
-            difficulty = Difficulty.HARD,
+            level = level,
             language = language,
             hint = when (language) {
                 AppLanguage.ENGLISH -> "Count from when you left to when you got back."
@@ -224,7 +248,7 @@ class TimeProblemGenerator(private val random: Random) {
     private fun time(
         text: String,
         answer: Int,
-        difficulty: Difficulty,
+        level: Level,
         language: AppLanguage,
         hint: String,
         notes: List<String> = emptyList(),
@@ -232,7 +256,7 @@ class TimeProblemGenerator(private val random: Random) {
     ): Problem = Problem(
         text = text,
         answer = answer,
-        difficulty = difficulty,
+        level = level,
         kind = ProblemKind.TIME,
         hints = listOf(hint, HintText.digits(answer, language)),
         notes = notes,

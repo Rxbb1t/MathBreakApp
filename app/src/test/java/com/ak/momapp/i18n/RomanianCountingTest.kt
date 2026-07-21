@@ -4,6 +4,7 @@ import com.ak.momapp.problem.DailyChallengeGenerator
 import com.ak.momapp.problem.Difficulty
 import com.ak.momapp.problem.Problem
 import com.ak.momapp.problem.ProblemGenerator
+import com.ak.momapp.problem.toLevel
 import java.time.LocalDate
 import kotlin.random.Random
 import org.junit.Assert.assertTrue
@@ -76,7 +77,7 @@ class RomanianCountingTest {
         for (difficulty in Difficulty.entries) {
             val generator = ProblemGenerator(Random(7))
             repeat(SAMPLE) {
-                bad += offences(generator.generate(difficulty, AppLanguage.ROMANIAN))
+                bad += offences(generator.generate(difficulty.toLevel(), AppLanguage.ROMANIAN))
             }
         }
         assertTrue(

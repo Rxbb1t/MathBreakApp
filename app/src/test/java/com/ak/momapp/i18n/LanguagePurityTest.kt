@@ -4,6 +4,7 @@ import com.ak.momapp.problem.DailyChallengeGenerator
 import com.ak.momapp.problem.Difficulty
 import com.ak.momapp.problem.Problem
 import com.ak.momapp.problem.ProblemGenerator
+import com.ak.momapp.problem.toLevel
 import java.time.LocalDate
 import kotlin.random.Random
 import org.junit.Assert.assertTrue
@@ -52,7 +53,7 @@ class LanguagePurityTest {
         for (difficulty in Difficulty.entries) {
             val generator = ProblemGenerator(Random(3))
             repeat(SAMPLE) {
-                offenders += offendingFields(generator.generate(difficulty, AppLanguage.ENGLISH))
+                offenders += offendingFields(generator.generate(difficulty.toLevel(), AppLanguage.ENGLISH))
             }
         }
         assertTrue(
@@ -90,7 +91,7 @@ class LanguagePurityTest {
     fun `the Romanian problems are actually Romanian`() {
         val generator = ProblemGenerator(Random(3))
         val flagged = (1..SAMPLE).count {
-            offendingFields(generator.generate(Difficulty.MEDIUM, AppLanguage.ROMANIAN)).isNotEmpty()
+            offendingFields(generator.generate(Difficulty.MEDIUM.toLevel(), AppLanguage.ROMANIAN)).isNotEmpty()
         }
         assertTrue(
             "the detector found almost no Romanian in the Romanian problems: $flagged/$SAMPLE",

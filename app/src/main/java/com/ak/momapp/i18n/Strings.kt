@@ -64,6 +64,10 @@ class Strings(
     val guideIntro: String,
     val presetTitle: (SetupPreset) -> String,
     val presetBody: (SetupPreset) -> String,
+    // The same presets, offered again from Settings
+    val quickSetupAction: String,
+    val quickSetupTitle: String,
+    val quickSetupIntro: String,
     val snooze15: String,
     val breakDone: String,
     val difficultyLabel: (Difficulty) -> String,
@@ -188,13 +192,16 @@ val EnglishStrings = Strings(
     presetBody = {
         when (it) {
             SetupPreset.DEFAULT ->
-                "Every exercise type, no problem limit, no timer. Starts easy and adapts to you."
+                "Every exercise type, no problem limit, no timer. Starts easy and finds your level as you go."
             SetupPreset.RELAXED ->
-                "Short rounds of 5 problems, no timer, and it never gets too hard."
+                "Short rounds of 5 problems, no timer, and it stays gentle however well you do."
             SetupPreset.CHALLENGE ->
                 "Starts at Normal with a 5-minute timer and 10 problems per break."
         }
     },
+    quickSetupAction = "Change how breaks work",
+    quickSetupTitle = "How should breaks work?",
+    quickSetupIntro = "Pick a style. This starts your level fresh, so give it a few problems to settle in again.",
     snooze15 = "Snooze 15 min",
     breakDone = "That's your break! See you at the next one.",
     difficultyLabel = {
@@ -374,11 +381,14 @@ val RomanianStrings = Strings(
             SetupPreset.DEFAULT ->
                 "Toate tipurile de exerciții, fără limită de probleme, fără cronometru. Începe ușor și se adaptează după tine."
             SetupPreset.RELAXED ->
-                "Runde scurte de 5 probleme, fără cronometru, și nu devine niciodată prea greu."
+                "Runde scurte de 5 probleme, fără cronometru, și rămâne blând oricât de bine ți-ar merge."
             SetupPreset.CHALLENGE ->
                 "Începe la Normal, cu cronometru de 5 minute și 10 probleme pe pauză."
         }
     },
+    quickSetupAction = "Schimbă cum decurg pauzele",
+    quickSetupTitle = "Cum să decurgă pauzele?",
+    quickSetupIntro = "Alege un stil. Nivelul o ia de la capăt, așa că lasă-i câteva probleme ca să se așeze din nou.",
     snooze15 = "Amână 15 min",
     breakDone = "Gata pauza! Ne vedem la următoarea.",
     difficultyLabel = {

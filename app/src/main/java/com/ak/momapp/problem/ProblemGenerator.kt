@@ -2,35 +2,38 @@ package com.ak.momapp.problem
 
 import com.ak.momapp.i18n.AppLanguage
 import kotlin.random.Random
+import kotlin.random.nextInt
 
 /**
  * Hands out problems by mixing ten sources:
  *
- *  - shape puzzles ([ShapePuzzleGenerator]). Every difficulty
- *  - logic riddles ([LogicProblemGenerator]). Every difficulty
- *  - story geometry ([GeometryProblemGenerator]). MEDIUM and HARD,
- *    as common as the riddles
- *  - money stories in euros ([MoneyProblemGenerator]). Every difficulty
- *  - clock stories in minutes ([TimeProblemGenerator]). Every difficulty
- *  - word problems told with the [PersonalContent.NAMES] pool. Every
- *    difficulty
+ *  - shape puzzles ([ShapePuzzleGenerator])
+ *  - logic riddles ([LogicProblemGenerator]), with the occasional
+ *    showpiece ([ShowpieceGenerator]) near the top of the scale
+ *  - story geometry ([GeometryProblemGenerator]), which fades in above the
+ *    bottom of the scale and then matches the riddles for frequency
+ *  - money stories in euros ([MoneyProblemGenerator])
+ *  - clock stories in minutes ([TimeProblemGenerator])
+ *  - word problems told with the [PersonalContent.NAMES] pool
  *  - tap-to-compare expressions and ✓/✗ claims, one topic switch
- *    ([ComparisonProblemGenerator], [TrueFalseProblemGenerator]). Every
- *    difficulty, leaning EASY/MEDIUM
- *  - target builder ([TargetProblemGenerator]). Every difficulty,
- *    leaning EASY/MEDIUM
+ *    ([ComparisonProblemGenerator], [TrueFalseProblemGenerator])
+ *  - target builder ([TargetProblemGenerator])
  *  - number hunts and set exercises ([NumberHuntGenerator],
- *    [SetProblemGenerator]). Every difficulty, one topic switch
- *  - the difficulty's core: EASY gets 3–4 number chains using all four
- *    operations; MEDIUM and HARD get unknown-value equations, HARD adds
- *    simple derivatives ([EquationGenerator]); every level mixes in
- *    tap-the-missing-sign lines ([MissingOperatorGenerator])
+ *    [SetProblemGenerator]), one topic switch
+ *  - the core: number chains low down giving way to unknown-value
+ *    equations ([EquationGenerator]) further up, plus tap-the-missing-sign
+ *    lines ([MissingOperatorGenerator]) throughout
+ *
+ * WHICH of these appear, and how big their numbers are, follows [Level]'s
+ * fine 0–100 scale rather than the three bands. Every source arrives or
+ * departs across a stretch of the scale, so nothing switches on or
+ * vanishes because one answer moved her over a boundary.
  *
  * Settings can switch whole topics off ([ProblemTopic]); the roll then
  * spans only what is left, and the core steps in when nothing is.
  *
- * Guarantees: every answer. And every left-to-right running total in a
- * chain. Is a non-negative whole number, and divisions are exact.
+ * Guarantees: every answer, and every left-to-right running total in a
+ * chain, is a non-negative whole number, and divisions are exact.
  */
 class ProblemGenerator(private val random: Random = Random.Default) {
 
@@ -48,21 +51,47 @@ class ProblemGenerator(private val random: Random = Random.Default) {
     private val sets = SetProblemGenerator(random)
     private val showpieces = ShowpieceGenerator(random)
 
-    /** Percent slices for one roll of the dice; whatever is left is core. */
-    private data class Mix(
-        val puzzle: Int,
-        val logic: Int,
-        val geometry: Int,
-        val money: Int,
-        val time: Int,
-        val word: Int,
-        val compare: Int,
-        val target: Int,
-        val numbers: Int,
-    )
+    /**
+     * How often each topic comes up, as a weight per hundred rolls;
+     * whatever is left over falls to the core.
+     *
+     * Every weight is a function of the LEVEL rather than a fixed table per
+     * band. Geometry is the clearest case: it used to be flatly absent
+     * below Normal and then arrive at full strength the moment the label
+     * changed. Now it fades in over the stretch where it starts to make
+     * sense, and the card-tap exercises fade out over the stretch where
+     * they stop being a question. Nothing appears or vanishes on a single
+     * answer.
+     */
+    private class Mix(level: Level) {
+        /** Shape puzzles work at every level; the puzzles themselves grow. */
+        val puzzle = level.between(11, 9, 10)
+
+        /** Riddles are the house style and stay the biggest single slice. */
+        val logic = level.between(14, 15, 16)
+
+        /**
+         * Geometry needs a formula behind it, so it arrives gradually
+         * rather than being switched on by a band boundary.
+         */
+        val geometry = (level.ramp(GEOMETRY_FROM, GEOMETRY_BY) * 15).toInt()
+
+        val money = level.between(11, 9, 10)
+        val time = level.between(10, 8, 9)
+        val word = level.between(11, 11, 11)
+
+        /**
+         * The two tap exercises are quick recognition rather than work, so
+         * they thin out as the level climbs instead of stopping dead.
+         */
+        val compare = 5 + (level.fade(TAPS_FROM, TAPS_BY) * 6).toInt()
+        val target = 5 + (level.fade(TAPS_FROM, TAPS_BY) * 6).toInt()
+
+        val numbers = level.between(10, 9, 9)
+    }
 
     /** One story source in the roll: its share of the mix and its maker. */
-    private class Slice(val weight: Int, val make: () -> Problem)
+    private class Slice(val topic: ProblemTopic, val weight: Int, val make: () -> Problem)
 
     /**
      * The last few problems served, so the same one doesn't come round
@@ -83,7 +112,7 @@ class ProblemGenerator(private val random: Random = Random.Default) {
      * rather than looping.
      */
     fun generate(
-        difficulty: Difficulty,
+        level: Level,
         language: AppLanguage = AppLanguage.ENGLISH,
         topics: Set<ProblemTopic> = ProblemTopic.ALL,
         /**
@@ -93,26 +122,37 @@ class ProblemGenerator(private val random: Random = Random.Default) {
          * up in there rather than handed in. Defaults to one level for
          * everything, which is what practice mode and the tests want.
          */
-        levelFor: (ProblemTopic) -> Difficulty = { difficulty },
+        levelFor: (ProblemTopic) -> Level = { level },
+        /**
+         * Shapes she got wrong a while back and is due to meet again. The
+         * roll leans toward one of these when any are due; see [ReviewPick].
+         */
+        review: ReviewPick? = null,
     ): Problem {
         var fallback: Problem? = null
         repeat(REROLL_LIMIT) {
-            val problem = roll(difficulty, language, topics, levelFor)
+            val problem = roll(level, language, topics, levelFor, review)
             // The first roll is worth keeping in case every later one is
             // also a repeat.
             if (fallback == null) fallback = problem
-            if (keyOf(problem) !in recentTexts && shapeOf(problem) !in recentShapes) {
+            // A due shape is what we came for, so it beats the repeat
+            // rings: those exist to stop the same question twice in a
+            // sitting, and this one is deliberately coming back.
+            if (review != null && ProblemShape.of(problem) == review.shape) {
+                return remember(problem)
+            }
+            if (keyOf(problem) !in recentTexts && ProblemShape.of(problem) !in recentShapes) {
                 return remember(problem)
             }
         }
-        return remember(fallback ?: roll(difficulty, language, topics, levelFor))
+        return remember(fallback ?: roll(level, language, topics, levelFor, review))
     }
 
     /** Files a problem in both rings and hands it back. */
     private fun remember(problem: Problem): Problem {
         recentTexts.addLast(keyOf(problem))
         if (recentTexts.size > RECENT_TEXTS) recentTexts.removeFirst()
-        shapeOf(problem)?.let {
+        ProblemShape.of(problem)?.let {
             recentShapes.addLast(it)
             if (recentShapes.size > RECENT_SHAPES) recentShapes.removeFirst()
         }
@@ -133,93 +173,88 @@ class ProblemGenerator(private val random: Random = Random.Default) {
             problem.text + "|" + problem.cards.sorted().joinToString(",")
         }
 
-    /**
-     * A problem's template, with every run of digits blanked out, so two
-     * fillings of the same story collapse to one signature.
-     *
-     * Null for card exercises: there are only a handful of hunt prompts
-     * by design, and blocking a prompt for several problems would starve
-     * a sitting that has just that topic switched on. Their repetition is
-     * handled by [keyOf], which can see the cards.
-     */
-    private fun shapeOf(problem: Problem): String? =
-        if (problem.cards.isEmpty()) problem.text.replace(DIGITS, "#") else null
-
     private fun roll(
-        difficulty: Difficulty,
+        level: Level,
         language: AppLanguage = AppLanguage.ENGLISH,
         topics: Set<ProblemTopic> = ProblemTopic.ALL,
-        levelFor: (ProblemTopic) -> Difficulty = { difficulty },
+        levelFor: (ProblemTopic) -> Level = { level },
+        review: ReviewPick? = null,
     ): Problem {
-        // Geometry rides only MEDIUM/HARD, about as common as the riddles.
-        // Compare and target-builder taps lean EASY/MEDIUM and thin out
-        // at HARD.
-        //
         // The MIX is chosen by the overall level, not the per-topic ones:
         // it decides which topics are worth offering and how often, which
         // is a question about the sitting rather than about any one
         // topic. Only the problem itself is dealt at the topic's level.
-        val mix = when (difficulty) {
-            Difficulty.EASY -> Mix(11, 14, 0, 11, 10, 11, 9, 9, 10)
-            Difficulty.HARD -> Mix(10, 16, 15, 10, 9, 11, 5, 5, 9)
-            else -> Mix(9, 15, 14, 9, 8, 11, 7, 7, 9)
-        }
+        val mix = Mix(level)
         // A switched-off topic loses its slice.
         fun weightOf(topic: ProblemTopic, weight: Int) = if (topic in topics) weight else 0
         val slices = listOf(
-            Slice(weightOf(ProblemTopic.PUZZLE, mix.puzzle)) {
+            Slice(ProblemTopic.PUZZLE, weightOf(ProblemTopic.PUZZLE, mix.puzzle)) {
                 puzzles.generate(levelFor(ProblemTopic.PUZZLE), language)
             },
-            Slice(weightOf(ProblemTopic.LOGIC, mix.logic)) {
-                val level = levelFor(ProblemTopic.LOGIC)
+            Slice(ProblemTopic.LOGIC, weightOf(ProblemTopic.LOGIC, mix.logic)) {
+                val topicLevel = levelFor(ProblemTopic.LOGIC)
                 // The showpieces are riddles in spirit, so they ride the
-                // riddle switch, and only at HARD -- they are meant to be
-                // the occasional treat, not the house style.
-                if (level == Difficulty.HARD && random.nextInt(100) < SHOWPIECE_PERCENT) {
-                    showpieces.generate(language)
+                // riddle switch, and only near the top of the scale -- they
+                // are meant to be the occasional treat, not the house
+                // style. Their share climbs across the Hard band rather
+                // than switching on with the name.
+                val chance = topicLevel.ramp(Level.MEDIUM_TOP, Level.HARD_ANCHOR) * SHOWPIECE_PERCENT
+                if (random.nextInt(100) < chance) {
+                    showpieces.generate(topicLevel, language)
                 } else {
-                    logic.generate(level, PersonalContent.NAMES, language)
+                    logic.generate(topicLevel, PersonalContent.NAMES, language)
                 }
             },
-            Slice(weightOf(ProblemTopic.GEOMETRY, mix.geometry)) {
+            Slice(ProblemTopic.GEOMETRY, weightOf(ProblemTopic.GEOMETRY, mix.geometry)) {
                 geometry.generate(levelFor(ProblemTopic.GEOMETRY), language)
             },
-            Slice(weightOf(ProblemTopic.MONEY, mix.money)) {
+            Slice(ProblemTopic.MONEY, weightOf(ProblemTopic.MONEY, mix.money)) {
                 money.generate(levelFor(ProblemTopic.MONEY), language)
             },
-            Slice(weightOf(ProblemTopic.TIME, mix.time)) {
+            Slice(ProblemTopic.TIME, weightOf(ProblemTopic.TIME, mix.time)) {
                 time.generate(levelFor(ProblemTopic.TIME), language)
             },
-            Slice(weightOf(ProblemTopic.WORD, mix.word)) {
+            Slice(ProblemTopic.WORD, weightOf(ProblemTopic.WORD, mix.word)) {
                 wordProblem(levelFor(ProblemTopic.WORD), language)
             },
             // One topic, two flavors: < = > taps and ✓/✗ claims.
-            Slice(weightOf(ProblemTopic.COMPARE, mix.compare)) {
-                val level = levelFor(ProblemTopic.COMPARE)
+            Slice(ProblemTopic.COMPARE, weightOf(ProblemTopic.COMPARE, mix.compare)) {
+                val topicLevel = levelFor(ProblemTopic.COMPARE)
                 if (random.nextBoolean()) {
-                    compare.generate(level, language)
+                    compare.generate(topicLevel, language)
                 } else {
-                    trueFalse.generate(level, language)
+                    trueFalse.generate(topicLevel, language)
                 }
             },
-            Slice(weightOf(ProblemTopic.TARGET, mix.target)) {
+            Slice(ProblemTopic.TARGET, weightOf(ProblemTopic.TARGET, mix.target)) {
                 target.generate(levelFor(ProblemTopic.TARGET), language)
             },
             // One topic, two flavors: tap hunts and typed set counting.
-            Slice(weightOf(ProblemTopic.NUMBERS, mix.numbers)) {
-                val level = levelFor(ProblemTopic.NUMBERS)
+            Slice(ProblemTopic.NUMBERS, weightOf(ProblemTopic.NUMBERS, mix.numbers)) {
+                val topicLevel = levelFor(ProblemTopic.NUMBERS)
                 if (random.nextBoolean()) {
-                    hunt.generate(level, language)
+                    hunt.generate(topicLevel, language)
                 } else {
-                    sets.generate(level, language)
+                    sets.generate(topicLevel, language)
                 }
             },
         )
 
+        // A shape that is due goes looking in its own topic. Steering the
+        // topic is the whole trick: the caller cannot ask a generator for
+        // one particular story, but a topic has only a handful of shapes,
+        // so asking it repeatedly lands on the right one soon enough. When
+        // it doesn't, she still gets a problem of the kind she stumbled on,
+        // which is the next best thing and never a wasted roll.
+        if (review != null && review.topic in topics) {
+            slices.firstOrNull { it.topic == review.topic }?.let { return it.make() }
+            if (review.topic == ProblemTopic.CORE) return coreProblem(levelFor, language)
+        }
+
         // With CORE on the rest of the usual 100 rolls falls through to it;
         // with CORE off the roll spans only the enabled stories. When no
-        // story can serve (say, only geometry left at EASY) core steps in
-        // anyway so there is always a problem.
+        // story can serve (say, only geometry left at the very bottom) core
+        // steps in anyway so there is always a problem.
         val storyWeight = slices.sumOf(Slice::weight)
         val total = if (ProblemTopic.CORE in topics) 100 else storyWeight
         if (total > 0) {
@@ -229,13 +264,22 @@ class ProblemGenerator(private val random: Random = Random.Default) {
                 roll -= slice.weight
             }
         }
-        // The core itself mixes: mostly chains/equations, with the odd
-        // tap-the-missing-sign line for variety.
+        return coreProblem(levelFor, language)
+    }
+
+    /**
+     * The core mixes: mostly chains and equations, with the odd
+     * tap-the-missing-sign line for variety. Equations take over from plain
+     * chains gradually, so the first ones turn up among familiar work
+     * rather than replacing it overnight.
+     */
+    private fun coreProblem(levelFor: (ProblemTopic) -> Level, language: AppLanguage): Problem {
         val core = levelFor(ProblemTopic.CORE)
         return when {
             random.nextInt(4) == 0 -> missingOp.generate(core, language)
-            core == Difficulty.EASY -> easyChain(language)
-            else -> equations.generate(core, language)
+            random.nextDouble() < core.ramp(EQUATIONS_FROM, EQUATIONS_BY) ->
+                equations.generate(core, language)
+            else -> easyChain(core, language)
         }
     }
 
@@ -248,9 +292,11 @@ class ProblemGenerator(private val random: Random = Random.Default) {
      * Builds "a op b op c…" left to right; a subtracted segment is always
      * capped by the running total, so no step goes negative.
      */
-    private fun easyChain(language: AppLanguage): Problem {
-        val targetTerms = random.nextInt(3, 5)
-        var segment = firstSegment()
+    private fun easyChain(level: Level, language: AppLanguage): Problem {
+        // A longer chain is more to hold in your head, so the length grows
+        // with the level as well as the numbers in it.
+        val targetTerms = random.nextInt(level.span(3..4, 3..5, 4..6))
+        var segment = firstSegment(level)
         val text = StringBuilder(segment.text)
         var running = segment.value
         var terms = segment.terms
@@ -263,6 +309,7 @@ class ProblemGenerator(private val random: Random = Random.Default) {
             val remaining = targetTerms - terms
             val plus = running <= 1 || random.nextBoolean()
             segment = nextSegment(
+                level = level,
                 allowMulDiv = remaining >= 2,
                 maxValue = if (plus) null else running,
             )
@@ -280,7 +327,7 @@ class ProblemGenerator(private val random: Random = Random.Default) {
         return Problem(
             text = "$text = ?",
             answer = running,
-            difficulty = Difficulty.EASY,
+            level = level,
             kind = ProblemKind.ARITHMETIC,
             hints = listOf(calmHint, HintText.digits(running, language)),
             solution = chainSolution(first, rest, language),
@@ -313,42 +360,44 @@ class ProblemGenerator(private val random: Random = Random.Default) {
         return steps
     }
 
-    private fun firstSegment(): Segment =
+    private fun firstSegment(level: Level): Segment =
         if (random.nextBoolean()) {
-            mulOrDivSegment(maxValue = null) ?: plainSegment(maxValue = null)
+            mulOrDivSegment(level, maxValue = null) ?: plainSegment(level, maxValue = null)
         } else {
-            plainSegment(maxValue = null)
+            plainSegment(level, maxValue = null)
         }
 
-    private fun nextSegment(allowMulDiv: Boolean, maxValue: Int?): Segment {
+    private fun nextSegment(level: Level, allowMulDiv: Boolean, maxValue: Int?): Segment {
         if (allowMulDiv && random.nextBoolean()) {
-            mulOrDivSegment(maxValue)?.let { return it }
+            mulOrDivSegment(level, maxValue)?.let { return it }
         }
-        return plainSegment(maxValue)
+        return plainSegment(level, maxValue)
     }
 
-    private fun plainSegment(maxValue: Int?): Segment {
+    private fun plainSegment(level: Level, maxValue: Int?): Segment {
+        val span = level.span(5..30, 8..60, 12..99)
         val value = if (maxValue == null) {
-            random.nextInt(5, 31)
+            random.nextInt(span)
         } else {
-            random.nextInt(1, minOf(30, maxValue) + 1)
+            random.nextInt(1, minOf(span.last, maxValue) + 1)
         }
         return Segment("$value", value, 1)
     }
 
     /** Returns null when [maxValue] leaves no room; caller falls back. */
-    private fun mulOrDivSegment(maxValue: Int?): Segment? {
+    private fun mulOrDivSegment(level: Level, maxValue: Int?): Segment? {
+        val factors = level.span(2..9, 2..12, 3..15)
         return if (random.nextBoolean()) {
-            val a = random.nextInt(2, 10)
-            val bMax = if (maxValue == null) 9 else minOf(9, maxValue / a)
+            val a = random.nextInt(factors)
+            val bMax = if (maxValue == null) factors.last else minOf(factors.last, maxValue / a)
             if (bMax < 2) return null
             val b = random.nextInt(2, bMax + 1)
             Segment("$a × $b", a * b, 2)
         } else {
-            val quotientMax = if (maxValue == null) 10 else minOf(10, maxValue)
+            val quotientMax = if (maxValue == null) factors.last + 1 else minOf(factors.last + 1, maxValue)
             if (quotientMax < 2) return null
             val quotient = random.nextInt(2, quotientMax + 1)
-            val divisor = random.nextInt(2, 10)
+            val divisor = random.nextInt(factors)
             Segment("${quotient * divisor} ÷ $divisor", quotient, 2)
         }
     }
@@ -369,13 +418,16 @@ class ProblemGenerator(private val random: Random = Random.Default) {
      * approached from the other side.
      */
     private fun wordProblem(
-        difficulty: Difficulty,
+        level: Level,
         language: AppLanguage,
     ): Problem = when {
-        difficulty == Difficulty.HARD && random.nextBoolean() ->
-            twoStepWord(difficulty, language)
-        random.nextInt(5) == 0 -> reverseWord(difficulty, language)
-        else -> directWord(difficulty, language)
+        // The two-step story arrives over the top of the scale rather than
+        // at the Hard boundary: it is a real jump in what is being asked,
+        // so it is better met occasionally first.
+        random.nextDouble() < level.ramp(Level.MEDIUM_TOP, Level.HARD_ANCHOR) / 2 ->
+            twoStepWord(level, language)
+        random.nextInt(5) == 0 -> reverseWord(level, language)
+        else -> directWord(level, language)
     }
 
     /** Fills {name}, and each number's plain and Romanian-"de" slots. */
@@ -395,10 +447,10 @@ class ProblemGenerator(private val random: Random = Random.Default) {
      * few more (or a few short). The numbers stay modest on purpose --
      * the work is in holding two steps, not in the size of them.
      */
-    private fun twoStepWord(difficulty: Difficulty, language: AppLanguage): Problem {
-        val groups = random.nextInt(3, 10)
-        val each = random.nextInt(4, 13)
-        val extra = random.nextInt(6, 40)
+    private fun twoStepWord(level: Level, language: AppLanguage): Problem {
+        val groups = random.nextInt(level.span(3..7, 3..9, 3..9))
+        val each = random.nextInt(level.span(4..9, 4..12, 4..12))
+        val extra = random.nextInt(level.span(6..25, 6..39, 6..39))
         val adding = random.nextBoolean()
         val product = groups * each
         // Never ask for a number below zero, and never make the second
@@ -423,7 +475,7 @@ class ProblemGenerator(private val random: Random = Random.Default) {
         return Problem(
             text = text,
             answer = answer,
-            difficulty = difficulty,
+            level = level,
             kind = ProblemKind.WORD,
             hints = listOf(hint, HintText.digits(answer, language)),
             notes = wordNotes(language),
@@ -456,12 +508,9 @@ class ProblemGenerator(private val random: Random = Random.Default) {
      * but she has to notice it runs the other way, which is the part
      * that's actually worth practising.
      */
-    private fun reverseWord(difficulty: Difficulty, language: AppLanguage): Problem {
-        val (gone, left) = when (difficulty) {
-            Difficulty.EASY -> random.nextInt(4, 30) to random.nextInt(5, 40)
-            Difficulty.MEDIUM -> random.nextInt(25, 180) to random.nextInt(30, 250)
-            Difficulty.HARD -> random.nextInt(120, 480) to random.nextInt(150, 600)
-        }
+    private fun reverseWord(level: Level, language: AppLanguage): Problem {
+        val gone = random.nextInt(level.span(4..29, 25..179, 120..479))
+        val left = random.nextInt(level.span(5..39, 30..249, 150..599))
         val templates = if (language == AppLanguage.ROMANIAN) REVERSE_TEMPLATES_RO else REVERSE_TEMPLATES
         val text = fillStory(templates.random(random), listOf("b" to gone, "r" to left))
         val hint = when (language) {
@@ -474,7 +523,7 @@ class ProblemGenerator(private val random: Random = Random.Default) {
         return Problem(
             text = text,
             answer = gone + left,
-            difficulty = difficulty,
+            level = level,
             kind = ProblemKind.WORD,
             hints = listOf(hint, HintText.digits(gone + left, language)),
             notes = wordNotes(language),
@@ -494,11 +543,11 @@ class ProblemGenerator(private val random: Random = Random.Default) {
     }
 
     private fun directWord(
-        difficulty: Difficulty,
+        level: Level,
         language: AppLanguage,
     ): Problem {
         val op = Op.entries.random(random)
-        val (a, b) = operandsFor(op, difficulty)
+        val (a, b) = operandsFor(op, level)
         val answer = when (op) {
             Op.ADD -> a + b
             Op.SUB -> a - b
@@ -527,7 +576,7 @@ class ProblemGenerator(private val random: Random = Random.Default) {
                 AppLanguage.ROMANIAN -> "Grupuri egale se repetă, deci înmulțește."
             }
         }
-        val notes = if (difficulty == Difficulty.EASY) emptyList() else wordNotes(language)
+        val notes = if (level.band == Difficulty.EASY) emptyList() else wordNotes(language)
         val ro = language == AppLanguage.ROMANIAN
         // Name the operation the story asks for, then do it. The first
         // line is the part worth learning; the second is just arithmetic.
@@ -545,7 +594,7 @@ class ProblemGenerator(private val random: Random = Random.Default) {
         return Problem(
             text = text,
             answer = answer,
-            difficulty = difficulty,
+            level = level,
             kind = ProblemKind.WORD,
             hints = listOf(storyHint, HintText.digits(answer, language)),
             notes = notes,
@@ -567,30 +616,30 @@ class ProblemGenerator(private val random: Random = Random.Default) {
         )
     }
 
-    /** At MEDIUM nothing on screen or in the answer passes 3500. */
-    private fun operandsFor(op: Op, difficulty: Difficulty): Pair<Int, Int> = when (op) {
-        Op.ADD -> when (difficulty) {
-            Difficulty.EASY -> random.nextInt(11, 50) to random.nextInt(11, 50)
-            Difficulty.MEDIUM -> random.nextInt(250, 1800) to random.nextInt(150, 1500)
-            Difficulty.HARD -> random.nextInt(250, 900) to random.nextInt(250, 900)
-        }
+    /**
+     * Around the middle of the scale nothing on screen or in the answer
+     * passes 3500.
+     *
+     * The top of the scale deliberately uses SMALLER numbers than the
+     * middle for addition and subtraction, and two-digit-by-two-digit
+     * multiplication instead of a long number by a short one. That is not
+     * a mistake: past a point, bigger numbers stop asking for more thinking
+     * and only ask for more patience, and the harder work at the top comes
+     * from the two-step and backwards stories instead.
+     */
+    private fun operandsFor(op: Op, level: Level): Pair<Int, Int> = when (op) {
+        Op.ADD -> random.nextInt(level.span(11..49, 250..1799, 250..899)) to
+            random.nextInt(level.span(11..49, 150..1499, 250..899))
 
         Op.SUB -> {
-            val a = when (difficulty) {
-                Difficulty.EASY -> random.nextInt(25, 100)
-                Difficulty.MEDIUM -> random.nextInt(600, 3500)
-                Difficulty.HARD -> random.nextInt(400, 1000)
-            }
+            val a = random.nextInt(level.span(25..99, 600..3499, 400..999))
             // Keep b close to a at higher levels for harder borrows.
-            val bMin = if (difficulty == Difficulty.EASY) 3 else a / 3
+            val bMin = if (level.band == Difficulty.EASY) 3 else a / 3
             a to random.nextInt(bMin, a)
         }
 
-        Op.MUL -> when (difficulty) {
-            Difficulty.EASY -> random.nextInt(3, 10) to random.nextInt(3, 10)
-            Difficulty.MEDIUM -> random.nextInt(25, 120) to random.nextInt(3, 10)
-            Difficulty.HARD -> random.nextInt(12, 26) to random.nextInt(11, 20)
-        }
+        Op.MUL -> random.nextInt(level.span(3..9, 25..119, 12..25)) to
+            random.nextInt(level.span(3..9, 3..9, 11..19))
     }
 
     private fun templatesFor(op: Op, language: AppLanguage): List<String> = when (op) {
@@ -602,6 +651,32 @@ class ProblemGenerator(private val random: Random = Random.Default) {
     companion object {
         /** How many rerolls before taking whatever the dice gave. */
         private const val REROLL_LIMIT = 12
+
+        /**
+         * Where geometry starts turning up and where it reaches full
+         * strength. It needs a formula behind it, so it is the one topic
+         * genuinely worth withholding at the bottom of the scale.
+         */
+        private const val GEOMETRY_FROM = 26
+        private const val GEOMETRY_BY = Level.MEDIUM_ANCHOR
+
+        /**
+         * Where the tap exercises begin thinning out. They never disappear:
+         * a quick one between two long problems is a rest, and the sitting
+         * is better for having it.
+         */
+        private const val TAPS_FROM = Level.EASY_TOP
+        private const val TAPS_BY = Level.HARD_ANCHOR
+
+        /**
+         * Where unknown-value equations start replacing plain chains, and
+         * where they have finished doing so. The window sits inside the
+         * bottom of Normal on purpose: the first equations should turn up
+         * among familiar chains, but by the middle of Normal the core is
+         * the equations, which is what the level is understood to mean.
+         */
+        private const val EQUATIONS_FROM = 24
+        private const val EQUATIONS_BY = Level.MEDIUM_ANCHOR
 
         /**
          * Share of HARD riddle rolls that become a [ShowpieceGenerator]

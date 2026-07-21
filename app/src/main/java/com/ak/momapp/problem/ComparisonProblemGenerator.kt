@@ -2,6 +2,7 @@ package com.ak.momapp.problem
 
 import com.ak.momapp.i18n.AppLanguage
 import kotlin.random.Random
+import kotlin.random.nextInt
 
 /**
  * Which side is bigger? Two expressions with a "?" between them; she
@@ -14,19 +15,19 @@ import kotlin.random.Random
  */
 class ComparisonProblemGenerator(private val random: Random) {
 
-    fun generate(difficulty: Difficulty, language: AppLanguage): Problem {
-        val (leftText, leftValue) = freeExpression(difficulty)
+    fun generate(level: Level, language: AppLanguage): Problem {
+        val (leftText, leftValue) = freeExpression(level)
         val delta = if (random.nextInt(100) < EQUAL_CHANCE_PERCENT) {
             0
         } else {
-            val size = random.nextInt(1, deltaMax(difficulty) + 1)
+            val size = random.nextInt(1, deltaMax(level) + 1)
             if (random.nextBoolean()) size else -size
         }
         val rightValue = leftValue + delta
-        var rightText = valueExpression(rightValue, difficulty)
+        var rightText = valueExpression(rightValue, level)
         // Two identical-looking sides would answer themselves.
         while (rightText == leftText) {
-            rightText = valueExpression(rightValue, difficulty)
+            rightText = valueExpression(rightValue, level)
         }
 
         val answer = when {
@@ -52,7 +53,7 @@ class ComparisonProblemGenerator(private val random: Random) {
         return Problem(
             text = "$leftText\n?\n$rightText",
             answer = answer,
-            difficulty = difficulty,
+            level = level,
             kind = ProblemKind.COMPARE,
             revealText = SYMBOLS[answer],
             solution = listOf(
@@ -68,21 +69,18 @@ class ComparisonProblemGenerator(private val random: Random) {
         if (text == "$value") "$label $value" else "$label $text = $value"
 
     /** A left side built freely: sum, difference, product, and its value. */
-    private fun freeExpression(difficulty: Difficulty): Pair<String, Int> {
+    private fun freeExpression(level: Level): Pair<String, Int> {
         if (random.nextInt(3) == 0) {
-            val (a, b) = when (difficulty) {
-                Difficulty.EASY -> random.nextInt(3, 10) to random.nextInt(3, 10)
-                Difficulty.MEDIUM -> random.nextInt(6, 16) to random.nextInt(4, 13)
-                Difficulty.HARD -> random.nextInt(12, 31) to random.nextInt(11, 26)
-            }
+            val a = random.nextInt(level.span(3..9, 6..15, 12..30))
+            val b = random.nextInt(level.span(3..9, 4..12, 11..25))
             return "$a × $b" to a * b
         }
-        val value = randomValue(difficulty)
-        return valueExpression(value, difficulty) to value
+        val value = randomValue(level)
+        return valueExpression(value, level) to value
     }
 
     /** A sum, difference, or plain number that lands exactly on [value]. */
-    private fun valueExpression(value: Int, difficulty: Difficulty): String =
+    private fun valueExpression(value: Int, level: Level): String =
         when (random.nextInt(5)) {
             0 -> "$value"
 
@@ -92,27 +90,17 @@ class ComparisonProblemGenerator(private val random: Random) {
             }
 
             else -> {
-                val b = when (difficulty) {
-                    Difficulty.EASY -> random.nextInt(2, 21)
-                    Difficulty.MEDIUM -> random.nextInt(5, 61)
-                    Difficulty.HARD -> random.nextInt(20, 201)
-                }
+                val b = random.nextInt(level.span(2..20, 5..60, 20..200))
                 "${value + b} − $b"
             }
         }
 
     /** Values big enough that any minus-delta neighbour stays positive. */
-    private fun randomValue(difficulty: Difficulty): Int = when (difficulty) {
-        Difficulty.EASY -> random.nextInt(12, 61)
-        Difficulty.MEDIUM -> random.nextInt(40, 301)
-        Difficulty.HARD -> random.nextInt(200, 901)
-    }
+    private fun randomValue(level: Level): Int =
+        random.nextInt(level.span(12..60, 40..300, 200..900))
 
-    private fun deltaMax(difficulty: Difficulty): Int = when (difficulty) {
-        Difficulty.EASY -> 4
-        Difficulty.MEDIUM -> 9
-        Difficulty.HARD -> 15
-    }
+    /** How close the two sides sit: closer is harder to eyeball. */
+    private fun deltaMax(level: Level): Int = level.between(4, 9, 15)
 
     companion object {
         val SYMBOLS = listOf("<", "=", ">")

@@ -78,6 +78,7 @@ import com.ak.momapp.i18n.formatNextBreak
 import com.ak.momapp.i18n.formatTimeOfDay
 import com.ak.momapp.problem.Difficulty
 import com.ak.momapp.problem.ProblemTopic
+import com.ak.momapp.ui.PresetDialog
 import com.ak.momapp.ui.theme.AppPalette
 import com.ak.momapp.widget.BrainBreakWidgetReceiver
 import java.time.DayOfWeek
@@ -165,6 +166,14 @@ private fun SettingsContent(
     val strings = LocalStrings.current
     var showStartPicker by rememberSaveable { mutableStateOf(false) }
     var showEndPicker by rememberSaveable { mutableStateOf(false) }
+    var showPresets by rememberSaveable { mutableStateOf(false) }
+
+    if (showPresets) {
+        PresetDialog(
+            onPick = viewModel::applyPreset,
+            onDismiss = { showPresets = false },
+        )
+    }
 
     Column(
         modifier = modifier
@@ -306,6 +315,15 @@ private fun SettingsContent(
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            // The same three presets the first-run guide offered. A choice
+            // made before answering a single problem deserves an easy way
+            // back: one tap here rather than four settings to undo.
+            FilledTonalButton(
+                onClick = { showPresets = true },
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(strings.quickSetupAction)
+            }
         }
 
         SettingsSection(

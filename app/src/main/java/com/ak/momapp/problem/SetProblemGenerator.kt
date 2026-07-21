@@ -2,6 +2,7 @@ package com.ak.momapp.problem
 
 import com.ak.momapp.i18n.AppLanguage
 import kotlin.random.Random
+import kotlin.random.nextInt
 
 /**
  * Mulțimi: two small sets written out in full; she counts the elements
@@ -13,31 +14,30 @@ class SetProblemGenerator(private val random: Random) {
 
     private enum class Op { INTERSECT, UNION, DIFFERENCE }
 
-    fun generate(difficulty: Difficulty, language: AppLanguage): Problem {
-        val op = when (difficulty) {
-            Difficulty.EASY -> Op.INTERSECT
-            Difficulty.MEDIUM -> if (random.nextBoolean()) Op.INTERSECT else Op.UNION
-            Difficulty.HARD -> Op.entries.random(random)
-        }
+    fun generate(level: Level, language: AppLanguage): Problem {
+        // The union joins the intersection first and the difference last,
+        // each arriving over a stretch of the scale rather than at a band
+        // boundary. At the bottom only the intersection is asked for.
+        val op = random.pickWeighted(
+            listOf(
+                // Spotting the shared numbers is the friendly way in, and
+                // it never stops being worth asking.
+                Op.INTERSECT to 1.0,
+                Op.UNION to level.ramp(Level.EASY_TOP - 8, Level.MEDIUM_ANCHOR),
+                Op.DIFFERENCE to level.ramp(Level.MEDIUM_ANCHOR, Level.HARD_ANCHOR),
+            ),
+        )
 
-        val sizeA: Int
-        val sizeB: Int
-        val overlap: Int
-        val range: IntRange
-        when (difficulty) {
-            Difficulty.EASY -> {
-                sizeA = random.nextInt(4, 6); sizeB = random.nextInt(4, 6)
-                overlap = random.nextInt(1, 4); range = 1..20
-            }
-            Difficulty.MEDIUM -> {
-                sizeA = random.nextInt(5, 7); sizeB = random.nextInt(5, 7)
-                overlap = random.nextInt(1, 4); range = 1..40
-            }
-            Difficulty.HARD -> {
-                sizeA = random.nextInt(6, 8); sizeB = random.nextInt(6, 8)
-                overlap = random.nextInt(2, 5); range = 1..60
-            }
-        }
+        val sizeSpan = level.span(4..5, 5..6, 6..7)
+        val sizeA = random.nextInt(sizeSpan)
+        val sizeB = random.nextInt(sizeSpan)
+        // Never so much overlap that one set swallows the other: A \ B has
+        // to have something left in it to count.
+        val overlap = minOf(
+            random.nextInt(level.span(1..3, 1..3, 2..4)),
+            minOf(sizeA, sizeB) - 1,
+        )
+        val range = level.span(1..20, 1..40, 1..60)
 
         // One pool of distinct values, split into shared / only-A / only-B.
         val total = sizeA + sizeB - overlap
@@ -67,7 +67,7 @@ class SetProblemGenerator(private val random: Random) {
         return Problem(
             text = text,
             answer = answer,
-            difficulty = difficulty,
+            level = level,
             kind = ProblemKind.SETS,
             hints = listOf(opHint(op, language), HintText.digits(answer, language)),
             notes = notesFor(op, language),

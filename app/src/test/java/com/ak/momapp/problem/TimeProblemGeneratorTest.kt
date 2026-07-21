@@ -15,7 +15,7 @@ class TimeProblemGeneratorTest {
     private val generator = TimeProblemGenerator(Random(seed = 5))
 
     private fun many(difficulty: Difficulty, language: AppLanguage = AppLanguage.ENGLISH): List<Problem> =
-        List(SAMPLE_SIZE) { generator.generate(difficulty, language) }
+        List(SAMPLE_SIZE) { generator.generate(difficulty.toLevel(), language) }
 
     private fun numbersIn(text: String): List<Int> =
         Regex("""\d+""").findAll(text).map { it.value.toInt() }.toList()

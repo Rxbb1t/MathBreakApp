@@ -20,23 +20,33 @@ import kotlin.random.Random
  */
 class MoneyProblemGenerator(private val random: Random) {
 
-    fun generate(difficulty: Difficulty, language: AppLanguage): Problem = when (difficulty) {
-        Difficulty.EASY -> when (random.nextInt(3)) {
-            0 -> twoItems(language)
-            1 -> payNote(language)
-            else -> perPiece(language)
-        }
+    /**
+     * The three families of shopping story overlap rather than replacing
+     * one another at a boundary: the everyday ones thin out as the harder
+     * ones arrive, so a sitting near the middle draws from both. The prices
+     * themselves stay realistic at every level. What grows is the number of
+     * steps between the question and the till, which is what actually makes
+     * a shopping problem hard.
+     */
+    fun generate(level: Level, language: AppLanguage): Problem = when {
+        random.nextDouble() < level.ramp(Level.MEDIUM_ANCHOR, Level.HARD_ANCHOR) ->
+            when (random.nextInt(3)) {
+                0 -> discount(level, language)
+                1 -> marketHaul(level, language)
+                else -> saveUp(level, language)
+            }
 
-        Difficulty.MEDIUM -> when (random.nextInt(3)) {
-            0 -> basket(language)
-            1 -> payTwo(language)
-            else -> exactBudget(language)
-        }
+        random.nextDouble() < level.ramp(Level.EASY_TOP - 8, Level.MEDIUM_ANCHOR) ->
+            when (random.nextInt(3)) {
+                0 -> basket(level, language)
+                1 -> payTwo(level, language)
+                else -> exactBudget(level, language)
+            }
 
-        Difficulty.HARD -> when (random.nextInt(3)) {
-            0 -> discount(language)
-            1 -> marketHaul(language)
-            else -> saveUp(language)
+        else -> when (random.nextInt(3)) {
+            0 -> twoItems(level, language)
+            1 -> payNote(level, language)
+            else -> perPiece(level, language)
         }
     }
 
@@ -64,13 +74,13 @@ class MoneyProblemGenerator(private val random: Random) {
     // ── EASY ─────────────────────────────────────────────────────────────
 
     /** Marker: "together". Order: {a}, {b}. Answer a + b. */
-    private fun twoItems(language: AppLanguage): Problem {
+    private fun twoItems(level: Level, language: AppLanguage): Problem {
         val a = random.nextInt(4, 41)
         val b = random.nextInt(4, 41)
         return money(
             text = fill(pick(TWO_ITEMS_TEMPLATES, language), (slot("a", a) + slot("b", b)).toMap()),
             answer = a + b,
-            difficulty = Difficulty.EASY,
+            level = level,
             language = language,
             hint = when (language) {
                 AppLanguage.ENGLISH -> "Add the two prices together."
@@ -88,13 +98,13 @@ class MoneyProblemGenerator(private val random: Random) {
     }
 
     /** Marker: "note" (2 numbers). Order: {c}, {n}. Answer n − c. */
-    private fun payNote(language: AppLanguage): Problem {
+    private fun payNote(level: Level, language: AppLanguage): Problem {
         val note = listOf(10, 20, 50).random(random)
         val cost = random.nextInt(3, note - 1)
         return money(
             text = fill(pick(PAY_NOTE_TEMPLATES, language), (slot("c", cost) + slot("n", note)).toMap()),
             answer = note - cost,
-            difficulty = Difficulty.EASY,
+            level = level,
             language = language,
             hint = when (language) {
                 AppLanguage.ENGLISH -> "Subtract the price from the banknote."
@@ -112,13 +122,13 @@ class MoneyProblemGenerator(private val random: Random) {
     }
 
     /** Marker: "each". Order: {k}, {p}. Answer k × p. */
-    private fun perPiece(language: AppLanguage): Problem {
+    private fun perPiece(level: Level, language: AppLanguage): Problem {
         val k = random.nextInt(2, 7)
         val p = random.nextInt(2, 10)
         return money(
             text = fill(pick(PER_PIECE_TEMPLATES, language), (slot("k", k) + slot("p", p)).toMap()),
             answer = k * p,
-            difficulty = Difficulty.EASY,
+            level = level,
             language = language,
             hint = when (language) {
                 AppLanguage.ENGLISH -> "Same price for each one, so multiply."
@@ -138,7 +148,7 @@ class MoneyProblemGenerator(private val random: Random) {
     // ── MEDIUM ───────────────────────────────────────────────────────────
 
     /** Marker: "altogether". Order: {q}, {p}, {c}. Answer q×p + c. */
-    private fun basket(language: AppLanguage): Problem {
+    private fun basket(level: Level, language: AppLanguage): Problem {
         val q = random.nextInt(2, 7)
         val p = random.nextInt(3, 10)
         val c = random.nextInt(5, 31)
@@ -148,7 +158,7 @@ class MoneyProblemGenerator(private val random: Random) {
                 (slot("q", q) + slot("p", p) + slot("c", c)).toMap(),
             ),
             answer = q * p + c,
-            difficulty = Difficulty.MEDIUM,
+            level = level,
             language = language,
             hint = when (language) {
                 AppLanguage.ENGLISH -> "Work out the cost of the kilos, then add the extra item."
@@ -171,7 +181,7 @@ class MoneyProblemGenerator(private val random: Random) {
     }
 
     /** Marker: "note" (3 numbers). Order: {a}, {b}, {n}. Answer n − a − b. */
-    private fun payTwo(language: AppLanguage): Problem {
+    private fun payTwo(level: Level, language: AppLanguage): Problem {
         val a = random.nextInt(25, 91)
         val b = random.nextInt(25, 91)
         val note = 200
@@ -181,7 +191,7 @@ class MoneyProblemGenerator(private val random: Random) {
                 (slot("a", a) + slot("b", b) + slot("n", note)).toMap(),
             ),
             answer = note - a - b,
-            difficulty = Difficulty.MEDIUM,
+            level = level,
             language = language,
             hint = when (language) {
                 AppLanguage.ENGLISH -> "Add both prices, then subtract from the banknote."
@@ -204,7 +214,7 @@ class MoneyProblemGenerator(private val random: Random) {
     }
 
     /** Marker: "exactly". Order: {p}, {t}. Answer t ÷ p, whole by construction. */
-    private fun exactBudget(language: AppLanguage): Problem {
+    private fun exactBudget(level: Level, language: AppLanguage): Problem {
         val p = random.nextInt(6, 26)
         val k = random.nextInt(3, 10)
         return money(
@@ -213,7 +223,7 @@ class MoneyProblemGenerator(private val random: Random) {
                 (slot("p", p) + slot("t", k * p)).toMap(),
             ),
             answer = k,
-            difficulty = Difficulty.MEDIUM,
+            level = level,
             language = language,
             hint = when (language) {
                 AppLanguage.ENGLISH -> "Divide the total money by the price of one."
@@ -235,13 +245,13 @@ class MoneyProblemGenerator(private val random: Random) {
     // ── HARD ─────────────────────────────────────────────────────────────
 
     /** Marker: "off". Order: {p}, {d}. Answer p − p×d÷100, whole by construction. */
-    private fun discount(language: AppLanguage): Problem {
+    private fun discount(level: Level, language: AppLanguage): Problem {
         val p = 20 * random.nextInt(2, 21)
         val d = listOf(10, 20, 25, 50).random(random)
         return money(
             text = fill(pick(DISCOUNT_TEMPLATES, language), (slot("p", p) + slot("d", d)).toMap()),
             answer = p - p * d / 100,
-            difficulty = Difficulty.HARD,
+            level = level,
             language = language,
             hint = when (language) {
                 AppLanguage.ENGLISH -> "Subtract the discount from the price."
@@ -264,7 +274,7 @@ class MoneyProblemGenerator(private val random: Random) {
     }
 
     /** Marker: "banknote". Order: {q1}, {p1}, {q2}, {p2}, {n}. Answer n − q1p1 − q2p2. */
-    private fun marketHaul(language: AppLanguage): Problem {
+    private fun marketHaul(level: Level, language: AppLanguage): Problem {
         val q1 = random.nextInt(2, 6)
         val p1 = random.nextInt(3, 10)
         val q2 = random.nextInt(2, 6)
@@ -276,7 +286,7 @@ class MoneyProblemGenerator(private val random: Random) {
                 (slot("q1", q1) + slot("p1", p1) + slot("q2", q2) + slot("p2", p2) + slot("n", note)).toMap(),
             ),
             answer = note - q1 * p1 - q2 * p2,
-            difficulty = Difficulty.HARD,
+            level = level,
             language = language,
             hint = when (language) {
                 AppLanguage.ENGLISH -> "Add up the whole shop, then subtract from the banknote."
@@ -309,7 +319,7 @@ class MoneyProblemGenerator(private val random: Random) {
     }
 
     /** Marker: "week". Order: {p}, {s}, {m}. Answer (p − s) ÷ m, whole by construction. */
-    private fun saveUp(language: AppLanguage): Problem {
+    private fun saveUp(level: Level, language: AppLanguage): Problem {
         val m = random.nextInt(10, 51)
         val k = random.nextInt(3, 10)
         val s = random.nextInt(20, 201)
@@ -320,7 +330,7 @@ class MoneyProblemGenerator(private val random: Random) {
                 (slot("p", p) + slot("s", s) + slot("m", m)).toMap(),
             ),
             answer = k,
-            difficulty = Difficulty.HARD,
+            level = level,
             language = language,
             hint = when (language) {
                 AppLanguage.ENGLISH -> "The amount changes by the same step each week."
@@ -346,7 +356,7 @@ class MoneyProblemGenerator(private val random: Random) {
     private fun money(
         text: String,
         answer: Int,
-        difficulty: Difficulty,
+        level: Level,
         language: AppLanguage,
         hint: String,
         notes: List<String> = emptyList(),
@@ -355,7 +365,7 @@ class MoneyProblemGenerator(private val random: Random) {
     ): Problem = Problem(
         text = text,
         answer = answer,
-        difficulty = difficulty,
+        level = level,
         kind = ProblemKind.MONEY,
         hints = listOf(hint, HintText.digits(answer, language)),
         notes = notes,

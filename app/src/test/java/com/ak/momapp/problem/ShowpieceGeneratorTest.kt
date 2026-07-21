@@ -14,7 +14,7 @@ import org.junit.Test
 class ShowpieceGeneratorTest {
 
     private fun sample(count: Int = 4_000, language: AppLanguage = AppLanguage.ENGLISH) =
-        ShowpieceGenerator(Random(11)).let { g -> List(count) { g.generate(language) } }
+        ShowpieceGenerator(Random(11)).let { g -> List(count) { g.generate(Difficulty.HARD.toLevel(), language) } }
 
     private fun numbersIn(text: String) =
         Regex("\\d+").findAll(text).map { it.value.toInt() }.toList()
@@ -72,8 +72,8 @@ class ShowpieceGeneratorTest {
         val english = ShowpieceGenerator(Random(5))
         val romanian = ShowpieceGenerator(Random(5))
         repeat(2_000) {
-            val en = english.generate(AppLanguage.ENGLISH)
-            val ro = romanian.generate(AppLanguage.ROMANIAN)
+            val en = english.generate(Difficulty.HARD.toLevel(), AppLanguage.ENGLISH)
+            val ro = romanian.generate(Difficulty.HARD.toLevel(), AppLanguage.ROMANIAN)
             // Same seed, same rolls, so these are the same puzzle twice.
             assertEquals("the two runs drifted apart", en.answer, ro.answer)
             assertTrue("untranslated text: ${en.text}", en.text != ro.text)

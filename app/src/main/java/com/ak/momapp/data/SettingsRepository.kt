@@ -1,6 +1,7 @@
 package com.ak.momapp.data
 
 import android.content.Context
+import androidx.datastore.preferences.core.MutablePreferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
@@ -8,6 +9,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import com.ak.momapp.i18n.AppLanguage
 import com.ak.momapp.problem.Difficulty
 import com.ak.momapp.problem.ProblemTopic
+import com.ak.momapp.problem.toLevel
 import com.ak.momapp.ui.theme.AppPalette
 import java.time.DayOfWeek
 import java.util.Locale
@@ -276,9 +278,7 @@ class SettingsRepository(private val context: Context) {
         context.brainBreakDataStore.edit {
             it[Keys.STARTING_DIFFICULTY] = difficulty.name
             it.remove(Keys.MAX_DIFFICULTY)
-            it[ProgressRepository.Keys.CURRENT_DIFFICULTY] = difficulty.name
-            it[ProgressRepository.Keys.CORRECT_STREAK] = 0
-            it[ProgressRepository.Keys.MISS_STREAK] = 0
+            it.startAt(difficulty)
         }
     }
 
@@ -292,11 +292,24 @@ class SettingsRepository(private val context: Context) {
             it[Keys.TIMER_MINUTES] = preset.timerMinutes
             it[Keys.STARTING_DIFFICULTY] = preset.startingDifficulty.name
             it[Keys.MAX_DIFFICULTY] = preset.maxDifficulty.name
-            it[ProgressRepository.Keys.CURRENT_DIFFICULTY] = preset.startingDifficulty.name
-            it[ProgressRepository.Keys.CORRECT_STREAK] = 0
-            it[ProgressRepository.Keys.MISS_STREAK] = 0
             it[Keys.GUIDE_SHOWN] = true
+            it.startAt(preset.startingDifficulty)
+            // A preset is a fresh start on the difficulty, so the per-topic
+            // ladders go with it. Leaving them would mean picking "Relaxed"
+            // and still being handed the hard geometry she had climbed to.
+            it.remove(ProgressRepository.Keys.TOPIC_LADDERS)
         }
+    }
+
+    /**
+     * Puts the adaptive level back to the middle of a chosen band. Both
+     * halves have to move together: the points are what problems are dealt
+     * from, and the band is the name she is shown, so writing one without
+     * the other would leave the app calling her level something it isn't.
+     */
+    private fun MutablePreferences.startAt(difficulty: Difficulty) {
+        this[ProgressRepository.Keys.CURRENT_POINTS] = difficulty.toLevel().points
+        this[ProgressRepository.Keys.CURRENT_BAND] = difficulty.name
     }
 
     suspend fun setTimerMinutes(minutes: Int) {

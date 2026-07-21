@@ -33,7 +33,7 @@ class MissingOperatorGeneratorTest {
     fun `exactly one sign ever fits the line`() {
         for (difficulty in Difficulty.entries) {
             repeat(400) {
-                verify(generator.generate(difficulty, AppLanguage.ENGLISH))
+                verify(generator.generate(difficulty.toLevel(), AppLanguage.ENGLISH))
             }
         }
     }
@@ -41,7 +41,7 @@ class MissingOperatorGeneratorTest {
     @Test
     fun `all four signs appear at every difficulty`() {
         for (difficulty in Difficulty.entries) {
-            val answers = List(400) { generator.generate(difficulty, AppLanguage.ENGLISH) }
+            val answers = List(400) { generator.generate(difficulty.toLevel(), AppLanguage.ENGLISH) }
                 .map { it.answer }
                 .toSet()
             assertEquals("missing signs at $difficulty", setOf(0, 1, 2, 3), answers)
@@ -54,8 +54,8 @@ class MissingOperatorGeneratorTest {
             val enGenerator = MissingOperatorGenerator(Random(seed = 99))
             val roGenerator = MissingOperatorGenerator(Random(seed = 99))
             repeat(100) {
-                val en = enGenerator.generate(difficulty, AppLanguage.ENGLISH)
-                val ro = roGenerator.generate(difficulty, AppLanguage.ROMANIAN)
+                val en = enGenerator.generate(difficulty.toLevel(), AppLanguage.ENGLISH)
+                val ro = roGenerator.generate(difficulty.toLevel(), AppLanguage.ROMANIAN)
                 assertEquals("language leaked into '${en.text}'", en.text, ro.text)
                 assertTrue("hints on tap kind", en.hints.isEmpty())
                 assertTrue(en.tapAnswered)

@@ -2,6 +2,7 @@ package com.ak.momapp.problem
 
 import com.ak.momapp.i18n.AppLanguage
 import kotlin.random.Random
+import kotlin.random.nextInt
 
 /**
  * Equation puzzles where shapes stand in for numbers:
@@ -17,18 +18,25 @@ import kotlin.random.Random
  */
 class ShapePuzzleGenerator(private val random: Random) {
 
-    fun generate(difficulty: Difficulty, language: AppLanguage): Problem {
+    /**
+     * The third shape and the multiplication-led given lines arrive on
+     * their own ramps rather than all at once on a band boundary, so the
+     * puzzle grows a piece at a time.
+     */
+    fun generate(level: Level, language: AppLanguage): Problem {
         val shapes = SHAPES.shuffled(random)
-        return when (difficulty) {
-            Difficulty.EASY -> easyPuzzle(shapes, language)
-            Difficulty.MEDIUM -> mediumPuzzle(shapes, language)
-            Difficulty.HARD -> hardPuzzle(shapes, language)
+        val thirdShape = random.nextDouble() < level.ramp(THIRD_SHAPE_FROM, THIRD_SHAPE_BY)
+        return when {
+            !thirdShape -> twoShapePuzzle(shapes, level, language)
+            random.nextDouble() < level.ramp(Level.MEDIUM_ANCHOR, Level.HARD_ANCHOR) ->
+                hardPuzzle(shapes, level, language)
+            else -> mediumPuzzle(shapes, level, language)
         }
     }
 
-    private fun easyPuzzle(shapes: List<String>, language: AppLanguage): Problem {
+    private fun twoShapePuzzle(shapes: List<String>, level: Level, language: AppLanguage): Problem {
         val (shapeA, shapeB) = shapes
-        val (a, b) = distinctValues(2, from = 2, until = 10)
+        val (a, b) = distinctValues(2, level.span(2..9, 2..12, 3..15))
         val lines = listOf(
             "$shapeA + $shapeA = ${2 * a}",
             "$shapeA + $shapeB = ${a + b}",
@@ -40,7 +48,7 @@ class ShapePuzzleGenerator(private val random: Random) {
             if (b > a) add("$shapeB − $shapeA = ?" to b - a)
         }
         return build(
-            difficulty = Difficulty.EASY,
+            level = level,
             lines = lines,
             finals = finals,
             values = listOf(shapeA to a, shapeB to b),
@@ -48,9 +56,9 @@ class ShapePuzzleGenerator(private val random: Random) {
         )
     }
 
-    private fun mediumPuzzle(shapes: List<String>, language: AppLanguage): Problem {
+    private fun mediumPuzzle(shapes: List<String>, level: Level, language: AppLanguage): Problem {
         val (shapeA, shapeB, shapeC) = shapes
-        val (a, b, c) = distinctValues(3, from = 2, until = 13)
+        val (a, b, c) = distinctValues(3, level.span(2..9, 2..12, 3..15))
         val lines = listOf(
             "$shapeA + $shapeA = ${2 * a}",
             "$shapeA × $shapeB = ${a * b}",
@@ -63,7 +71,7 @@ class ShapePuzzleGenerator(private val random: Random) {
             if (c * b > a) add("$shapeC × $shapeB − $shapeA = ?" to c * b - a)
         }
         return build(
-            difficulty = Difficulty.MEDIUM,
+            level = level,
             lines = lines,
             finals = finals,
             values = listOf(shapeA to a, shapeB to b, shapeC to c),
@@ -71,9 +79,9 @@ class ShapePuzzleGenerator(private val random: Random) {
         )
     }
 
-    private fun hardPuzzle(shapes: List<String>, language: AppLanguage): Problem {
+    private fun hardPuzzle(shapes: List<String>, level: Level, language: AppLanguage): Problem {
         val (shapeA, shapeB, shapeC) = shapes
-        val (a, b, c) = distinctValues(3, from = 3, until = 16)
+        val (a, b, c) = distinctValues(3, level.span(3..9, 3..15, 3..15))
         val lines = listOf(
             "$shapeA + $shapeA + $shapeA = ${3 * a}",
             "$shapeA × $shapeB = ${a * b}",
@@ -85,7 +93,7 @@ class ShapePuzzleGenerator(private val random: Random) {
             if (c * a > b) add("$shapeC × $shapeA − $shapeB = ?" to c * a - b)
         }
         return build(
-            difficulty = Difficulty.HARD,
+            level = level,
             lines = lines,
             finals = finals,
             values = listOf(shapeA to a, shapeB to b, shapeC to c),
@@ -94,7 +102,7 @@ class ShapePuzzleGenerator(private val random: Random) {
     }
 
     private fun build(
-        difficulty: Difficulty,
+        level: Level,
         lines: List<String>,
         finals: List<Pair<String, Int>>,
         values: List<Pair<String, Int>>,
@@ -107,7 +115,8 @@ class ShapePuzzleGenerator(private val random: Random) {
             AppLanguage.ROMANIAN -> "Începe de sus. Primul rând îți spune cât face $firstShape"
         }
         val valuesHint = values.joinToString("   ") { (shape, value) -> "$shape = $value" }
-        val notes = if (difficulty == Difficulty.EASY) {
+        // A two-shape puzzle carries its own instructions in its shape.
+        val notes = if (values.size < 3) {
             emptyList()
         } else {
             when (language) {
@@ -144,7 +153,7 @@ class ShapePuzzleGenerator(private val random: Random) {
         return Problem(
             text = (lines + finalLine).joinToString("\n"),
             answer = answer,
-            difficulty = difficulty,
+            level = level,
             kind = ProblemKind.PUZZLE,
             hints = listOf(firstLineHint, valuesHint),
             notes = notes,
@@ -153,10 +162,14 @@ class ShapePuzzleGenerator(private val random: Random) {
     }
 
     /** Distinct values keep the deduction unambiguous and satisfying. */
-    private fun distinctValues(count: Int, from: Int, until: Int): List<Int> =
-        (from until until).shuffled(random).take(count)
+    private fun distinctValues(count: Int, from: IntRange): List<Int> =
+        from.shuffled(random).take(count)
 
     companion object {
         private val SHAPES = listOf("🍎", "🍐", "🍋", "🌸", "⭐", "🐟", "🍓", "🥕")
+
+        /** Where a third shape starts turning up, and where it is the norm. */
+        private const val THIRD_SHAPE_FROM = 20
+        private const val THIRD_SHAPE_BY = Level.MEDIUM_ANCHOR
     }
 }

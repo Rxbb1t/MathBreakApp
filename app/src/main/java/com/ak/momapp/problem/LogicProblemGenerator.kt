@@ -22,26 +22,28 @@ import kotlin.random.Random
 class LogicProblemGenerator(private val random: Random) {
 
     fun generate(
-        difficulty: Difficulty,
+        level: Level,
         familyNames: List<String>,
         language: AppLanguage,
-    ): Problem = when (difficulty) {
-        Difficulty.EASY -> when (random.nextInt(3)) {
-            0 -> sequence(language, growByStep = true)
-            1 -> backwardsOneStep(language)
-            else -> leftover(language)
-        }
+    ): Problem = when {
+        random.nextDouble() < level.ramp(Level.MEDIUM_ANCHOR, Level.HARD_ANCHOR) ->
+            when (random.nextInt(3)) {
+                0 -> headsAndLegs(level, language)
+                1 -> backwardsThreeSteps(level, language)
+                else -> agesTwiceAsOld(level, language, names(familyNames))
+            }
 
-        Difficulty.MEDIUM -> when (random.nextInt(3)) {
-            0 -> sequence(language, growByStep = false)
-            1 -> backwardsTwoSteps(language)
-            else -> ages(language, names(familyNames))
-        }
+        random.nextDouble() < level.ramp(Level.EASY_TOP - 8, Level.MEDIUM_ANCHOR) ->
+            when (random.nextInt(3)) {
+                0 -> sequence(level, language, growByStep = false)
+                1 -> backwardsTwoSteps(level, language)
+                else -> ages(level, language, names(familyNames))
+            }
 
-        Difficulty.HARD -> when (random.nextInt(3)) {
-            0 -> headsAndLegs(language)
-            1 -> backwardsThreeSteps(language)
-            else -> agesTwiceAsOld(language, names(familyNames))
+        else -> when (random.nextInt(3)) {
+            0 -> sequence(level, language, growByStep = true)
+            1 -> backwardsOneStep(level, language)
+            else -> leftover(level, language)
         }
     }
 
@@ -60,7 +62,7 @@ class LogicProblemGenerator(private val random: Random) {
     }
 
     /** "3, 7, 11, 15, …" (+step) or "3, 6, 12, 24, …" (×ratio). */
-    private fun sequence(language: AppLanguage, growByStep: Boolean): Problem {
+    private fun sequence(level: Level, language: AppLanguage, growByStep: Boolean): Problem {
         val terms: List<Int>
         val ruleHint: String
         if (growByStep) {
@@ -94,7 +96,7 @@ class LogicProblemGenerator(private val random: Random) {
         return logicProblem(
             text = pick(SEQUENCE_TEMPLATES, language),
             answer = terms.last(),
-            difficulty = if (growByStep) Difficulty.EASY else Difficulty.MEDIUM,
+            level = level,
             hints = listOf(growHint, ruleHint),
             notes = if (growByStep) emptyList() else listOf(patternNote),
             diagram = Diagram.SequenceRow(terms.dropLast(1).map(Int::toString) + "?"),
@@ -119,7 +121,7 @@ class LogicProblemGenerator(private val random: Random) {
     }
 
     /** Something grew by {c} to reach {r}; how much was there at first? */
-    private fun backwardsOneStep(language: AppLanguage): Problem {
+    private fun backwardsOneStep(level: Level, language: AppLanguage): Problem {
         val x = random.nextInt(2, 61)
         val c = random.nextInt(2, 31)
         val r = x + c
@@ -133,7 +135,7 @@ class LogicProblemGenerator(private val random: Random) {
                 mapOf("c" to "$c", "r" to "$r"),
             ),
             answer = x,
-            difficulty = Difficulty.EASY,
+            level = level,
             hints = listOf(beforeHint, HintText.digits(x, language)),
             solution = listOf(
                 step(
@@ -151,7 +153,7 @@ class LogicProblemGenerator(private val random: Random) {
     }
 
     /** {n} things, {p} takers × {k} each. How many are left? */
-    private fun leftover(language: AppLanguage): Problem {
+    private fun leftover(level: Level, language: AppLanguage): Problem {
         val people = random.nextInt(2, 5)
         val each = random.nextInt(2, 4)
         val left = random.nextInt(1, 7)
@@ -166,7 +168,7 @@ class LogicProblemGenerator(private val random: Random) {
                 mapOf("n" to "$total", "p" to "$people", "k" to "$each"),
             ),
             answer = left,
-            difficulty = Difficulty.EASY,
+            level = level,
             hints = listOf(takenHint, HintText.digits(left, language)),
             solution = listOf(
                 step(
@@ -184,7 +186,7 @@ class LogicProblemGenerator(private val random: Random) {
     }
 
     /** Something doubled, then {c} more, reaching {r}. */
-    private fun backwardsTwoSteps(language: AppLanguage): Problem {
+    private fun backwardsTwoSteps(level: Level, language: AppLanguage): Problem {
         val x = random.nextInt(3, 41)
         val c = random.nextInt(2, 31)
         val r = 2 * x + c
@@ -204,7 +206,7 @@ class LogicProblemGenerator(private val random: Random) {
                 mapOf("c" to "$c", "r" to "$r"),
             ),
             answer = x,
-            difficulty = Difficulty.MEDIUM,
+            level = level,
             hints = listOf(beforeBothHint, HintText.digits(x, language)),
             notes = listOf(undoNote),
             solution = listOf(
@@ -223,7 +225,7 @@ class LogicProblemGenerator(private val random: Random) {
     }
 
     /** "{n1} is {d} years older than {n2}, together {t}." */
-    private fun ages(language: AppLanguage, names: Pair<String, String>): Problem {
+    private fun ages(level: Level, language: AppLanguage, names: Pair<String, String>): Problem {
         val (older, younger) = names
         val youngerAge = random.nextInt(5, 61)
         val gap = random.nextInt(2, 16)
@@ -249,7 +251,7 @@ class LogicProblemGenerator(private val random: Random) {
                 ),
             ),
             answer = youngerAge + gap,
-            difficulty = Difficulty.MEDIUM,
+            level = level,
             hints = listOf(headStartHint, HintText.digits(youngerAge + gap, language)),
             notes = listOf(agesNote),
             solution = listOf(
@@ -273,7 +275,7 @@ class LogicProblemGenerator(private val random: Random) {
     }
 
     /** Two-legged and four-legged animals: {h} heads, {l} legs. */
-    private fun headsAndLegs(language: AppLanguage): Problem {
+    private fun headsAndLegs(level: Level, language: AppLanguage): Problem {
         val fourLegged = random.nextInt(2, 9)
         val twoLegged = random.nextInt(2, 11)
         val heads = fourLegged + twoLegged
@@ -299,7 +301,7 @@ class LogicProblemGenerator(private val random: Random) {
                 mapOf("h" to "$heads", "l" to legsValue),
             ),
             answer = fourLegged,
-            difficulty = Difficulty.HARD,
+            level = level,
             hints = listOf(extraLegsHint, HintText.digits(fourLegged, language)),
             notes = listOf(headsLegsNote),
             solution = listOf(
@@ -323,7 +325,7 @@ class LogicProblemGenerator(private val random: Random) {
     }
 
     /** Times {m}, plus {c}, then halved makes {r}. */
-    private fun backwardsThreeSteps(language: AppLanguage): Problem {
+    private fun backwardsThreeSteps(level: Level, language: AppLanguage): Problem {
         val m = random.nextInt(2, 6)
         val x = random.nextInt(2, 21)
         // Keep the halving whole: nudge the added constant's parity.
@@ -348,7 +350,7 @@ class LogicProblemGenerator(private val random: Random) {
                 mapOf("m" to "$m", "c" to "$c", "c_de" to de(c), "r" to "$r"),
             ),
             answer = x,
-            difficulty = Difficulty.HARD,
+            level = level,
             hints = listOf(threeChangesHint, HintText.digits(x, language)),
             notes = listOf(reverseNote),
             solution = listOf(
@@ -372,7 +374,7 @@ class LogicProblemGenerator(private val random: Random) {
     }
 
     /** "{n1} is twice as old as {n2}, together {t}." */
-    private fun agesTwiceAsOld(language: AppLanguage, names: Pair<String, String>): Problem {
+    private fun agesTwiceAsOld(level: Level, language: AppLanguage, names: Pair<String, String>): Problem {
         val (older, younger) = names
         val youngerAge = random.nextInt(5, 41)
         val total = 3 * youngerAge
@@ -392,7 +394,7 @@ class LogicProblemGenerator(private val random: Random) {
                 mapOf("n1" to older, "n2" to younger, "t" to yearsFor(total, language)),
             ),
             answer = 2 * youngerAge,
-            difficulty = Difficulty.HARD,
+            level = level,
             hints = listOf(partsHint, HintText.digits(2 * youngerAge, language)),
             notes = listOf(partsNote),
             solution = listOf(
@@ -418,7 +420,7 @@ class LogicProblemGenerator(private val random: Random) {
     private fun logicProblem(
         text: String,
         answer: Int,
-        difficulty: Difficulty,
+        level: Level,
         hints: List<String>,
         solution: List<String>,
         notes: List<String> = emptyList(),
@@ -426,7 +428,7 @@ class LogicProblemGenerator(private val random: Random) {
     ): Problem = Problem(
         text = text,
         answer = answer,
-        difficulty = difficulty,
+        level = level,
         kind = ProblemKind.LOGIC,
         hints = hints,
         notes = notes,

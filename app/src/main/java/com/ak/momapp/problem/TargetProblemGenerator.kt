@@ -2,6 +2,7 @@ package com.ak.momapp.problem
 
 import com.ak.momapp.i18n.AppLanguage
 import kotlin.random.Random
+import kotlin.random.nextInt
 
 /**
  * Target builder: a target number and a spread of cards; she taps the
@@ -12,20 +13,15 @@ import kotlin.random.Random
  */
 class TargetProblemGenerator(private val random: Random) {
 
-    fun generate(difficulty: Difficulty, language: AppLanguage): Problem {
-        val pick = when (difficulty) {
-            Difficulty.EASY -> 3
-            Difficulty.MEDIUM -> if (random.nextBoolean()) 3 else 4
-            Difficulty.HARD -> 4
-        }
-        val spread = when (difficulty) {
-            Difficulty.EASY -> 6
-            Difficulty.MEDIUM -> 7
-            Difficulty.HARD -> 8
-        }
-        val solution = List(pick) { cardValue(difficulty) }
+    fun generate(level: Level, language: AppLanguage): Problem {
+        // A fourth card to find arrives gradually rather than on the day
+        // she is renamed to Normal: rare at the bottom of the band, usual
+        // by the top of it.
+        val pick = if (random.nextDouble() < level.ramp(FOURTH_CARD_FROM, FOURTH_CARD_BY)) 4 else 3
+        val spread = level.between(6, 7, 8)
+        val solution = List(pick) { cardValue(level) }
         val target = solution.sum()
-        val decoys = List(spread - pick) { cardValue(difficulty) }
+        val decoys = List(spread - pick) { cardValue(level) }
         val cards = (solution + decoys).shuffled(random)
 
         val text = when (language) {
@@ -37,7 +33,7 @@ class TargetProblemGenerator(private val random: Random) {
         return Problem(
             text = text,
             answer = target,
-            difficulty = difficulty,
+            level = level,
             kind = ProblemKind.TARGET,
             cards = cards,
             pickCount = pick,
@@ -45,9 +41,13 @@ class TargetProblemGenerator(private val random: Random) {
         )
     }
 
-    private fun cardValue(difficulty: Difficulty): Int = when (difficulty) {
-        Difficulty.EASY -> random.nextInt(2, 11)
-        Difficulty.MEDIUM -> random.nextInt(4, 21)
-        Difficulty.HARD -> random.nextInt(8, 41)
+    /** Card values grow with the level: single digits low, up to forties high. */
+    private fun cardValue(level: Level): Int =
+        random.nextInt(level.span(2..10, 4..20, 8..40))
+
+    companion object {
+        /** Where the fourth card starts appearing, and where it takes over. */
+        private const val FOURTH_CARD_FROM = Level.EASY_TOP
+        private const val FOURTH_CARD_BY = Level.HARD_ANCHOR
     }
 }

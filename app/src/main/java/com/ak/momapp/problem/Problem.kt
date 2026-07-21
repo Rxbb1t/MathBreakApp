@@ -51,7 +51,13 @@ enum class ProblemKind {
 data class Problem(
     val text: String,
     val answer: Int,
-    val difficulty: Difficulty,
+    /**
+     * Where on the 0–100 scale this problem was dealt. The fine value, not
+     * the band: two Normal problems 20 points apart are genuinely
+     * different, and the tests that check operand sizes need to know which
+     * one they are holding.
+     */
+    val level: Level,
     val kind: ProblemKind = ProblemKind.ARITHMETIC,
     /**
      * Two nudges revealed one at a time by the Hint button; the third
@@ -110,6 +116,10 @@ data class Problem(
      */
     val revealText: String = "",
 ) {
+    /** The band this problem's level falls in: the name she would see. */
+    val difficulty: Difficulty
+        get() = level.band
+
     /** The answer as it should be shown to her. */
     val answerText: String
         get() = revealText.ifEmpty { answer.toString() }

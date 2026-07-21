@@ -234,6 +234,50 @@ class TopicLaddersTest {
         assertEquals(Pace.STEADY, TopicLadders.paceOf(emptyMap(), ProblemTopic.MONEY, 1_000))
     }
 
+    /**
+     * The gap that made speed effectively worthless: a break draws from ten
+     * topics, so waiting for each to gather its own five timed answers meant
+     * fifty problems before quickness counted anywhere. Someone racing
+     * through a first sitting was scored as merely steady the whole way.
+     */
+    @Test
+    fun `her overall pace stands in until a topic has its own`() {
+        val overall = PaceEstimate(30_000, 12)
+        assertEquals(
+            Pace.FAST,
+            TopicLadders.paceOf(emptyMap(), ProblemTopic.MONEY, 8_000, overall),
+        )
+    }
+
+    @Test
+    fun `a topic's own pace outranks the overall one once it has enough`() {
+        // Slow topic, quick person: 30 s is fast for THIS topic even though
+        // it is slow for her in general.
+        val raw = record(
+            null, ProblemTopic.GEOMETRY, correct = true,
+            count = PaceEstimate.EVIDENCE_NEEDED, solveTimeMs = 90_000,
+        )
+        val overall = PaceEstimate(10_000, 40)
+        assertEquals(
+            Pace.FAST,
+            TopicLadders.paceOf(TopicLadders.decode(raw), ProblemTopic.GEOMETRY, 30_000, overall),
+        )
+    }
+
+    @Test
+    fun `a half-learned topic still defers to the overall pace`() {
+        val raw = record(
+            null, ProblemTopic.CORE, correct = true,
+            count = PaceEstimate.EVIDENCE_NEEDED - 2, solveTimeMs = 90_000,
+        )
+        val overall = PaceEstimate(20_000, 30)
+        // Judged against her general pace, not against two stray samples.
+        assertEquals(
+            Pace.FAST,
+            TopicLadders.paceOf(TopicLadders.decode(raw), ProblemTopic.CORE, 9_000, overall),
+        )
+    }
+
     @Test
     fun `a fast answer climbs a topic quicker than a slow one`() {
         val fast = record(null, ProblemTopic.CORE, correct = true, count = 6, pace = Pace.FAST)

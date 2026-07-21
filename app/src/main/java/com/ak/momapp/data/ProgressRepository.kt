@@ -10,6 +10,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import com.ak.momapp.problem.Difficulty
 import com.ak.momapp.problem.Level
 import com.ak.momapp.problem.LevelLadder
+import com.ak.momapp.problem.PaceEstimate
 import com.ak.momapp.problem.ProblemTopic
 import com.ak.momapp.problem.ReviewPick
 import com.ak.momapp.problem.toLevel
@@ -76,6 +77,13 @@ class ProgressRepository(private val context: Context) {
 
         /** Missed shapes waiting to come round again; see [ReviewQueue]. */
         val REVIEW_QUEUE = stringPreferencesKey("review_queue")
+
+        /**
+         * Her pace across every topic, which stands in for a topic's own
+         * until that topic has enough timed answers to speak for itself.
+         */
+        val OVERALL_PACE_MS = longPreferencesKey("overall_pace_ms")
+        val OVERALL_PACE_SAMPLES = intPreferencesKey("overall_pace_samples")
     }
 
     /**
@@ -259,7 +267,16 @@ class ProgressRepository(private val context: Context) {
         solveTimeMs: Long,
     ) {
         val ladders = TopicLadders.decode(prefs[Keys.TOPIC_LADDERS])
-        val pace = TopicLadders.paceOf(ladders, topic, solveTimeMs)
+        val overallPace = PaceEstimate(
+            typicalMs = prefs[Keys.OVERALL_PACE_MS] ?: 0,
+            samples = prefs[Keys.OVERALL_PACE_SAMPLES] ?: 0,
+        )
+        val pace = TopicLadders.paceOf(ladders, topic, solveTimeMs, overallPace)
+        if (correct) {
+            val moved = overallPace.record(solveTimeMs)
+            prefs[Keys.OVERALL_PACE_MS] = moved.typicalMs
+            prefs[Keys.OVERALL_PACE_SAMPLES] = moved.samples
+        }
         val ceiling = readCeiling(prefs)
         val level = readLevel(prefs)
         val band = readBand(prefs)

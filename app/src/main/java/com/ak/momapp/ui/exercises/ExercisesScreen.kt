@@ -1,6 +1,7 @@
 package com.ak.momapp.ui.exercises
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -28,14 +29,19 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ak.momapp.i18n.LocalStrings
 import com.ak.momapp.problem.Difficulty
+import com.ak.momapp.problem.Level
 import com.ak.momapp.problem.ProblemTopic
 import com.ak.momapp.problem.TopicGroup
+import com.ak.momapp.ui.problem.LevelProgressReveal
 import com.ak.momapp.ui.settings.SettingsViewModel
 
 /**
@@ -54,6 +60,7 @@ fun ExercisesScreen(
 ) {
     val settings by viewModel.settings.collectAsState()
     val topicLevels by viewModel.topicLevels.collectAsState()
+    val topicPoints by viewModel.topicPoints.collectAsState()
     val strings = LocalStrings.current
 
     Scaffold(
@@ -106,6 +113,7 @@ fun ExercisesScreen(
                         group = group,
                         enabledTopics = enabledTopics,
                         topicLevels = topicLevels,
+                        topicPoints = topicPoints,
                         onToggle = viewModel::toggleTopic,
                     )
                 }
@@ -120,6 +128,7 @@ private fun TopicGroupCard(
     group: TopicGroup,
     enabledTopics: Set<ProblemTopic>,
     topicLevels: Map<ProblemTopic, Difficulty>,
+    topicPoints: Map<ProblemTopic, Level>,
     onToggle: (ProblemTopic) -> Unit,
 ) {
     val strings = LocalStrings.current
@@ -163,10 +172,24 @@ private fun TopicGroupCard(
                         // The level is meaningless for a topic that never
                         // gets dealt, so it goes quiet with the switch.
                         if (isOn && level != null) {
+                            var showDetail by remember { mutableStateOf(false) }
                             Text(
                                 text = strings.difficultyLabel(level),
                                 style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                // Long-press the level to see where this
+                                // topic actually sits. Tap still belongs to
+                                // the row, so the switch keeps its big
+                                // target and nothing about the gesture is
+                                // advertised.
+                                modifier = Modifier.combinedClickable(
+                                    onClick = { if (canToggle) onToggle(topic) },
+                                    onLongClick = { showDetail = !showDetail },
+                                ),
+                            )
+                            LevelProgressReveal(
+                                visible = showDetail,
+                                level = topicPoints[topic],
                             )
                         }
                     }

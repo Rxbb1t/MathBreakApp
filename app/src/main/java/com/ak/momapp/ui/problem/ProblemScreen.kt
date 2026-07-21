@@ -16,6 +16,7 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -94,6 +95,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ak.momapp.i18n.LocalStrings
 import com.ak.momapp.problem.ComparisonProblemGenerator
 import com.ak.momapp.problem.Difficulty
+import com.ak.momapp.problem.Level
 import com.ak.momapp.problem.MissingOperatorGenerator
 import com.ak.momapp.problem.PersonalContent
 import com.ak.momapp.problem.Problem
@@ -123,6 +125,7 @@ fun ProblemScreen(
     val soundEnabled by viewModel.successSound.collectAsState()
     val sessionDone by viewModel.sessionDone.collectAsState()
     val sessionLimit by viewModel.sessionLimit.collectAsState()
+    val currentLevel by viewModel.currentLevel.collectAsState()
 
     // Every break arrival starts a fresh sitting for the per-break cap
     // (and skips the Start screen. The notification tap was the start).
@@ -164,6 +167,7 @@ fun ProblemScreen(
             soundEnabled = soundEnabled,
             sessionDone = sessionDone,
             sessionLimit = sessionLimit,
+            currentLevel = currentLevel,
             modifier = modifier,
         )
     }
@@ -194,8 +198,14 @@ fun ProblemScreenContent(
     // and the type's name instead of the trophy and the settings gear.
     practiceTopic: ProblemTopic? = null,
     onExitPractice: () -> Unit = {},
+    // Her position on the fine scale, revealed by long-pressing the level
+    // chip. Null while it's still loading.
+    currentLevel: Level? = null,
 ) {
     val strings = LocalStrings.current
+    // The hidden readout. Not saved across restarts on purpose: it is a
+    // peek, not a mode to end up stuck in.
+    var showLevelDetail by remember { mutableStateOf(false) }
     val focusRequester = remember { FocusRequester() }
     val keyboard = LocalSoftwareKeyboardController.current
     val haptics = LocalHapticFeedback.current
@@ -285,6 +295,14 @@ fun ProblemScreenContent(
                                     text = strings.difficultyLabel(uiState.problem.difficulty),
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
+                                    // The hidden readout. A long press only,
+                                    // so there is nothing to stumble into
+                                    // mid-problem and nothing on screen
+                                    // hinting that a number exists at all.
+                                    modifier = Modifier.combinedClickable(
+                                        onClick = {},
+                                        onLongClick = { showLevelDetail = !showLevelDetail },
+                                    ),
                                 )
                             },
                             colors = SuggestionChipDefaults.suggestionChipColors(
@@ -330,6 +348,14 @@ fun ProblemScreenContent(
                         }
                     }
                 }
+
+                // The long-press readout. Sits under the header rather than
+                // over the problem, so revealing it never covers the thing
+                // she is trying to answer.
+                LevelProgressReveal(
+                    visible = showLevelDetail,
+                    level = currentLevel ?: uiState.problem.level,
+                )
 
                 // A drill has no cap, so no dots.
                 if (practiceTopic == null) {

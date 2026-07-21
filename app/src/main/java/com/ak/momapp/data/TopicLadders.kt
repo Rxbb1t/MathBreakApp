@@ -131,7 +131,25 @@ object TopicLadders {
         ladders: Map<ProblemTopic, TopicLadder>,
         topic: ProblemTopic,
         solveTimeMs: Long,
-    ): Pace = (ladders[topic]?.pace ?: PaceEstimate()).classify(solveTimeMs)
+        /**
+         * Her pace across all topics, used until this one has an opinion of
+         * its own.
+         *
+         * Without it, speed effectively never counted. A break draws from
+         * ten topics, so waiting for five timed answers on EACH meant fifty
+         * problems before quickness registered anywhere. Someone racing
+         * through their first sitting would be scored as merely steady the
+         * whole way, and the level would crawl for no reason they could
+         * see. The topic estimate is still preferred the moment it exists,
+         * because how long a geometry problem should take says very little
+         * about a tap.
+         */
+        overall: PaceEstimate = PaceEstimate(),
+    ): Pace {
+        val own = ladders[topic]?.pace
+        val estimate = if (own != null && own.samples >= PaceEstimate.EVIDENCE_NEEDED) own else overall
+        return estimate.classify(solveTimeMs)
+    }
 
     /**
      * Files one first-try answer against [topic]'s ladder. A ladder that

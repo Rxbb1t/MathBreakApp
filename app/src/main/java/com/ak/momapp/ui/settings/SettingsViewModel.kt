@@ -14,6 +14,7 @@ import com.ak.momapp.data.SettingsRepository
 import com.ak.momapp.data.SetupPreset
 import com.ak.momapp.i18n.AppLanguage
 import com.ak.momapp.problem.Difficulty
+import com.ak.momapp.problem.Level
 import com.ak.momapp.problem.ProblemTopic
 import com.ak.momapp.ui.theme.AppPalette
 import java.time.DayOfWeek
@@ -41,6 +42,14 @@ class SettingsViewModel(
      */
     val topicLevels: StateFlow<Map<ProblemTopic, Difficulty>> =
         (progressRepository?.topicBands ?: emptyFlow())
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyMap())
+
+    /**
+     * The fine position behind each of those names, for the long-press
+     * readout only. Nothing on the ordinary screen reads this.
+     */
+    val topicPoints: StateFlow<Map<ProblemTopic, Level>> =
+        (progressRepository?.topicLevels ?: emptyFlow())
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyMap())
 
 

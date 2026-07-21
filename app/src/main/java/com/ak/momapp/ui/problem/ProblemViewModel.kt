@@ -10,6 +10,7 @@ import com.ak.momapp.data.ChallengeRepository
 import com.ak.momapp.data.ProgressRepository
 import com.ak.momapp.data.SettingsRepository
 import com.ak.momapp.problem.Difficulty
+import com.ak.momapp.problem.Level
 import com.ak.momapp.problem.PersonalContent
 import com.ak.momapp.problem.Problem
 import com.ak.momapp.problem.ProblemGenerator
@@ -115,6 +116,14 @@ class ProblemViewModel(
     val successSound: StateFlow<Boolean> = settingsRepository.settings
         .map { it.successSound }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+
+    /**
+     * Where she sits on the fine scale. Shown ONLY behind the long-press on
+     * the level chip, never as part of the ordinary screen: a number on
+     * display is a number to chase, and this app deliberately has no score.
+     */
+    val currentLevel: StateFlow<Level?> = progressRepository.currentLevel
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     // Problems finished this sitting; drives the cap and the dots.
     private val _sessionDone = MutableStateFlow(0)

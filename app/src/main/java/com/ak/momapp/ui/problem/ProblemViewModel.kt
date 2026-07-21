@@ -18,6 +18,7 @@ import com.ak.momapp.problem.ProblemGenerator
 import com.ak.momapp.problem.ProblemKind
 import com.ak.momapp.problem.ProblemShape
 import com.ak.momapp.problem.ProblemTopic
+import com.ak.momapp.problem.Warmup
 import com.ak.momapp.problem.toLevel
 import com.ak.momapp.problem.topic
 import java.time.LocalDate
@@ -130,6 +131,15 @@ class ProblemViewModel(
     private val _sessionDone = MutableStateFlow(0)
     val sessionDone: StateFlow<Int> = _sessionDone.asStateFlow()
 
+    /**
+     * Problems DEALT this sitting, which the warm-up counts. Kept separate
+     * from [_sessionDone] on purpose: that one counts finished problems for
+     * the per-break cap and deliberately ignores skips, but a skipped
+     * warm-up problem has still been seen, so easing the next one off the
+     * same counter would re-ease forever for anyone who skips the openers.
+     */
+    private var sittingDealt = 0
+
     private var problemShownAtMs: Long = 0
     private var timerJob: Job? = null
 
@@ -156,6 +166,7 @@ class ProblemViewModel(
         timerJob?.cancel()
         _practice.value = PracticeConfig(topic, difficulty)
         _sessionDone.value = 0
+        sittingDealt = 0
         _started.value = true
         _uiState.value = null
         nextProblem()
@@ -182,6 +193,7 @@ class ProblemViewModel(
      */
     fun onBreakOpened() {
         _sessionDone.value = 0
+        sittingDealt = 0
         _uiState.update { it?.copy(sessionComplete = false) }
         startSession()
     }
@@ -193,6 +205,7 @@ class ProblemViewModel(
      */
     fun resetSitting() {
         _sessionDone.value = 0
+        sittingDealt = 0
         _started.value = true
         timerJob?.cancel()
         viewModelScope.launch {
@@ -444,11 +457,17 @@ class ProblemViewModel(
         } else {
             progressRepository.dueReview(settings.enabledTopics)
         }
+        // The first couple of problems of a break are dealt a little
+        // easier, to ease her in. Never during a drill, where she has
+        // already chosen the level herself. Only what is dealt changes;
+        // her stored level and everything the answer does to it are
+        // untouched.
+        fun eased(base: Level) = if (drill == null) Warmup.ease(base, sittingDealt) else base
         val problem: Problem = generator.generate(
-            level = level,
+            level = eased(level),
             language = settings.language,
             topics = drill?.let { setOf(it.topic) } ?: settings.enabledTopics,
-            levelFor = { topic -> levels?.get(topic) ?: level },
+            levelFor = { topic -> eased(levels?.get(topic) ?: level) },
             review = review,
         )
         problemShownAtMs = System.currentTimeMillis()
@@ -459,6 +478,7 @@ class ProblemViewModel(
             .takeIf { it > 0 && drill == null }
             ?.let { minutes -> (minutes * 60 * problem.timerMultiplier).roundToInt() }
         _uiState.update { ProblemUiState(problem = problem, remainingSeconds = timerSeconds) }
+        sittingDealt++
         startTimer(timerSeconds)
     }
 

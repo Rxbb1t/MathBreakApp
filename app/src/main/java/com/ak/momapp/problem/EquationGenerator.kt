@@ -71,6 +71,9 @@ class EquationGenerator(private val random: Random) {
             answer = x,
             level = level,
             kind = ProblemKind.EQUATION,
+            // One unknown in one line: the gentlest equation there is, so
+            // it should not carry her up like a two-unknown system does.
+            effort = SINGLE_UNKNOWN_EFFORT,
             hints = listOf(shorthandHint(a, language), HintText.digits(x, language)),
             notes = listOf(balanceNote(language), shorthandNote(language)),
             solution = listOf(clear, divideBoth(a, a * x, x, language)),
@@ -422,6 +425,15 @@ class EquationGenerator(private val random: Random) {
      * f′ of ax² + bx + c at k is 2ak + b; of ax³ + bx + c it is 3ak² + b;
      * whole and positive by construction.
      */
+    /**
+     * A one-line, one-unknown equation. Still an equation, but the easiest
+     * shape of one, so it sits below the kind's usual worth.
+     */
+    private val SINGLE_UNKNOWN_EFFORT = 1.15
+
+    /** Derivatives are the hardest thing the app asks for. */
+    private val DERIVATIVE_EFFORT = 1.6
+
     private fun derivative(level: Level, language: AppLanguage): Problem {
         val b = random.nextInt(2, 14)
         val c = random.nextInt(2, 31)
@@ -486,6 +498,7 @@ class EquationGenerator(private val random: Random) {
             answer = answer,
             level = level,
             kind = ProblemKind.EQUATION,
+            effort = DERIVATIVE_EFFORT,
             solution = solution,
             hints = listOf(derivativeMeaningHint(language), HintText.digits(answer, language)),
             notes = listOf(

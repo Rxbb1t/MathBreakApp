@@ -42,6 +42,41 @@ enum class ProblemKind {
 
     /** "12 ? 3 = 4": tap the operation sign that makes it true. */
     MISSING_OP,
+    ;
+
+    /**
+     * How much answering one of these says about her level, as a multiple
+     * of an ordinary problem.
+     *
+     * Not every right answer is the same size of achievement, and treating
+     * them alike meant a sitting of quick taps carried her along at the
+     * same rate as a sitting of riddles. Tapping ✓ or ✗ on a claim is a
+     * coin flip away from free; solving a two-unknown equation is not.
+     *
+     * The weight moves the CLIMB, and it moves a miss too, but never past
+     * the ordinary amount (see [LevelLadder]). So the cheap exercises drift
+     * gently in both directions, which is what weak evidence deserves,
+     * while the demanding ones carry her up faster without also punishing
+     * her harder for getting one wrong.
+     */
+    val effort: Double
+        get() = when (this) {
+            // Two choices: half of getting it right is knowing nothing.
+            TRUE_FALSE -> 0.5
+            // Three and four choices respectively.
+            COMPARE -> 0.6
+            MISSING_OP -> 0.7
+            // A search rather than a calculation, and a shallow one.
+            TARGET -> 0.7
+            SELECT -> 0.8
+            // The everyday middle: a story with a step or two in it.
+            ARITHMETIC -> 0.9
+            WORD, MONEY, TIME, SETS -> 1.0
+            // These are the ones worth being pleased about.
+            GEOMETRY, PUZZLE -> 1.2
+            LOGIC -> 1.3
+            EQUATION -> 1.4
+        }
 }
 
 /**
@@ -59,6 +94,15 @@ data class Problem(
      */
     val level: Level,
     val kind: ProblemKind = ProblemKind.ARITHMETIC,
+    /**
+     * What solving this is worth on the ladder, defaulting to what the
+     * [kind] is usually worth. A generator overrides it when it knows this
+     * particular problem is easier or harder than its kind suggests: a
+     * chain of nothing but additions is not the same work as one with a
+     * division in it, and neither is a two-unknown equation the same as
+     * finding x in one line.
+     */
+    val effort: Double = kind.effort,
     /**
      * Two nudges revealed one at a time by the Hint button; the third
      * press shows the answer itself. Baked in at generation time, in the

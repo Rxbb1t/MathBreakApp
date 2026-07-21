@@ -10,6 +10,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import com.ak.momapp.problem.Difficulty
 import com.ak.momapp.problem.Level
 import com.ak.momapp.problem.LevelLadder
+import com.ak.momapp.problem.Outcome
 import com.ak.momapp.problem.PaceEstimate
 import com.ak.momapp.problem.ProblemTopic
 import com.ak.momapp.problem.ReviewPick
@@ -84,6 +85,13 @@ class ProgressRepository(private val context: Context) {
          */
         val OVERALL_PACE_MS = longPreferencesKey("overall_pace_ms")
         val OVERALL_PACE_SAMPLES = intPreferencesKey("overall_pace_samples")
+
+        /**
+         * Skips since the last one that counted. See
+         * [LevelLadder.SKIPS_PER_PENALTY]: passing on a single problem
+         * costs nothing at all.
+         */
+        val SKIP_TALLY = intPreferencesKey("skip_tally")
     }
 
     /**
@@ -170,11 +178,13 @@ class ProgressRepository(private val context: Context) {
         countsTowardLevel: Boolean = true,
         /** The shape solved, so the review queue can space it out further. */
         shape: String? = null,
+        /** What this problem was worth; see [com.ak.momapp.problem.Problem.effort]. */
+        effort: Double = 1.0,
     ) {
         context.brainBreakDataStore.edit { prefs ->
             if (firstAttempt) {
                 if (countsTowardLevel) {
-                    advance(prefs, topic, correct = true, solveTimeMs = solveTimeMs)
+                    advance(prefs, topic, Outcome.CORRECT, solveTimeMs, effort)
                 }
                 // A drill still counts here. She chose to practise this and
                 // got it right, which is exactly the evidence the queue
@@ -225,16 +235,25 @@ class ProgressRepository(private val context: Context) {
         }
     }
 
-    /** Only called for a miss on the first attempt (wrong answer, skip, or timeout). */
+    /**
+     * Only called for a miss on the first attempt.
+     *
+     * [outcome] separates the three ways of not solving something, because
+     * they mean different things: answering wrongly is evidence about the
+     * level, while skipping or running out of time is usually evidence
+     * about the afternoon.
+     */
     suspend fun recordIncorrect(
         topic: ProblemTopic,
         countsTowardLevel: Boolean = true,
         /** The shape missed, so it can come round again in a day or so. */
         shape: String? = null,
+        outcome: Outcome = Outcome.WRONG,
+        effort: Double = 1.0,
     ) {
         context.brainBreakDataStore.edit { prefs ->
-            if (countsTowardLevel) {
-                advance(prefs, topic, correct = false, solveTimeMs = 0)
+            if (countsTowardLevel && countsSkip(prefs, outcome)) {
+                advance(prefs, topic, outcome, solveTimeMs = 0, effort = effort)
             }
             prefs[Keys.REVIEW_QUEUE] = ReviewQueue.recordMiss(
                 raw = prefs[Keys.REVIEW_QUEUE],
@@ -260,11 +279,28 @@ class ProgressRepository(private val context: Context) {
      * topic she has never answered should start where she already is,
      * rather than back at the floor.
      */
+    /**
+     * Whether this outcome should move the level at all.
+     *
+     * Everything except a skip does. A skip only counts every
+     * [LevelLadder.SKIPS_PER_PENALTY]-th time: passing on one problem
+     * because the doorbell went should cost nothing, and an app that docks
+     * you for every single pass is one you start feeling watched by. Two in
+     * a row is a different signal and that one is worth hearing.
+     */
+    private fun countsSkip(prefs: MutablePreferences, outcome: Outcome): Boolean {
+        if (outcome != Outcome.SKIPPED) return true
+        val (tally, counts) = SkipTally.record(prefs[Keys.SKIP_TALLY] ?: 0)
+        prefs[Keys.SKIP_TALLY] = tally
+        return counts
+    }
+
     private fun advance(
         prefs: MutablePreferences,
         topic: ProblemTopic,
-        correct: Boolean,
+        outcome: Outcome,
         solveTimeMs: Long,
+        effort: Double,
     ) {
         val ladders = TopicLadders.decode(prefs[Keys.TOPIC_LADDERS])
         val overallPace = PaceEstimate(
@@ -272,27 +308,31 @@ class ProgressRepository(private val context: Context) {
             samples = prefs[Keys.OVERALL_PACE_SAMPLES] ?: 0,
         )
         val pace = TopicLadders.paceOf(ladders, topic, solveTimeMs, overallPace)
-        if (correct) {
-            val moved = overallPace.record(solveTimeMs)
-            prefs[Keys.OVERALL_PACE_MS] = moved.typicalMs
-            prefs[Keys.OVERALL_PACE_SAMPLES] = moved.samples
+        if (outcome == Outcome.CORRECT) {
+            val paced = overallPace.record(solveTimeMs)
+            prefs[Keys.OVERALL_PACE_MS] = paced.typicalMs
+            prefs[Keys.OVERALL_PACE_SAMPLES] = paced.samples
+            // A clean run resets the skip tally: two skips a week apart are
+            // not the pattern this is trying to notice.
+            prefs[Keys.SKIP_TALLY] = 0
         }
         val ceiling = readCeiling(prefs)
         val level = readLevel(prefs)
         val band = readBand(prefs)
 
-        val moved = LevelLadder.next(level, correct, pace, ceiling)
+        val moved = LevelLadder.next(level, outcome, pace, effort, ceiling)
         prefs[Keys.CURRENT_POINTS] = moved.points
         prefs[Keys.CURRENT_BAND] = LevelLadder.shownBand(minOf(moved, ceiling), band).name
 
         prefs[Keys.TOPIC_LADDERS] = TopicLadders.record(
             raw = prefs[Keys.TOPIC_LADDERS],
             topic = topic,
-            correct = correct,
+            outcome = outcome,
             pace = pace,
             solveTimeMs = solveTimeMs,
             seedLevel = level,
             seedBand = band,
+            effort = effort,
             ceiling = ceiling,
         )
     }

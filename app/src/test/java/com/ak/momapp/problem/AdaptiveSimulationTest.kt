@@ -55,7 +55,7 @@ class AdaptiveSimulationTest {
             val time = solveTimeMs(ability, level, random)
             val judged = pace.classify(time)
             if (correct) pace = pace.record(time)
-            level = LevelLadder.next(level, correct, judged)
+            level = LevelLadder.next(level, if (correct) Outcome.CORRECT else Outcome.WRONG, judged)
             level
         }
     }
@@ -151,8 +151,8 @@ class AdaptiveSimulationTest {
         var fast = Level.of(40)
         var slow = Level.of(40)
         repeat(20) {
-            fast = LevelLadder.next(fast, correct = true, pace = Pace.FAST)
-            slow = LevelLadder.next(slow, correct = true, pace = Pace.SLOW)
+            fast = LevelLadder.next(fast, Outcome.CORRECT, Pace.FAST)
+            slow = LevelLadder.next(slow, Outcome.CORRECT, Pace.SLOW)
         }
         assertTrue("fast $fast should be well past slow $slow", fast.points - slow.points > 15)
     }

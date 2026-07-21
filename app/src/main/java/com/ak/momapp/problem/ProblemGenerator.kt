@@ -324,11 +324,16 @@ class ProblemGenerator(private val random: Random = Random.Default) {
             AppLanguage.ENGLISH -> "Work left to right. Every step lands on a whole number."
             AppLanguage.ROMANIAN -> "Mergi de la stânga la dreapta. Fiecare pas dă un număr întreg."
         }
+        // A chain of nothing but plus and minus is the lightest work the app
+        // deals; one with a × or ÷ folded into it is a real step up. The
+        // generator is the only thing that knows which it just built.
+        val hasGrouping = (listOf(first) + rest.map { it.second }).any { it.terms > 1 }
         return Problem(
             text = "$text = ?",
             answer = running,
             level = level,
             kind = ProblemKind.ARITHMETIC,
+            effort = if (hasGrouping) ProblemKind.ARITHMETIC.effort else PLAIN_CHAIN_EFFORT,
             hints = listOf(calmHint, HintText.digits(running, language)),
             solution = chainSolution(first, rest, language),
         )
@@ -651,6 +656,12 @@ class ProblemGenerator(private val random: Random = Random.Default) {
     companion object {
         /** How many rerolls before taking whatever the dice gave. */
         private const val REROLL_LIMIT = 12
+
+        /**
+         * A chain of only additions and subtractions. The lightest thing
+         * the app deals, and it should carry her up the slowest.
+         */
+        private const val PLAIN_CHAIN_EFFORT = 0.6
 
         /**
          * Where geometry starts turning up and where it reaches full

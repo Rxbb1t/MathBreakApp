@@ -94,14 +94,27 @@ class ContinuousDifficultyTest {
         assertTrue("edge $edge should be thinner than settled $settled", edge < settled)
     }
 
+    /**
+     * Measured as a share OF THE CORE rather than of the whole sitting: the
+     * core's own size shifts with the mix, so counting chains against every
+     * problem dealt confuses "fewer chains" with "fewer core problems".
+     */
     @Test
     fun `equations take over from plain chains gradually`() {
-        val chainsLow = shareOf(10) { it.kind == ProblemKind.ARITHMETIC }
-        val chainsMid = shareOf(Level.EASY_TOP + 6) { it.kind == ProblemKind.ARITHMETIC }
-        val equationsMid = shareOf(Level.EASY_TOP + 6) { it.kind == ProblemKind.EQUATION }
-        assertTrue("chains should dominate low down", chainsLow > 0.0)
-        assertTrue("chains should be thinning by $chainsMid", chainsMid < chainsLow)
-        assertTrue("equations should have started by then", equationsMid > 0.0)
+        fun chainShareOfCore(points: Int): Double {
+            val problems = problemsAt(points, seed = points + 77)
+                .filter { it.kind == ProblemKind.ARITHMETIC || it.kind == ProblemKind.EQUATION }
+            return if (problems.isEmpty()) 0.0 else {
+                problems.count { it.kind == ProblemKind.ARITHMETIC } / problems.size.toDouble()
+            }
+        }
+        val low = chainShareOfCore(6)
+        val middle = chainShareOfCore(Level.EASY_TOP + 6)
+        val high = chainShareOfCore(Level.MEDIUM_ANCHOR)
+        assertEquals("chains should be all there is at the bottom", 1.0, low, 0.001)
+        assertTrue("equations should have started by the middle ($middle)", middle < 1.0)
+        assertTrue("chains should keep thinning ($middle then $high)", high < middle)
+        assertEquals("and be gone by mid-Normal", 0.0, high, 0.001)
     }
 
     @Test

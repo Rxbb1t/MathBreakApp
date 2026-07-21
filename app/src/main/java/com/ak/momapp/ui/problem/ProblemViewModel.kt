@@ -11,6 +11,7 @@ import com.ak.momapp.data.ProgressRepository
 import com.ak.momapp.data.SettingsRepository
 import com.ak.momapp.problem.Difficulty
 import com.ak.momapp.problem.Level
+import com.ak.momapp.problem.Outcome
 import com.ak.momapp.problem.PersonalContent
 import com.ak.momapp.problem.Problem
 import com.ak.momapp.problem.ProblemGenerator
@@ -211,7 +212,7 @@ class ProblemViewModel(
         if (state.isFinished) return
         timerJob?.cancel()
         if (state.attempts == 0) {
-            recordMiss(state.problem.kind.topic)
+            recordMiss(state.problem.kind.topic, Outcome.SKIPPED)
         }
         nextProblem()
     }
@@ -293,6 +294,7 @@ class ProblemViewModel(
                     topic = state.problem.kind.topic,
                     countsTowardLevel = _practice.value == null,
                     shape = ProblemShape.of(state.problem),
+                    effort = state.problem.effort,
                 )
             }
             _uiState.update {
@@ -335,7 +337,9 @@ class ProblemViewModel(
             return
         }
         if (state.attempts == 0) {
-            recordMiss(state.problem.kind.topic)
+            // Asking to be shown the answer is giving up, not getting it
+            // wrong. Gentler, and the same as letting the clock run out.
+            recordMiss(state.problem.kind.topic, Outcome.GAVE_UP)
         }
         _uiState.update {
             it?.copy(phase = AnswerPhase.REVEALED, hintsUsed = MAX_HINTS, input = "")
@@ -344,14 +348,16 @@ class ProblemViewModel(
     }
 
     /** A first-attempt miss. Drills never drag the break level down. */
-    private fun recordMiss(topic: ProblemTopic) {
+    private fun recordMiss(topic: ProblemTopic, outcome: Outcome = Outcome.WRONG) {
         val drilling = _practice.value != null
-        val shape = _uiState.value?.problem?.let(ProblemShape::of)
+        val problem = _uiState.value?.problem
         viewModelScope.launch {
             progressRepository.recordIncorrect(
                 topic = topic,
                 countsTowardLevel = !drilling,
-                shape = shape,
+                shape = problem?.let(ProblemShape::of),
+                outcome = outcome,
+                effort = problem?.effort ?: 1.0,
             )
         }
     }
@@ -426,10 +432,11 @@ class ProblemViewModel(
     private fun onTimeUp() {
         val state = _uiState.value ?: return
         if (state.isFinished) return
-        // Untouched problems count as a miss for the adaptive level; if she
+        // Untouched problems count against the adaptive level, but gently:
+        // running out of time is not the same as trying and missing. If she
         // already missed an attempt, that was recorded then.
         if (state.attempts == 0) {
-            recordMiss(state.problem.kind.topic)
+            recordMiss(state.problem.kind.topic, Outcome.GAVE_UP)
         }
         _uiState.update {
             it?.copy(

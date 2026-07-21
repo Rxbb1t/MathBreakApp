@@ -15,13 +15,28 @@ class LevelTest {
     }
 
     @Test
-    fun `each band covers a third of the scale`() {
-        assertEquals(Difficulty.EASY, Level.of(0).band)
-        assertEquals(Difficulty.EASY, Level.of(32).band)
-        assertEquals(Difficulty.MEDIUM, Level.of(33).band)
-        assertEquals(Difficulty.MEDIUM, Level.of(66).band)
-        assertEquals(Difficulty.HARD, Level.of(67).band)
-        assertEquals(Difficulty.HARD, Level.of(100).band)
+    fun `the bands tile the whole scale without gaps`() {
+        assertEquals(Difficulty.EASY, Level.of(Level.MIN).band)
+        assertEquals(Difficulty.EASY, Level.of(Level.EASY_TOP).band)
+        assertEquals(Difficulty.MEDIUM, Level.of(Level.EASY_TOP + 1).band)
+        assertEquals(Difficulty.MEDIUM, Level.of(Level.MEDIUM_TOP).band)
+        assertEquals(Difficulty.HARD, Level.of(Level.MEDIUM_TOP + 1).band)
+        assertEquals(Difficulty.HARD, Level.of(Level.MAX).band)
+    }
+
+    /**
+     * Normal is the wide one on purpose: it is where most people belong and
+     * where the app has the most to offer, so it should be the answer most
+     * of the time rather than somewhere passed through on the way to Hard.
+     */
+    @Test
+    fun `Normal is the widest band`() {
+        val easy = Level.EASY_TOP - Level.MIN + 1
+        val normal = Level.MEDIUM_TOP - Level.EASY_TOP
+        val hard = Level.MAX - Level.MEDIUM_TOP
+        assertTrue("Normal ($normal) should be wider than Easy ($easy)", normal > easy)
+        assertTrue("Normal ($normal) should be wider than Hard ($hard)", normal > hard)
+        assertEquals("the bands must tile the scale", Level.MAX + 1, easy + normal + hard)
     }
 
     @Test

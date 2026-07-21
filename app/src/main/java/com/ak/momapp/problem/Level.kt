@@ -91,17 +91,37 @@ value class Level private constructor(val points: Int) : Comparable<Level> {
         const val MIN = 0
         const val MAX = 100
 
-        /** Band edges. Equal thirds, so each name covers the same width. */
-        const val EASY_TOP = 32
-        const val MEDIUM_TOP = 66
+        /**
+         * Band edges. NORMAL IS THE WIDE ONE, deliberately: it covers about
+         * two fifths of the scale while Easy and Hard take under a third
+         * each.
+         *
+         * Equal thirds looked tidier and was worse. Normal is where most
+         * people belong and where the app has the most to offer, so it
+         * should be the answer most of the time and should not be somewhere
+         * you pass through on the way to Hard. Easy stays a genuine
+         * starting place and Hard stays somewhere you arrive at, rather
+         * than the top third of a ladder everybody climbs.
+         */
+        const val EASY_TOP = 24
+        const val MEDIUM_TOP = 69
 
         /**
          * The middle of each band. A [Difficulty] converts to the middle of
          * its own band, and [between]'s tuned values are pinned here.
+         *
+         * Normal's middle sits a little below the middle of the SCALE, and
+         * that is not an accident either. Because the ladder seeks the level
+         * where she is right about four times in five, everybody settles
+         * somewhat below their own ceiling, so the whole population lands
+         * lower than a naive reading would put it. Measured across abilities
+         * spread over the range, drawing the bands here is what actually
+         * makes Normal the common answer; leaving them at the arithmetic
+         * thirds put just as many people in Easy.
          */
-        const val EASY_ANCHOR = 16
-        const val MEDIUM_ANCHOR = 50
-        const val HARD_ANCHOR = 83
+        const val EASY_ANCHOR = 12
+        const val MEDIUM_ANCHOR = 47
+        const val HARD_ANCHOR = 85
 
         val FLOOR = Level(MIN)
         val CEILING = Level(MAX)

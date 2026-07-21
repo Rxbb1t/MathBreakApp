@@ -3,6 +3,7 @@ package com.ak.momapp.data
 import com.ak.momapp.problem.Difficulty
 import com.ak.momapp.problem.Level
 import com.ak.momapp.problem.LevelLadder
+import com.ak.momapp.problem.Outcome
 import com.ak.momapp.problem.Pace
 import com.ak.momapp.problem.PaceEstimate
 import com.ak.momapp.problem.ProblemTopic
@@ -27,7 +28,7 @@ class TopicLaddersTest {
     private fun record(
         raw: String?,
         topic: ProblemTopic,
-        correct: Boolean,
+        outcome: Outcome,
         count: Int = 1,
         pace: Pace = Pace.STEADY,
         solveTimeMs: Long = 20_000,
@@ -38,7 +39,7 @@ class TopicLaddersTest {
             current = TopicLadders.record(
                 raw = current,
                 topic = topic,
-                correct = correct,
+                outcome = outcome,
                 pace = pace,
                 solveTimeMs = solveTimeMs,
                 seedLevel = start,
@@ -94,7 +95,7 @@ class TopicLaddersTest {
 
     @Test
     fun `a topic follows the overall level until it has evidence`() {
-        val ladders = TopicLadders.decode(record(null, ProblemTopic.GEOMETRY, correct = false, count = 3))
+        val ladders = TopicLadders.decode(record(null, ProblemTopic.GEOMETRY, outcome = Outcome.WRONG, count = 3))
         // Its own ladder has moved, but nobody is listening yet.
         assertTrue(ladders.getValue(ProblemTopic.GEOMETRY).level < start)
         assertEquals(start, TopicLadders.levelFor(ladders, ProblemTopic.GEOMETRY, start))
@@ -102,17 +103,17 @@ class TopicLaddersTest {
 
     @Test
     fun `once there is evidence the topic speaks for itself`() {
-        val raw = record(null, ProblemTopic.GEOMETRY, correct = false, count = TopicLadders.EVIDENCE_NEEDED)
+        val raw = record(null, ProblemTopic.GEOMETRY, outcome = Outcome.WRONG, count = TopicLadders.EVIDENCE_NEEDED)
         assertTrue(TopicLadders.levelFor(TopicLadders.decode(raw), ProblemTopic.GEOMETRY, start) < start)
     }
 
     @Test
     fun `the wait works upward too`() {
-        val climbing = record(null, ProblemTopic.MONEY, correct = true, count = 3, pace = Pace.FAST)
+        val climbing = record(null, ProblemTopic.MONEY, outcome = Outcome.CORRECT, count = 3, pace = Pace.FAST)
         assertEquals(start, TopicLadders.levelFor(TopicLadders.decode(climbing), ProblemTopic.MONEY, start))
 
         val settled = record(
-            null, ProblemTopic.MONEY, correct = true,
+            null, ProblemTopic.MONEY, outcome = Outcome.CORRECT,
             count = TopicLadders.EVIDENCE_NEEDED, pace = Pace.FAST,
         )
         assertTrue(TopicLadders.levelFor(TopicLadders.decode(settled), ProblemTopic.MONEY, start) > start)
@@ -121,10 +122,10 @@ class TopicLaddersTest {
     @Test
     fun `topics move independently`() {
         var raw = record(
-            null, ProblemTopic.MONEY, correct = true,
+            null, ProblemTopic.MONEY, outcome = Outcome.CORRECT,
             count = TopicLadders.EVIDENCE_NEEDED, pace = Pace.FAST,
         )
-        raw = record(raw, ProblemTopic.GEOMETRY, correct = false, count = TopicLadders.EVIDENCE_NEEDED)
+        raw = record(raw, ProblemTopic.GEOMETRY, outcome = Outcome.WRONG, count = TopicLadders.EVIDENCE_NEEDED)
         val ladders = TopicLadders.decode(raw)
         val money = TopicLadders.levelFor(ladders, ProblemTopic.MONEY, start)
         val geometry = TopicLadders.levelFor(ladders, ProblemTopic.GEOMETRY, start)
@@ -138,7 +139,7 @@ class TopicLaddersTest {
 
     @Test
     fun `a fresh ladder is seeded from the overall level, not the floor`() {
-        val ladder = TopicLadders.decode(record(null, ProblemTopic.TIME, correct = true))
+        val ladder = TopicLadders.decode(record(null, ProblemTopic.TIME, outcome = Outcome.CORRECT))
             .getValue(ProblemTopic.TIME)
         assertTrue("seeded at ${ladder.level}", ladder.level > Level.of(Level.EASY_TOP))
     }
@@ -150,7 +151,7 @@ class TopicLaddersTest {
         val ceiling = Level.of(Level.MEDIUM_TOP)
         val ladders = TopicLadders.decode(
             record(
-                null, ProblemTopic.CORE, correct = true,
+                null, ProblemTopic.CORE, outcome = Outcome.CORRECT,
                 count = TopicLadders.EVIDENCE_NEEDED * 3, pace = Pace.FAST,
             ),
         )
@@ -166,7 +167,7 @@ class TopicLaddersTest {
     @Test
     fun `a cap applied after the climb still applies`() {
         val raw = record(
-            null, ProblemTopic.CORE, correct = true,
+            null, ProblemTopic.CORE, outcome = Outcome.CORRECT,
             count = TopicLadders.EVIDENCE_NEEDED * 3, pace = Pace.FAST,
         )
         val capped = TopicLadders.levelFor(
@@ -181,7 +182,7 @@ class TopicLaddersTest {
     fun `the row names the level the topic is actually dealt at`() {
         val ladders = TopicLadders.decode(
             record(
-                null, ProblemTopic.CORE, correct = true,
+                null, ProblemTopic.CORE, outcome = Outcome.CORRECT,
                 count = TopicLadders.EVIDENCE_NEEDED * 4, pace = Pace.FAST,
             ),
         )
@@ -192,7 +193,7 @@ class TopicLaddersTest {
 
     @Test
     fun `a topic without evidence shows the overall name`() {
-        val ladders = TopicLadders.decode(record(null, ProblemTopic.WORD, correct = false))
+        val ladders = TopicLadders.decode(record(null, ProblemTopic.WORD, outcome = Outcome.WRONG))
         assertEquals(
             Difficulty.MEDIUM,
             TopicLadders.bandFor(ladders, ProblemTopic.WORD, start, Difficulty.MEDIUM),
@@ -204,7 +205,7 @@ class TopicLaddersTest {
     fun `the shown name is remembered alongside the level`() {
         val ladder = TopicLadders.decode(
             record(
-                null, ProblemTopic.CORE, correct = true,
+                null, ProblemTopic.CORE, outcome = Outcome.CORRECT,
                 count = TopicLadders.EVIDENCE_NEEDED * 4, pace = Pace.FAST,
             ),
         ).getValue(ProblemTopic.CORE)
@@ -215,14 +216,14 @@ class TopicLaddersTest {
 
     @Test
     fun `only correct answers teach the app her pace`() {
-        val raw = record(null, ProblemTopic.CORE, correct = false, count = 4, solveTimeMs = 30_000)
+        val raw = record(null, ProblemTopic.CORE, outcome = Outcome.WRONG, count = 4, solveTimeMs = 30_000)
         assertEquals(0, TopicLadders.decode(raw).getValue(ProblemTopic.CORE).pace.samples)
     }
 
     @Test
     fun `her usual pace is learned per topic`() {
-        var raw = record(null, ProblemTopic.CORE, correct = true, count = 6, solveTimeMs = 8_000)
-        raw = record(raw, ProblemTopic.GEOMETRY, correct = true, count = 6, solveTimeMs = 90_000)
+        var raw = record(null, ProblemTopic.CORE, outcome = Outcome.CORRECT, count = 6, solveTimeMs = 8_000)
+        raw = record(raw, ProblemTopic.GEOMETRY, outcome = Outcome.CORRECT, count = 6, solveTimeMs = 90_000)
         val ladders = TopicLadders.decode(raw)
         // The same 30 seconds is quick for geometry and slow for the core.
         assertEquals(Pace.SLOW, TopicLadders.paceOf(ladders, ProblemTopic.CORE, 30_000))
@@ -254,7 +255,7 @@ class TopicLaddersTest {
         // Slow topic, quick person: 30 s is fast for THIS topic even though
         // it is slow for her in general.
         val raw = record(
-            null, ProblemTopic.GEOMETRY, correct = true,
+            null, ProblemTopic.GEOMETRY, outcome = Outcome.CORRECT,
             count = PaceEstimate.EVIDENCE_NEEDED, solveTimeMs = 90_000,
         )
         val overall = PaceEstimate(10_000, 40)
@@ -267,7 +268,7 @@ class TopicLaddersTest {
     @Test
     fun `a half-learned topic still defers to the overall pace`() {
         val raw = record(
-            null, ProblemTopic.CORE, correct = true,
+            null, ProblemTopic.CORE, outcome = Outcome.CORRECT,
             count = PaceEstimate.EVIDENCE_NEEDED - 2, solveTimeMs = 90_000,
         )
         val overall = PaceEstimate(20_000, 30)
@@ -280,8 +281,8 @@ class TopicLaddersTest {
 
     @Test
     fun `a fast answer climbs a topic quicker than a slow one`() {
-        val fast = record(null, ProblemTopic.CORE, correct = true, count = 6, pace = Pace.FAST)
-        val slow = record(null, ProblemTopic.CORE, correct = true, count = 6, pace = Pace.SLOW)
+        val fast = record(null, ProblemTopic.CORE, outcome = Outcome.CORRECT, count = 6, pace = Pace.FAST)
+        val slow = record(null, ProblemTopic.CORE, outcome = Outcome.CORRECT, count = 6, pace = Pace.SLOW)
         assertTrue(
             TopicLadders.decode(fast).getValue(ProblemTopic.CORE).level >
                 TopicLadders.decode(slow).getValue(ProblemTopic.CORE).level,
@@ -290,7 +291,7 @@ class TopicLaddersTest {
 
     @Test
     fun `misses walk a topic back down`() {
-        val raw = record(null, ProblemTopic.PUZZLE, correct = false, count = 8)
+        val raw = record(null, ProblemTopic.PUZZLE, outcome = Outcome.WRONG, count = 8)
         assertTrue(TopicLadders.decode(raw).getValue(ProblemTopic.PUZZLE).level < start)
     }
 }

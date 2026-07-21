@@ -3,6 +3,7 @@ package com.ak.momapp.data
 import com.ak.momapp.problem.Difficulty
 import com.ak.momapp.problem.Level
 import com.ak.momapp.problem.LevelLadder
+import com.ak.momapp.problem.Outcome
 import com.ak.momapp.problem.Pace
 import com.ak.momapp.problem.PaceEstimate
 import com.ak.momapp.problem.ProblemTopic
@@ -159,16 +160,18 @@ object TopicLadders {
     fun record(
         raw: String?,
         topic: ProblemTopic,
-        correct: Boolean,
+        outcome: Outcome,
         pace: Pace,
         solveTimeMs: Long,
         seedLevel: Level,
         seedBand: Difficulty,
+        effort: Double = 1.0,
         ceiling: Level = Level.CEILING,
     ): String {
+        val correct = outcome == Outcome.CORRECT
         val ladders = decode(raw).toMutableMap()
         val ladder = ladders[topic] ?: TopicLadder(level = seedLevel, shownBand = seedBand)
-        val moved = LevelLadder.next(ladder.level, correct, pace, ceiling)
+        val moved = LevelLadder.next(ladder.level, outcome, pace, effort, ceiling)
         ladders[topic] = TopicLadder(
             level = moved,
             shownBand = LevelLadder.shownBand(minOf(moved, ceiling), ladder.shownBand),

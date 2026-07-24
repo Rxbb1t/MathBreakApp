@@ -1,5 +1,7 @@
 package com.ak.momapp.problem
 
+import kotlin.math.abs
+import kotlin.math.pow
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -22,16 +24,24 @@ class LevelLadderTest {
     }
 
     /**
-     * The steps are a ratio that names a target accuracy, not four
+     * The steps are a ratio that names a target accuracy, not a handful of
      * independent knobs. Pinning it here because getting it wrong is
      * invisible in every other test: an earlier draft targeted 56% and
      * carried a competent player from Easy to derivatives in forty
      * problems, with every other assertion still green.
+     *
+     * The streak bonus took away the tidy ratio. It lands on the answers
+     * whose two predecessors were also clean, which at a solve rate of p is
+     * p³ of them, so the balance point is now the root of a cubic. Solving
+     * it beats restating it: a test that recomputed the constant the same
+     * way the constant was written would agree with any mistake in it.
      */
     @Test
     fun `the ladder targets the accuracy it claims to`() {
-        val target = LevelLadder.STEP_LOST.toDouble() /
-            (LevelLadder.STEP_STEADY + LevelLadder.STEP_LOST)
+        fun drift(p: Double) = p * LevelLadder.STEP_STEADY +
+            p.pow(LevelLadder.STREAK_FOR_BONUS) * LevelLadder.STREAK_BONUS -
+            (1 - p) * LevelLadder.STEP_LOST
+        val target = (0..1000).map { it / 1000.0 }.minBy { abs(drift(it)) }
         assertEquals(LevelLadder.TARGET_ACCURACY, target, 0.02)
     }
 
@@ -240,6 +250,107 @@ class LevelLadderTest {
                 )
             }
         }
+    }
+
+    // ── Runs of right answers ────────────────────────────────────────────
+
+    @Test
+    fun `the first answers of a run pay nothing extra`() {
+        for (streak in 0 until LevelLadder.STREAK_FOR_BONUS) {
+            assertEquals(
+                "a run of $streak was already paying a bonus",
+                LevelLadder.next(Level.of(50), Outcome.CORRECT, Pace.STEADY),
+                LevelLadder.next(Level.of(50), Outcome.CORRECT, Pace.STEADY, streak = streak),
+            )
+        }
+    }
+
+    @Test
+    fun `from the third onward every right answer is worth two more`() {
+        val plain = LevelLadder.next(Level.of(50), Outcome.CORRECT, Pace.STEADY)
+        for (streak in LevelLadder.STREAK_FOR_BONUS..8) {
+            val onARun = LevelLadder.next(Level.of(50), Outcome.CORRECT, Pace.STEADY, streak = streak)
+            assertEquals(
+                "a run of $streak paid the wrong bonus",
+                plain.points + LevelLadder.STREAK_BONUS,
+                onARun.points,
+            )
+        }
+    }
+
+    /**
+     * The bonus is for the run, not for the problem, so it must not ride on
+     * [Problem.effort] as well. Otherwise a streak of equations would be
+     * paid the effort weighting twice over.
+     */
+    @Test
+    fun `the bonus is the same whatever the problem was worth`() {
+        val start = Level.of(40)
+        for (kind in ProblemKind.entries) {
+            val plain = LevelLadder.next(start, Outcome.CORRECT, Pace.STEADY, kind.effort)
+            val onARun = LevelLadder.next(start, Outcome.CORRECT, Pace.STEADY, kind.effort, streak = 5)
+            assertEquals(
+                "$kind was paid the wrong bonus",
+                LevelLadder.STREAK_BONUS,
+                onARun.points - plain.points,
+            )
+        }
+    }
+
+    @Test
+    fun `a run only pays on the way up`() {
+        val start = Level.of(50)
+        for (outcome in Outcome.entries - Outcome.CORRECT) {
+            assertEquals(
+                "$outcome was softened by a run she is no longer on",
+                LevelLadder.next(start, outcome, Pace.STEADY),
+                LevelLadder.next(start, outcome, Pace.STEADY, streak = 9),
+            )
+        }
+    }
+
+    /**
+     * "Three in a row" has to mean three. A wrong attempt still costs no
+     * points, but it does end the run: that is the whole difference between
+     * the streak's rule and the level's.
+     */
+    @Test
+    fun `anything but a clean solve starts the run over`() {
+        var streak = 0
+        repeat(4) { streak = LevelLadder.streakAfter(streak, Outcome.CORRECT) }
+        assertEquals(4, streak)
+        for (outcome in Outcome.entries - Outcome.CORRECT) {
+            assertEquals("$outcome left the run standing", 0, LevelLadder.streakAfter(streak, outcome))
+        }
+    }
+
+    @Test
+    fun `a stumble then the right answer starts a new run rather than resuming`() {
+        var streak = 0
+        repeat(5) { streak = LevelLadder.streakAfter(streak, Outcome.CORRECT) }
+        streak = LevelLadder.streakAfter(streak, Outcome.WRONG)
+        streak = LevelLadder.streakAfter(streak, Outcome.CORRECT)
+        assertEquals(1, streak)
+        assertEquals(0, LevelLadder.bonusFor(streak))
+    }
+
+    @Test
+    fun `a run gets her across a band sooner than a patchy stretch does`() {
+        var onARun = Level.of(Level.EASY_TOP + 1)
+        var streak = 0
+        var answers = 0
+        while (onARun.band != Difficulty.HARD) {
+            streak = LevelLadder.streakAfter(streak, Outcome.CORRECT)
+            onARun = LevelLadder.next(onARun, Outcome.CORRECT, Pace.STEADY, streak = streak)
+            answers++
+        }
+        val patchy = generateSequence(Level.of(Level.EASY_TOP + 1)) {
+            LevelLadder.next(it, Outcome.CORRECT, Pace.STEADY)
+        }.indexOfFirst { it.band == Difficulty.HARD }
+        assertTrue("an unbroken run ($answers) should beat a patchy one ($patchy)", answers < patchy)
+        // Sooner, not instantly: crossing Normal is still a stretch of work
+        // rather than one good afternoon.
+        assertTrue("an unbroken run crossed Normal in only $answers answers", answers >= 10)
     }
 
     // ── The sticky band name ─────────────────────────────────────────────

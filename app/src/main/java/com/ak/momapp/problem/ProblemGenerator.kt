@@ -106,6 +106,18 @@ class ProblemGenerator(private val random: Random = Random.Default) {
     private val recentShapes = ArrayDeque<String>()
 
     /**
+     * The kind just served, so the next one can be something else.
+     *
+     * The two rings above compare wording, which is not what she notices
+     * when two different bead stories arrive back to back: those are
+     * separate templates with separate shapes, so both rings pass them
+     * happily while the break still reads as the same question twice. One
+     * kind never following itself is the rule that actually matches the
+     * complaint.
+     */
+    private var lastKind: ProblemKind? = null
+
+    /**
      * Hands out a problem, rerolling past anything too recently seen.
      * Bounded, because with a single topic enabled there may be nothing
      * else to serve: after [REROLL_LIMIT] tries it takes what it gets
@@ -129,15 +141,17 @@ class ProblemGenerator(private val random: Random = Random.Default) {
          */
         review: ReviewPick? = null,
     ): Problem {
-        var fallback: Problem? = null
+        var spare: Problem? = null
         repeat(REROLL_LIMIT) {
             val problem = roll(level, language, topics, levelFor, review)
-            // The first roll is worth keeping in case every later one is
-            // also a repeat.
-            if (fallback == null) fallback = problem
-            // A due shape is what we came for, so it beats the repeat
-            // rings: those exist to stop the same question twice in a
-            // sitting, and this one is deliberately coming back.
+            if (worthKeeping(problem, spare)) spare = problem
+            // Nothing gets past this, a due shape included: two of the same
+            // kind running is the one thing she was promised would not
+            // happen, and the queue can bring its shape round next time.
+            if (problem.kind == lastKind) return@repeat
+            // Otherwise a due shape is what we came for, so it beats the
+            // repeat rings: those exist to stop the same question twice in
+            // a sitting, and this one is deliberately coming back.
             if (review != null && ProblemShape.of(problem) == review.shape) {
                 return remember(problem)
             }
@@ -145,11 +159,23 @@ class ProblemGenerator(private val random: Random = Random.Default) {
                 return remember(problem)
             }
         }
-        return remember(fallback ?: roll(level, language, topics, levelFor, review))
+        return remember(spare ?: roll(level, language, topics, levelFor, review))
     }
 
-    /** Files a problem in both rings and hands it back. */
+    /**
+     * Whether [candidate] is a better thing to fall back on than [held].
+     *
+     * Only reached when every roll was a repeat, which happens for real
+     * when one topic is switched on and it has a single kind to offer. A
+     * repeated question is the lesser evil there, so breaking the run of
+     * kinds is what the consolation prize is picked for.
+     */
+    private fun worthKeeping(candidate: Problem, held: Problem?): Boolean =
+        held == null || (held.kind == lastKind && candidate.kind != lastKind)
+
+    /** Files a problem in the rings and hands it back. */
     private fun remember(problem: Problem): Problem {
+        lastKind = problem.kind
         recentTexts.addLast(keyOf(problem))
         if (recentTexts.size > RECENT_TEXTS) recentTexts.removeFirst()
         ProblemShape.of(problem)?.let {

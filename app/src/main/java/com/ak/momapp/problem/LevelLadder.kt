@@ -151,15 +151,24 @@ object LevelLadder {
      * first-try accuracy she settles at is therefore lower than this
      * number, which is intended: it leaves room to be wrong on the way.
      *
-     * At [STEP_STEADY] 2.4 against [STEP_LOST] 5 the target is about 68%
-     * SOLVED. Lower than the old 80% on purpose: the user found that too
-     * punishing, so the gains were raised and the loss softened, both of
-     * which let the level sit a little higher, where she is stretched more
-     * often. The flip side is that she loses a slightly larger share of
-     * problems outright; that is the deliberate trade, and [STEP_LOST] is
-     * the lever if it ever needs pulling back.
+     * At [STEP_STEADY] 2.4 against [STEP_LOST] 5 the target would be about
+     * 68% SOLVED. Lower than the old 80% on purpose: the user found that
+     * too punishing, so the gains were raised and the loss softened, both
+     * of which let the level sit a little higher, where she is stretched
+     * more often.
+     *
+     * [STREAK_BONUS] then pays out on the share of answers whose two
+     * predecessors were also clean, which is p² of them, and that extra
+     * income lets the level climb a little further before the falling
+     * catches up. There is no tidy ratio to read off any more; the number
+     * below is the root of `p·STEP_STEADY + p³·STREAK_BONUS = (1−p)·STEP_LOST`,
+     * and its test solves that equation rather than restating it.
+     *
+     * The flip side is that she loses a slightly larger share of problems
+     * outright; that is the deliberate trade, and [STEP_LOST] is still the
+     * lever if it ever needs pulling back.
      */
-    const val TARGET_ACCURACY = 0.68
+    const val TARGET_ACCURACY = 0.61
 
     /**
      * The three climb sizes. Twenty percent above the old 3 / 2 / 1: the
@@ -188,6 +197,28 @@ object LevelLadder {
 
     /** Giving up, or the clock running out: the same flat five as a loss. */
     const val STEP_GAVE_UP = 5
+
+    /**
+     * Clean right answers in a row before the run starts paying extra.
+     * Three is short enough to be reachable inside one break and long
+     * enough that it cannot happen by accident.
+     */
+    const val STREAK_FOR_BONUS = 3
+
+    /**
+     * What every answer from the third of a run onward is worth on top of
+     * whatever it already earned.
+     *
+     * Flat, and NOT multiplied by [Problem.effort]: the run is the
+     * achievement here, and paying more for a streak of equations than for
+     * a streak of taps would only be the effort weighting said twice.
+     *
+     * Anything that is not a clean solve ends the run, a wrong attempt
+     * included. That is stricter than the level's own rule, where being
+     * wrong costs nothing, and deliberately so: the attempt stays free,
+     * but "three in a row" has to mean three.
+     */
+    const val STREAK_BONUS = 2
 
     /**
      * What one skip costs. Flat, and charged every time.
@@ -231,6 +262,10 @@ object LevelLadder {
      * further, but it is capped at 1 on the way DOWN: a hard problem should
      * be worth more when solved without also costing more when missed,
      * or the exercises worth reaching for would be the ones punishing her.
+     *
+     * [streak] is how many clean right answers she has now strung together,
+     * this one included, and earns [STREAK_BONUS] from [STREAK_FOR_BONUS]
+     * onward.
      */
     fun next(
         level: Level,
@@ -238,6 +273,7 @@ object LevelLadder {
         pace: Pace,
         effort: Double = 1.0,
         ceiling: Level = Level.CEILING,
+        streak: Int = 0,
     ): Level {
         val step = when (outcome) {
             Outcome.CORRECT -> {
@@ -247,7 +283,7 @@ object LevelLadder {
                     Pace.STEADY -> STEP_STEADY
                 }
                 // At least one point, so a right answer always registers.
-                maxOf(1, (base * effort).roundToInt())
+                maxOf(1, (base * effort).roundToInt()) + bonusFor(streak)
             }
             // A stumble on the way to the right answer is free.
             Outcome.WRONG -> 0
@@ -261,6 +297,16 @@ object LevelLadder {
         // going further, not snatch away ground she already has.
         return if (step > 0) minOf(moved, maxOf(ceiling, level)) else moved
     }
+
+    /** What a run of [streak] clean answers adds to this one. */
+    fun bonusFor(streak: Int): Int = if (streak >= STREAK_FOR_BONUS) STREAK_BONUS else 0
+
+    /**
+     * The run after one answer. Only a clean solve extends it; everything
+     * else, wrong attempts included, starts it over.
+     */
+    fun streakAfter(streak: Int, outcome: Outcome): Int =
+        if (outcome == Outcome.CORRECT) streak + 1 else 0
 
     /**
      * The band to actually show, given the one she was shown last time.

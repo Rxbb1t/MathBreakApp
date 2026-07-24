@@ -1,7 +1,6 @@
 package com.ak.momapp.ui.exercises
 
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -42,6 +41,7 @@ import com.ak.momapp.problem.Level
 import com.ak.momapp.problem.ProblemTopic
 import com.ak.momapp.problem.TopicGroup
 import com.ak.momapp.ui.problem.LevelProgressReveal
+import com.ak.momapp.ui.problem.holdToReveal
 import com.ak.momapp.ui.settings.SettingsViewModel
 
 /**
@@ -177,14 +177,14 @@ private fun TopicGroupCard(
                                 text = strings.difficultyLabel(level),
                                 style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                // Long-press the level to see where this
-                                // topic actually sits. Tap still belongs to
-                                // the row, so the switch keeps its big
-                                // target and nothing about the gesture is
-                                // advertised.
-                                modifier = Modifier.combinedClickable(
-                                    onClick = { if (canToggle) onToggle(topic) },
-                                    onLongClick = { showDetail = !showDetail },
+                                // Hold the level to see where this topic
+                                // actually sits, let go and it's gone. Tap
+                                // still belongs to the row, so the switch
+                                // keeps its big target and nothing about the
+                                // gesture is advertised.
+                                modifier = Modifier.holdToReveal(
+                                    onHold = { showDetail = it },
+                                    onTap = { if (canToggle) onToggle(topic) },
                                 ),
                             )
                             LevelProgressReveal(

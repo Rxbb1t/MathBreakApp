@@ -34,9 +34,19 @@ object PersonalContent {
     /**
      * The names word problems and riddles are told with ("Ana baked 24
      * cookies…"). Deliberately short and readable in both languages.
+     *
+     * The pool is spread across the world rather than drawn from one place,
+     * so the stories feel like they belong to everybody. Two rules it has
+     * to keep: plain ASCII, because [com.ak.momapp.i18n.LanguagePurityTest]
+     * reads a Romanian letter in an English problem as a translation leak;
+     * and short, because a long name pushes an already tight problem card
+     * toward its shrink-to-fit floor.
      */
     val NAMES: List<String> = listOf(
-        "Tony", "Ivan", "Alex", "Ana", "Maria", "Mihai", "Elena", "Dan",
+        "Ana", "Maria", "Elena", "Dan", "Mihai", "Ivan", "Alex", "Tony",
+        "Sofia", "Diego", "Emma", "Noah", "Omar", "Layla", "Mei", "Kenji",
+        "Priya", "Arjun", "Kofi", "Amara", "Lena", "Marco", "Nina", "Hugo",
+        "Sara", "Leo", "Yuki", "Ravi",
     )
 
     /** Roughly how often a correct answer shows an encouragement (percent). */

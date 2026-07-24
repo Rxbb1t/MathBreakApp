@@ -174,11 +174,17 @@ object TopicLadders {
          */
         countsAsSeen: Boolean = true,
         ceiling: Level = Level.CEILING,
+        /**
+         * The run of clean answers this one belongs to, counted once by the
+         * caller for the same reason [paceOf] hands its verdict back: one
+         * answer, one judgement, both ladders told the same thing.
+         */
+        streak: Int = 0,
     ): String {
         val correct = outcome == Outcome.CORRECT
         val ladders = decode(raw).toMutableMap()
         val ladder = ladders[topic] ?: TopicLadder(level = seedLevel, shownBand = seedBand)
-        val moved = LevelLadder.next(ladder.level, outcome, pace, effort, ceiling)
+        val moved = LevelLadder.next(ladder.level, outcome, pace, effort, ceiling, streak)
         ladders[topic] = TopicLadder(
             level = moved,
             shownBand = LevelLadder.shownBand(minOf(moved, ceiling), ladder.shownBand),

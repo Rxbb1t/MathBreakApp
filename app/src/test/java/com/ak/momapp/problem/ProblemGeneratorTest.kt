@@ -199,6 +199,39 @@ class ProblemGeneratorTest {
     }
 
     /**
+     * The complaint this rule came from was two bead stories back to back.
+     * Both were word problems, both from different templates, so both
+     * repeat rings passed them: they compare wording, and the thing she
+     * noticed was the KIND. Hence its own rule, and its own test.
+     */
+    @Test
+    fun `the same kind never comes round twice running`() {
+        for (difficulty in Difficulty.entries) {
+            val kinds = List(3_000) { generator.generate(difficulty.toLevel()).kind }
+            val repeat = kinds.zipWithNext().firstOrNull { (a, b) -> a == b }
+            assertEquals("$difficulty served ${repeat?.first} twice in a row", null, repeat)
+        }
+    }
+
+    /**
+     * A drill on one topic with one kind cannot obey the rule, so it must
+     * fall back to serving that kind rather than looping or throwing. Every
+     * topic is checked, because "there is always another kind" is exactly
+     * the assumption that would make this fail on somebody's phone.
+     */
+    @Test
+    fun `a single-kind topic still gets served`() {
+        for (topic in ProblemTopic.entries) {
+            for (difficulty in Difficulty.entries) {
+                val problems = List(30) {
+                    generator.generate(difficulty.toLevel(), topics = setOf(topic))
+                }
+                assertEquals(30, problems.size)
+            }
+        }
+    }
+
+    /**
      * The mix weights geometry and logic at 14–16%, but the repeat
      * filter pulls the realised shares slightly below their weights: a
      * topic with fewer distinct problems gets rerolled more often, so it

@@ -80,6 +80,14 @@ class ProgressRepository(private val context: Context) {
         val REVIEW_QUEUE = stringPreferencesKey("review_queue")
 
         /**
+         * Clean right answers in a row; see [LevelLadder.STREAK_BONUS]. On
+         * a fresh key rather than the tier era's `correct_streak`, which
+         * counted toward a level-up that no longer exists and would be read
+         * here as a run she never had.
+         */
+        val ANSWER_STREAK = intPreferencesKey("answer_streak")
+
+        /**
          * Her pace across every topic, which stands in for a topic's own
          * until that topic has enough timed answers to speak for itself.
          */
@@ -233,6 +241,7 @@ class ProgressRepository(private val context: Context) {
             prefs.remove(Keys.CURRENT_BAND)
             prefs.remove(Keys.CURRENT_DIFFICULTY)
             prefs.remove(Keys.TOPIC_LADDERS)
+            prefs.remove(Keys.ANSWER_STREAK)
         }
     }
 
@@ -330,8 +339,13 @@ class ProgressRepository(private val context: Context) {
         val ceiling = readCeiling(prefs)
         val level = readLevel(prefs)
         val band = readBand(prefs)
+        // Counted once here, like the pace verdict above, and handed to both
+        // ladders. Working it out separately in each would let the overall
+        // level and a topic's own disagree about the very same run.
+        val streak = LevelLadder.streakAfter(prefs[Keys.ANSWER_STREAK] ?: 0, outcome)
+        prefs[Keys.ANSWER_STREAK] = streak
 
-        val moved = LevelLadder.next(level, outcome, pace, effort, ceiling)
+        val moved = LevelLadder.next(level, outcome, pace, effort, ceiling, streak)
         prefs[Keys.CURRENT_POINTS] = moved.points
         prefs[Keys.CURRENT_BAND] = LevelLadder.shownBand(minOf(moved, ceiling), band).name
 
@@ -345,6 +359,7 @@ class ProgressRepository(private val context: Context) {
             seedBand = band,
             effort = effort,
             ceiling = ceiling,
+            streak = streak,
         )
     }
 

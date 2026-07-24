@@ -45,17 +45,26 @@ class AdaptiveSimulationTest {
         return (base * (0.7 + random.nextDouble() * 0.6)).toLong().coerceAtLeast(1_000L)
     }
 
-    /** Runs one player and returns the level after each answer. */
+    /**
+     * Runs one player and returns the level after each answer.
+     *
+     * The run of clean answers is carried here rather than ignored, because
+     * the bonus it pays is part of what decides where the ladder settles.
+     * Simulating without it would measure a ladder the app does not have.
+     */
     private fun run(ability: Int, problems: Int, start: Level, seed: Int): List<Level> {
         val random = Random(seed)
         var level = start
         var pace = PaceEstimate()
+        var streak = 0
         return List(problems) {
             val correct = random.nextDouble() < chanceCorrect(ability, level)
             val time = solveTimeMs(ability, level, random)
             val judged = pace.classify(time)
             if (correct) pace = pace.record(time)
-            level = LevelLadder.next(level, if (correct) Outcome.CORRECT else Outcome.LOST, judged)
+            val outcome = if (correct) Outcome.CORRECT else Outcome.LOST
+            streak = LevelLadder.streakAfter(streak, outcome)
+            level = LevelLadder.next(level, outcome, judged, streak = streak)
             level
         }
     }

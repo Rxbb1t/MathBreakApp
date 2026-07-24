@@ -16,7 +16,6 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -203,8 +202,9 @@ fun ProblemScreenContent(
     currentLevel: Level? = null,
 ) {
     val strings = LocalStrings.current
-    // The hidden readout. Not saved across restarts on purpose: it is a
-    // peek, not a mode to end up stuck in.
+    // The hidden readout, held open by a finger and nothing else. Not saved
+    // across restarts, and now not even across a lifted thumb: it is a peek,
+    // not a mode to end up stuck in.
     var showLevelDetail by remember { mutableStateOf(false) }
     val focusRequester = remember { FocusRequester() }
     val keyboard = LocalSoftwareKeyboardController.current
@@ -295,13 +295,14 @@ fun ProblemScreenContent(
                                     text = strings.difficultyLabel(uiState.problem.difficulty),
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
-                                    // The hidden readout. A long press only,
-                                    // so there is nothing to stumble into
-                                    // mid-problem and nothing on screen
-                                    // hinting that a number exists at all.
-                                    modifier = Modifier.combinedClickable(
-                                        onClick = {},
-                                        onLongClick = { showLevelDetail = !showLevelDetail },
+                                    // The hidden readout, and only while she
+                                    // holds the level name: nothing to
+                                    // stumble into mid-problem, nothing on
+                                    // screen hinting a number exists, and no
+                                    // way to leave it showing over the
+                                    // problem she came here to answer.
+                                    modifier = Modifier.holdToReveal(
+                                        onHold = { showLevelDetail = it },
                                     ),
                                 )
                             },

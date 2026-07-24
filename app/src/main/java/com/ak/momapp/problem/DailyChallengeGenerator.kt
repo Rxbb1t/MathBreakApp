@@ -5,580 +5,380 @@ import java.time.LocalDate
 import kotlin.random.Random
 
 /**
- * Deals the daily challenge: one five-stage story per calendar day,
- * seeded from the date, so the same day always deals the same story;
- * closing the app, restarting the phone, or switching language changes
- * nothing but the words.
+ * Deals the daily challenge: one five-step chain per calendar day, seeded
+ * from the date, so the same day always deals the same chain. Closing the
+ * app, restarting the phone, or switching language changes nothing but the
+ * words.
  *
- * Five story arcs rotate day by day: market day, garden day, a family
- * visit, baking day, and a walk in the park. Every stage is a normal
- * [Problem] (hints, units, diagrams all work), told in the second
- * person, and later stages carry earlier answers in their text.
+ * The five steps are ONE problem, not five. Each answer is the next step's
+ * input, so nothing can be skipped and the numbers have to be carried
+ * forward in her head:
  *
- * Same rules as everywhere else: whole non-negative answers only, and
- * hints restate meaning. Never the solving steps.
+ *  1. THE ANCHOR. A small hunt rather than a sum: the one number in a
+ *     window that both given numbers divide. Everything else hangs off it.
+ *  2. THE OPERATOR SHIFT. Multiply the anchor, then take a remainder. The
+ *     product is big, the answer is tiny, and getting from one to the other
+ *     is the work.
+ *  3. THE WORKING MEMORY TWIST. Shift that remainder along, then stop
+ *     treating the result as a quantity and start treating it as digits.
+ *  4. THE FILTER. Apply a rule to the digit sum: reach up to the next
+ *     prime and measure the gap.
+ *  5. THE GRAND FINALE. Back to the anchor from step one, which by now she
+ *     has had to hold for four steps.
+ *
+ * The wording never repeats an earlier answer. That is the point of a
+ * chain, and it is why the first hint of every step hands the value back:
+ * forgetting a number is not a maths failure and should not end the day.
+ *
+ * Same rules as everywhere else. Whole non-negative answers only, and
+ * hints restate what a step means. Never the steps to take.
  */
 class DailyChallengeGenerator {
 
     fun generate(date: LocalDate, language: AppLanguage): DailyChallenge {
-        val day = date.toEpochDay()
         // One random stream per day; both languages draw the same numbers.
-        val random = Random(day)
-        return when ((day % ARC_COUNT).toInt()) {
-            0 -> marketDay(random, language)
-            1 -> gardenDay(random, language)
-            2 -> visitDay(random, language)
-            3 -> bakingDay(random, language)
-            else -> parkDay(random, language)
+        val state = generateConnectedChain(Random(date.toEpochDay()))
+        val en = language == AppLanguage.ENGLISH
+        return DailyChallenge(
+            intro = if (en) {
+                "Five steps, and each answer feeds the next. Hold on to your Anchor."
+            } else {
+                "Cinci pași, iar fiecare răspuns îl hrănește pe următorul. Ține minte Ancora."
+            },
+            stages = listOf(
+                anchorStep(state, language),
+                operatorStep(state, language),
+                memoryStep(state, language),
+                filterStep(state, language),
+                finaleStep(state, language),
+            ),
+        )
+    }
+
+    /**
+     * Draws one day's numbers, every bound chosen so the chain cannot
+     * produce a step without an answer.
+     *
+     * Three things are guaranteed here rather than checked later:
+     *
+     *  - step 1 has exactly ONE solution, because the window is narrower
+     *    than the gap between consecutive multiples of both factors;
+     *  - step 2 never divides by zero and never leaves a remainder of
+     *    zero, because the divisor is drawn from the candidates that do
+     *    not divide the product exactly, and that list can never be empty;
+     *  - step 5 never goes negative, because the smallest possible product
+     *    already clears the largest possible subtraction.
+     */
+    private fun generateConnectedChain(random: Random): DailyChallengeState {
+        val (factorA, factorB) = FACTOR_PAIRS.random(random)
+        // Both factors divide their least common multiple, so every
+        // multiple of the stride is a multiple of both and nothing else is.
+        val stride = leastCommonMultiple(factorA, factorB)
+        val steps = ceilingDivide(ANCHOR_MIN, stride)..(ANCHOR_MAX / stride)
+        val anchor = stride * random.nextInt(steps.first, steps.last + 1)
+
+        // A window narrower than the stride can hold only one multiple of
+        // it, and it holds the anchor, so the hunt has a single answer.
+        // Capped well under the stride as well, to keep the window a
+        // readable size and its lower edge clear of single digits.
+        val spread = minOf(stride - 1, MAX_WINDOW)
+        val below = random.nextInt(1, spread)
+        val above = random.nextInt(1, spread - below + 1)
+
+        val multiplier = random.nextInt(2, 5)
+        val product = anchor * multiplier
+        // The divisor has to leave something behind: a remainder of zero
+        // turns the step into a yes-or-no and gives step 3 nothing to
+        // shift. At least one candidate always qualifies, because dividing
+        // exactly by all of them at once needs a multiple of 504 and the
+        // product cannot reach that.
+        val divisor = DIVISORS.filter { product % it != 0 }.random(random)
+
+        return DailyChallengeState(
+            anchor = anchor,
+            low = anchor - below,
+            high = anchor + above,
+            factorA = factorA,
+            factorB = factorB,
+            multiplier = multiplier,
+            divisor = divisor,
+            addend = random.nextInt(ADDEND_MIN, ADDEND_MAX + 1),
+            tail = TAILS.random(random),
+        )
+    }
+
+    // ── The five steps ───────────────────────────────────────────────────
+
+    private fun anchorStep(state: DailyChallengeState, language: AppLanguage): Problem {
+        val en = language == AppLanguage.ENGLISH
+        return stage(
+            text = if (en) {
+                "Step 1, your Anchor. Which number between ${state.low} and ${state.high} " +
+                    "is a multiple of ${state.factorA} and a multiple of ${state.factorB}?"
+            } else {
+                "Pasul 1, Ancora ta. Care număr dintre ${state.low} și ${state.high} " +
+                    "e multiplu de ${state.factorA} și multiplu de ${state.factorB}?"
+            },
+            answer = state.anchor,
+            hint = if (en) {
+                "A multiple is a number that divides exactly, with nothing left over. " +
+                    "Only one number in that stretch works for both."
+            } else {
+                "Un multiplu se împarte exact, fără rest. " +
+                    "Un singur număr din acel interval merge pentru amândouă."
+            },
+            notes = multipleNotes(language),
+            language = language,
+        )
+    }
+
+    private fun operatorStep(state: DailyChallengeState, language: AppLanguage): Problem {
+        val en = language == AppLanguage.ENGLISH
+        return stage(
+            text = if (en) {
+                "Step 2. Multiply your Anchor by ${state.multiplier}, then divide by " +
+                    "${state.divisor} and keep only the remainder. That remainder is Y."
+            } else {
+                "Pasul 2. Înmulțește Ancora cu ${state.multiplier}, apoi împarte la " +
+                    "${state.divisor} și păstrează doar restul. Acel rest e Y."
+            },
+            answer = state.remainder,
+            hint = if (en) {
+                "Your Anchor was ${state.anchor}. The remainder is what is left once " +
+                    "every whole lot of ${state.divisor} has been taken out."
+            } else {
+                "Ancora ta a fost ${state.anchor}. Restul e ce rămâne după ce scoți " +
+                    "toate grupele întregi de ${state.divisor}."
+            },
+            notes = remainderNotes(language),
+            language = language,
+        )
+    }
+
+    private fun memoryStep(state: DailyChallengeState, language: AppLanguage): Problem {
+        val en = language == AppLanguage.ENGLISH
+        return stage(
+            text = if (en) {
+                "Step 3. Add ${state.addend} to Y. Now stop reading that as a quantity " +
+                    "and add its two digits together. That digit sum is Z."
+            } else {
+                "Pasul 3. Adună ${state.addend} la Y. Acum nu-l mai citi ca pe o cantitate " +
+                    "și adună-i cele două cifre. Suma cifrelor e Z."
+            },
+            answer = state.digitSum,
+            hint = if (en) {
+                "Y was ${state.remainder}. A digit sum is the tens digit and the units " +
+                    "digit added together, so 34 gives 7."
+            } else {
+                "Y a fost ${state.remainder}. Suma cifrelor e cifra zecilor plus cifra " +
+                    "unităților, deci 34 dă 7."
+            },
+            notes = digitNotes(language),
+            language = language,
+        )
+    }
+
+    private fun filterStep(state: DailyChallengeState, language: AppLanguage): Problem {
+        val en = language == AppLanguage.ENGLISH
+        return stage(
+            text = if (en) {
+                "Step 4. Find the smallest prime number bigger than Z, then take Z away " +
+                    "from it. That difference is W."
+            } else {
+                "Pasul 4. Găsește cel mai mic număr prim mai mare decât Z, apoi scade Z " +
+                    "din el. Acea diferență e W."
+            },
+            answer = state.gap,
+            hint = if (en) {
+                "Z was ${state.digitSum}. A prime divides by nothing but itself and one, " +
+                    "and the one you want is the first prime above Z, not below it."
+            } else {
+                "Z a fost ${state.digitSum}. Un număr prim nu se împarte decât la el " +
+                    "însuși și la unu, iar cel căutat e primul prim de deasupra lui Z."
+            },
+            notes = primeNotes(language),
+            language = language,
+        )
+    }
+
+    private fun finaleStep(state: DailyChallengeState, language: AppLanguage): Problem {
+        val en = language == AppLanguage.ENGLISH
+        return stage(
+            text = if (en) {
+                "Step 5, the finish. Multiply W by your Anchor from step 1, " +
+                    "then subtract ${state.tail}. What are you left with?"
+            } else {
+                "Pasul 5, finalul. Înmulțește W cu Ancora de la pasul 1, " +
+                    "apoi scade ${state.tail}. Cu cât rămâi?"
+            },
+            answer = state.finale,
+            hint = if (en) {
+                "W was ${state.gap} and your Anchor, all the way back at step 1, " +
+                    "was ${state.anchor}."
+            } else {
+                "W a fost ${state.gap}, iar Ancora, tocmai de la pasul 1, " +
+                    "a fost ${state.anchor}."
+            },
+            notes = chainNotes(language),
+            language = language,
+        )
+    }
+
+    // ── The helper sheet ─────────────────────────────────────────────────
+    //
+    // Worked on numbers this chain never uses, so the sheet teaches the
+    // idea without quietly handing over today's answer.
+
+    private fun multipleNotes(language: AppLanguage): List<String> =
+        if (language == AppLanguage.ENGLISH) {
+            listOf(
+                "A multiple of 7 is 7, 14, 21, 28 and so on: what you get counting up in sevens.",
+                "To be a multiple of two numbers at once, it has to appear in both counts. " +
+                    "10 and 4 both reach 20, so 20 is a multiple of both.",
+                "The multiples of both come at regular gaps, so a short stretch of numbers " +
+                    "holds at most one of them.",
+            )
+        } else {
+            listOf(
+                "Multiplii lui 7 sunt 7, 14, 21, 28 și așa mai departe: ce obții numărând din 7 în 7.",
+                "Ca să fie multiplu de două numere deodată, trebuie să apară în ambele șiruri. " +
+                    "Și 10, și 4 ajung la 20, deci 20 e multiplu de amândouă.",
+                "Multiplii comuni vin la distanțe egale, așa că un interval scurt de numere " +
+                    "conține cel mult unul.",
+            )
         }
-    }
 
-    // ── Arc 1: market day. Money, a clock, and the morning purse ───────
+    private fun remainderNotes(language: AppLanguage): List<String> =
+        if (language == AppLanguage.ENGLISH) {
+            listOf(
+                "The remainder is what will not fit into a whole group. " +
+                    "Share 23 between 5 and each gets 4, with 3 sitting there spare: the remainder is 3.",
+                "It is always smaller than what you divided by. Dividing by 7 can only " +
+                    "ever leave 0 through 6.",
+                "A quick way in: take away the biggest multiple you can, and read what is left.",
+            )
+        } else {
+            listOf(
+                "Restul e ce nu încape într-o grupă întreagă. " +
+                    "Împarți 23 la 5 și fiecare ia 4, iar 3 rămân pe dinafară: restul e 3.",
+                "E întotdeauna mai mic decât numărul la care ai împărțit. La împărțirea la 7 " +
+                    "pot rămâne doar 0 până la 6.",
+                "O cale scurtă: scoate cel mai mare multiplu care încape și citește ce rămâne.",
+            )
+        }
 
-    private fun marketDay(random: Random, language: AppLanguage): DailyChallenge {
-        val q1 = random.nextInt(2, 7)
-        val p1 = random.nextInt(3, 10)
-        val q2 = random.nextInt(2, 7)
-        val p2 = random.nextInt(3, 10)
-        val spent = q1 * p1 + q2 * p2
-        val change = 200 - spent
-        val start = random.nextInt(8 * 60, 10 * 60).let { it - it % 5 }
-        val span = random.nextInt(35, 86)
-        val perKid = random.nextInt(2, 5)
-        val kids = random.nextInt(2, 6)
-        val pharmacy = random.nextInt(15, 61)
-        val leftOver = random.nextInt(20, 91)
-        val purse = spent + pharmacy + leftOver
-        val en = language == AppLanguage.ENGLISH
+    private fun digitNotes(language: AppLanguage): List<String> =
+        if (language == AppLanguage.ENGLISH) {
+            listOf(
+                "A digit sum ignores what the number is worth and just adds the figures: " +
+                    "52 becomes 5 + 2 = 7.",
+                "Because it throws the place value away, a digit sum is always small. " +
+                    "Two digits can never add up past 18.",
+            )
+        } else {
+            listOf(
+                "Suma cifrelor nu ține cont de cât valorează numărul, ci doar adună figurile. " +
+                    "Suma cifrelor lui 52: 5 + 2 = 7.",
+                "Fiindcă lasă deoparte valoarea de poziție, suma cifrelor e mereu mică. " +
+                    "Două cifre nu pot depăși 18.",
+            )
+        }
 
-        val intro =
-            if (en) "Market day! Keep count of your money as you go."
-            else "Zi de piață! Ține socoteala banilor pe drum."
-        return DailyChallenge(
-            intro = intro,
-            stages = listOf(
-                stage(
-                    text = if (en) {
-                        "At the market you buy $q1 kg of potatoes at $p1 euros per kilo " +
-                            "and $q2 kg of apples at $p2 euros per kilo. How much do you spend?"
-                    } else {
-                        "La piață cumperi $q1 kg de cartofi cu $p1 euro kilogramul " +
-                            "și $q2 kg de mere cu $p2 euro kilogramul. Cât cheltuiești?"
-                    },
-                    answer = spent,
-                    kind = ProblemKind.MONEY,
-                    hint = if (en) "Work out each buy, then add the two together."
-                    else "Calculează fiecare cumpărătură, apoi adună-le.",
-                    language = language,
-                    unit = "€",
-                ),
-                stage(
-                    text = if (en) {
-                        "You hand the seller a 200-euro banknote for the $spent euros of shopping. " +
-                            "How much change do you get back?"
-                    } else {
-                        "Îi dai vânzătoarei o bancnotă de 200 de euro pentru cumpărăturile " +
-                            "de ${de(spent)} euro. Cât rest primești?"
-                    },
-                    answer = change,
-                    kind = ProblemKind.MONEY,
-                    hint = if (en) "Subtract the cost from the banknote."
-                    else "Scade costul din bancnotă.",
-                    language = language,
-                    unit = "€",
-                ),
-                stage(
-                    text = if (en) {
-                        "You left home at ${clock(start)} and get back at ${clock(start + span)}. " +
-                            "How many minutes were you out?"
-                    } else {
-                        "Ai plecat de acasă la ${clock(start)} și te întorci la ${clock(start + span)}. " +
-                            "Câte minute ai lipsit?"
-                    },
-                    answer = span,
-                    kind = ProblemKind.TIME,
-                    hint = if (en) "From leaving to returning. The minutes between the two clocks."
-                    else "De la plecare la întoarcere. Minutele dintre cele două ceasuri.",
-                    language = language,
-                    unit = "min",
-                ),
-                stage(
-                    text = if (en) {
-                        "Guests are coming over: you set aside $perKid pretzels for each " +
-                            "of the $kids kids. How many pretzels is that?"
-                    } else {
-                        "Vin musafiri: pui deoparte câte $perKid covrigi pentru fiecare " +
-                            "dintre cei $kids copii. Câți covrigi în total?"
-                    },
-                    answer = perKid * kids,
-                    kind = ProblemKind.WORD,
-                    hint = if (en) "Each child gets the same amount, so multiply."
-                    else "Fiecare copil primește la fel, deci înmulțește.",
-                    language = language,
-                ),
-                stage(
-                    text = if (en) {
-                        "This morning you had x euros in your purse. You spent $spent euros at the " +
-                            "market and $pharmacy euros at the pharmacy, and now $leftOver euros " +
-                            "are left. How much was x?"
-                    } else {
-                        "Azi-dimineață aveai x euro în portofel. Ai cheltuit ${de(spent)} euro la " +
-                            "piață și ${de(pharmacy)} euro la farmacie, iar acum ți-au rămas " +
-                            "${de(leftOver)} euro. Cât era x?"
-                    },
-                    answer = purse,
-                    kind = ProblemKind.EQUATION,
-                    hint = if (en) "Add what you spent to what's left."
-                    else "Adună ce ai cheltuit cu ce ți-a rămas.",
-                    language = language,
-                    unit = "€",
-                ),
-            ),
-        )
-    }
+    private fun primeNotes(language: AppLanguage): List<String> =
+        if (language == AppLanguage.ENGLISH) {
+            listOf(
+                "A prime divides by nothing except itself and 1. " +
+                    "The primes up to thirty: 2, 3, 5, 7, 11, 13, 17, 19, 23, 29.",
+                "1 is not prime, and 2 is the only even one.",
+                "If a number is not on the list, walk upward until you meet one that is.",
+            )
+        } else {
+            listOf(
+                "Un număr prim nu se împarte decât la el însuși și la 1. " +
+                    "Numerele prime până la treizeci: 2, 3, 5, 7, 11, 13, 17, 19, 23, 29.",
+                "1 nu e prim, iar 2 e singurul par.",
+                "Dacă un număr nu e pe listă, urcă până întâlnești unul care e.",
+            )
+        }
 
-    // ── Arc 2: garden day. A fence, beds in a grid, and the clock ──────
-
-    private fun gardenDay(random: Random, language: AppLanguage): DailyChallenge {
-        val a = random.nextInt(7, 15)
-        val b = random.nextInt(4, a)
-        val fence = 2 * (a + b)
-        val wire = random.nextInt(3, 9)
-        val squares = a * b
-        val flowers = random.nextInt(5, 21)
-        val start = random.nextInt(9 * 60, 17 * 60).let { it - it % 5 }
-        val span = random.nextInt(45, 121)
-        val en = language == AppLanguage.ENGLISH
-
-        val intro =
-            if (en) "A day in the garden. It starts with the fence."
-            else "O zi în grădină. Începe cu gardul."
-        return DailyChallenge(
-            intro = intro,
-            stages = listOf(
-                stage(
-                    text = if (en) {
-                        "Your vegetable patch is $a m long and $b m wide. You want a fence all " +
-                            "the way around it. How many meters of fence do you need?"
-                    } else {
-                        "Grădina ta de legume are $a m lungime și $b m lățime. Vrei să pui gard " +
-                            "de jur împrejurul ei. De câți metri de gard ai nevoie?"
-                    },
-                    answer = fence,
-                    kind = ProblemKind.GEOMETRY,
-                    hint = if (en) "The fence follows every side. The short ones and the long ones alike."
-                    else "Gardul urmează fiecare latură. Și pe cele scurte, și pe cele lungi.",
-                    language = language,
-                    unit = "m",
-                    diagram = Diagram.Rectangle(
-                        widthLabel = "$a m",
-                        heightLabel = "$b m",
-                        aspect = a.toFloat() / b,
-                    ),
-                ),
-                stage(
-                    text = if (en) {
-                        "The fence wire costs $wire euros per meter. " +
-                            "How much will all $fence meters cost?"
-                    } else {
-                        "Plasa de gard costă $wire euro metrul. " +
-                            "Cât vor costa toți cei ${de(fence)} metri?"
-                    },
-                    answer = wire * fence,
-                    kind = ProblemKind.MONEY,
-                    hint = if (en) "Every meter of fence carries the same price."
-                    else "Fiecare metru de gard costă la fel.",
-                    language = language,
-                    unit = "€",
-                ),
-                stage(
-                    text = if (en) {
-                        "Inside, you divide the whole $a by $b meter patch into one-meter " +
-                            "squares, one seedling in each. How many squares do you get?"
-                    } else {
-                        "Împarți apoi grădina de $a pe $b metri în pătrate de câte un metru, " +
-                            "cu un răsad în fiecare. Câte pătrate ies?"
-                    },
-                    answer = squares,
-                    kind = ProblemKind.GEOMETRY,
-                    hint = if (en) "Multiply the length by the width."
-                    else "Înmulțește lungimea cu lățimea.",
-                    language = language,
-                    diagram = Diagram.Rectangle(
-                        widthLabel = "$a m",
-                        heightLabel = "$b m",
-                        aspect = a.toFloat() / b,
-                        grid = true,
-                    ),
-                ),
-                stage(
-                    text = if (en) {
-                        "Of the $squares squares, $flowers are saved for flowers. " +
-                            "How many squares are left for vegetables?"
-                    } else {
-                        "Din cele ${de(squares)} pătrate, $flowers le păstrezi pentru flori. " +
-                            "Câte pătrate rămân pentru legume?"
-                    },
-                    answer = squares - flowers,
-                    kind = ProblemKind.WORD,
-                    hint = if (en) "Subtract the flower squares from the total."
-                    else "Scade pătratele cu flori din total.",
-                    language = language,
-                ),
-                stage(
-                    text = if (en) {
-                        "You started planting at ${clock(start)} and finished at " +
-                            "${clock(start + span)}. How many minutes did you work?"
-                    } else {
-                        "Ai început plantatul la ${clock(start)} și ai terminat la " +
-                            "${clock(start + span)}. Câte minute ai muncit?"
-                    },
-                    answer = span,
-                    kind = ProblemKind.TIME,
-                    hint = if (en) "From the first seedling to the last. The minutes between the clocks."
-                    else "De la primul răsad la ultimul. Minutele dintre cele două ceasuri.",
-                    language = language,
-                    unit = "min",
-                ),
-            ),
-        )
-    }
-
-    // ── Arc 3: a family visit. Trains, gifts, pocket money ─────────────
-
-    private fun visitDay(random: Random, language: AppLanguage): DailyChallenge {
-        val start = random.nextInt(7 * 60, 11 * 60).let { it - it % 5 }
-        val ride = random.nextInt(55, 176)
-        val gifts = random.nextInt(2, 6)
-        val price = random.nextInt(8, 26)
-        val giftCost = gifts * price
-        val ticketThere = random.nextInt(25, 61)
-        val ticketBack = random.nextInt(25, 61)
-        val tickets = ticketThere + ticketBack
-        val bus = random.nextInt(20, 46)
-        val leftOver = random.nextInt(30, 121)
-        val wallet = giftCost + tickets + leftOver
-        val en = language == AppLanguage.ENGLISH
-
-        val intro =
-            if (en) "You're going visiting today. First, catch the train."
-            else "Azi mergi în vizită. Mai întâi, trenul."
-        return DailyChallenge(
-            intro = intro,
-            stages = listOf(
-                stage(
-                    text = if (en) {
-                        "Your train leaves at ${clock(start)} and arrives at " +
-                            "${clock(start + ride)}. How many minutes does the ride take?"
-                    } else {
-                        "Trenul tău pleacă la ${clock(start)} și ajunge la " +
-                            "${clock(start + ride)}. Câte minute durează drumul?"
-                    },
-                    answer = ride,
-                    kind = ProblemKind.TIME,
-                    hint = if (en) "Departure to arrival. The minutes between the two clocks."
-                    else "De la plecare la sosire. Minutele dintre cele două ceasuri.",
-                    language = language,
-                    unit = "min",
-                ),
-                stage(
-                    text = if (en) {
-                        "At the station shop you pick up $gifts little gifts at $price euros " +
-                            "each. How much do the gifts cost?"
-                    } else {
-                        "De la magazinul din gară iei $gifts cadouri mici de câte $price euro. " +
-                            "Cât costă cadourile?"
-                    },
-                    answer = giftCost,
-                    kind = ProblemKind.MONEY,
-                    hint = if (en) "The same price, once for every gift."
-                    else "Același preț, o dată pentru fiecare cadou.",
-                    language = language,
-                    unit = "€",
-                ),
-                stage(
-                    text = if (en) {
-                        "The return ticket costs x euros. The two tickets together came to " +
-                            "$tickets euros, and the ticket there was $ticketThere euros. What is x?"
-                    } else {
-                        "Biletul de întors costă x euro. Amândouă biletele au costat " +
-                            "${de(tickets)} euro, iar cel de dus a fost ${de(ticketThere)} euro. " +
-                            "Cât e x?"
-                    },
-                    answer = ticketBack,
-                    kind = ProblemKind.EQUATION,
-                    hint = if (en) "Subtract the ticket there from the total."
-                    else "Scade biletul de dus din total.",
-                    language = language,
-                    unit = "€",
-                ),
-                stage(
-                    text = if (en) {
-                        "The bus at the other end adds $bus more minutes to the $ride-minute " +
-                            "train ride. How many minutes is the whole way?"
-                    } else {
-                        "Autobuzul de la capăt mai adaugă ${de(bus)} minute la cele " +
-                            "${de(ride)} minute de tren. Câte minute ține tot drumul?"
-                    },
-                    answer = bus + ride,
-                    kind = ProblemKind.WORD,
-                    hint = if (en) "Add the train minutes and the bus minutes."
-                    else "Adună minutele de tren cu cele de autobuz.",
-                    language = language,
-                    unit = "min",
-                ),
-                stage(
-                    text = if (en) {
-                        "You left home with $wallet euros. After $giftCost euros for gifts and " +
-                            "$tickets euros for the two tickets, how much do you bring home?"
-                    } else {
-                        "Ai plecat de acasă cu ${de(wallet)} euro. După ${de(giftCost)} euro pe " +
-                            "cadouri și ${de(tickets)} euro pe bilete, cu câți euro te întorci acasă?"
-                    },
-                    answer = leftOver,
-                    kind = ProblemKind.MONEY,
-                    hint = if (en) "Subtract both costs from what you started with."
-                    else "Scade ambele cheltuieli din suma de la plecare.",
-                    language = language,
-                    unit = "€",
-                ),
-            ),
-        )
-    }
-
-    // ── Arc 4: baking day. Supplies, change, trays, and the oven ───────
-
-    private fun bakingDay(random: Random, language: AppLanguage): DailyChallenge {
-        val flour = random.nextInt(12, 40)
-        val butter = random.nextInt(8, 30)
-        val sugar = random.nextInt(5, 25)
-        val total = flour + butter + sugar
-        val trays = random.nextInt(3, 7)
-        val pieces = random.nextInt(6, 13)
-        val batch = trays * pieces
-        val given = random.nextInt(5, minOf(batch, 21))
-        val start = random.nextInt(14 * 60, 17 * 60).let { it - it % 5 }
-        val span = random.nextInt(40, 101)
-        val en = language == AppLanguage.ENGLISH
-
-        val intro =
-            if (en) "Baking day! It starts at the shop."
-            else "Zi de copt! Totul începe la magazin."
-        return DailyChallenge(
-            intro = intro,
-            stages = listOf(
-                stage(
-                    text = if (en) {
-                        "At the shop, the flour costs $flour euros, the butter $butter euros and " +
-                            "the sugar $sugar euros. How much do the baking supplies cost?"
-                    } else {
-                        "La magazin, făina costă ${de(flour)} euro, untul ${de(butter)} euro și " +
-                            "zahărul ${de(sugar)} euro. Cât costă toate cumpărăturile?"
-                    },
-                    answer = total,
-                    kind = ProblemKind.MONEY,
-                    hint = if (en) "Add the three prices together."
-                    else "Adună cele trei prețuri.",
-                    language = language,
-                    unit = "€",
-                ),
-                stage(
-                    text = if (en) {
-                        "You pay with a 100-euro banknote for the $total euros of supplies. " +
-                            "How much change do you get?"
-                    } else {
-                        "Plătești cu o bancnotă de 100 de euro pentru cumpărăturile de " +
-                            "${de(total)} euro. Cât rest primești?"
-                    },
-                    answer = 100 - total,
-                    kind = ProblemKind.MONEY,
-                    hint = if (en) "Subtract the cost from the banknote."
-                    else "Scade costul din bancnotă.",
-                    language = language,
-                    unit = "€",
-                ),
-                stage(
-                    text = if (en) {
-                        "You bake $trays trays with $pieces pretzels on each. " +
-                            "How many pretzels in the batch?"
-                    } else {
-                        "Coci $trays tăvi cu câte $pieces covrigi. Câți covrigi în total?"
-                    },
-                    answer = batch,
-                    kind = ProblemKind.WORD,
-                    hint = if (en) "Each tray holds the same number, so multiply."
-                    else "Fiecare tavă are același număr, deci înmulțește.",
-                    language = language,
-                ),
-                stage(
-                    text = if (en) {
-                        "Of the $batch pretzels, you take $given to the neighbours. " +
-                            "How many stay home?"
-                    } else {
-                        "Din cei ${de(batch)} covrigi, duci $given vecinilor. " +
-                            "Câți rămân acasă?"
-                    },
-                    answer = batch - given,
-                    kind = ProblemKind.WORD,
-                    hint = if (en) "Subtract the ones you gave away."
-                    else "Scade covrigii pe care i-ai dat.",
-                    language = language,
-                ),
-                stage(
-                    text = if (en) {
-                        "The first tray went in at ${clock(start)} and the last one came out " +
-                            "at ${clock(start + span)}. How many minutes did the baking take?"
-                    } else {
-                        "Prima tavă a intrat la ${clock(start)} și ultima a ieșit la " +
-                            "${clock(start + span)}. Câte minute a durat coptul?"
-                    },
-                    answer = span,
-                    kind = ProblemKind.TIME,
-                    hint = if (en) "From the first tray to the last. The minutes between the clocks."
-                    else "De la prima tavă la ultima. Minutele dintre cele două ceasuri.",
-                    language = language,
-                    unit = "min",
-                ),
-            ),
-        )
-    }
-
-    // ── Arc 5: a walk in the park. A lap to measure, laps to count ─────
-
-    private fun parkDay(random: Random, language: AppLanguage): DailyChallenge {
-        val start = random.nextInt(8 * 60, 11 * 60).let { it - it % 5 }
-        val walk = random.nextInt(20, 61)
-        val a = random.nextInt(60, 121)
-        val b = random.nextInt(30, a)
-        val lap = 2 * (a + b)
-        val laps = random.nextInt(2, 5)
-        val distance = laps * lap
-        val yesterday = random.nextInt(300, 901)
-        val rest = random.nextInt(2, 15)
-        val en = language == AppLanguage.ENGLISH
-
-        val intro =
-            if (en) "A morning walk in the park, with a lemonade at the end."
-            else "O plimbare de dimineață în parc, cu o limonadă la final."
-        return DailyChallenge(
-            intro = intro,
-            stages = listOf(
-                stage(
-                    text = if (en) {
-                        "You set off at ${clock(start)} and reach the park at " +
-                            "${clock(start + walk)}. How many minutes is the walk there?"
-                    } else {
-                        "Pornești la ${clock(start)} și ajungi în parc la " +
-                            "${clock(start + walk)}. Câte minute ține drumul?"
-                    },
-                    answer = walk,
-                    kind = ProblemKind.TIME,
-                    hint = if (en) "From your door to the park gate. The minutes between the clocks."
-                    else "De la ușa ta la poarta parcului. Minutele dintre cele două ceasuri.",
-                    language = language,
-                    unit = "min",
-                ),
-                stage(
-                    text = if (en) {
-                        "The path around the lawn is a rectangle $a m long and $b m wide. " +
-                            "How many meters is one lap all the way around?"
-                    } else {
-                        "Aleea din jurul peluzei e un dreptunghi de $a m lungime și $b m " +
-                            "lățime. Câți metri are o tură de jur împrejur?"
-                    },
-                    answer = lap,
-                    kind = ProblemKind.GEOMETRY,
-                    hint = if (en) "One lap follows every side. The short ones and the long ones alike."
-                    else "O tură urmează fiecare latură. Și pe cele scurte, și pe cele lungi.",
-                    language = language,
-                    unit = "m",
-                    diagram = Diagram.Rectangle(
-                        widthLabel = "$a m",
-                        heightLabel = "$b m",
-                        aspect = a.toFloat() / b,
-                    ),
-                ),
-                stage(
-                    text = if (en) {
-                        "You walk $laps laps of the $lap-meter path. How many meters is that?"
-                    } else {
-                        "Faci $laps ture pe aleea de ${de(lap)} metri. Câți metri înseamnă?"
-                    },
-                    answer = distance,
-                    kind = ProblemKind.WORD,
-                    hint = if (en) "Multiply one lap by the number of laps."
-                    else "Înmulțește o tură cu numărul de ture.",
-                    language = language,
-                    unit = "m",
-                ),
-                stage(
-                    text = if (en) {
-                        "Yesterday you walked $yesterday m. With today's $distance m, " +
-                            "how many meters over the two days?"
-                    } else {
-                        "Ieri ai mers ${de(yesterday)} m. Cu cei ${de(distance)} m de azi, " +
-                            "câți metri în cele două zile?"
-                    },
-                    answer = yesterday + distance,
-                    kind = ProblemKind.WORD,
-                    hint = if (en) "Add the two days together."
-                    else "Adună cele două zile.",
-                    language = language,
-                    unit = "m",
-                ),
-                stage(
-                    text = if (en) {
-                        "A lemonade at the kiosk costs x euros. You hand over 20 euros and get " +
-                            "$rest euros back. What is x?"
-                    } else {
-                        "O limonadă la chioșc costă x euro. Dai 20 de euro și primești " +
-                            "$rest euro rest. Cât e x?"
-                    },
-                    answer = 20 - rest,
-                    kind = ProblemKind.EQUATION,
-                    hint = if (en) "x and the change together make up the 20 euros."
-                    else "x și restul împreună fac cei 20 de euro.",
-                    language = language,
-                    unit = "€",
-                ),
-            ),
-        )
-    }
+    private fun chainNotes(language: AppLanguage): List<String> =
+        if (language == AppLanguage.ENGLISH) {
+            listOf(
+                "Where you have been: the Anchor, then Y the remainder, then Z the digit sum, " +
+                    "then W the step up to the next prime.",
+                "This last one reaches all the way back. W multiplies the Anchor, not Z.",
+            )
+        } else {
+            listOf(
+                "Pe unde ai trecut: Ancora, apoi Y restul, apoi Z suma cifrelor, " +
+                    "apoi W pasul până la următorul prim.",
+                "Ultimul se întoarce tocmai la început. W înmulțește Ancora, nu Z.",
+            )
+        }
 
     // ── Shared helpers ───────────────────────────────────────────────────
 
     private fun stage(
         text: String,
         answer: Int,
-        kind: ProblemKind,
         hint: String,
+        notes: List<String>,
         language: AppLanguage,
-        unit: String = "",
-        diagram: Diagram? = null,
     ): Problem = Problem(
         text = text,
         answer = answer,
         level = STAGE_LEVEL,
-        kind = kind,
+        kind = ProblemKind.LOGIC,
         hints = listOf(hint, HintText.digits(answer, language)),
-        diagram = diagram,
-        answerUnit = unit,
+        notes = notes,
     )
 
-    private fun clock(minutes: Int): String = "%d:%02d".format(minutes / 60, minutes % 60)
+    /** Smallest number both [a] and [b] divide, by way of their gcd. */
+    private fun leastCommonMultiple(a: Int, b: Int): Int = a / greatestCommonDivisor(a, b) * b
 
-    /** Romanian counting: "12 euro" but "45 de euro". */
-    private fun de(n: Int): String = if (n < 20) "$n" else "$n de"
+    private fun greatestCommonDivisor(a: Int, b: Int): Int = if (b == 0) a else greatestCommonDivisor(b, a % b)
+
+    /** [n] divided by [by], rounded up, without leaving the integers. */
+    private fun ceilingDivide(n: Int, by: Int): Int = (n + by - 1) / by
 
     companion object {
-        const val ARC_COUNT = 5
-
         /**
-         * The daily story sits at one fixed level for everyone, on purpose.
+         * The daily chain sits at one fixed level for everyone, on purpose.
          * It is the same challenge on the same day whoever opens it, so it
          * cannot follow a personal ladder without stopping being that. The
          * adaptive scale belongs to the breaks.
          */
         val STAGE_LEVEL: Level = Difficulty.MEDIUM.toLevel()
+
+        /**
+         * Factor pairs for step 1. Neither number divides the other, so
+         * "a multiple of both" asks something that "a multiple of the
+         * bigger one" would not.
+         */
+        private val FACTOR_PAIRS = listOf(3 to 4, 3 to 5, 4 to 5, 3 to 8, 4 to 6, 5 to 6, 4 to 9)
+
+        /** The anchor stays double-digit: big enough to work at, small enough to hold. */
+        private const val ANCHOR_MIN = 24
+        private const val ANCHOR_MAX = 96
+
+        /**
+         * The widest step 1's window can get. Every stride is at least 12,
+         * so this stays under it and the single-answer guarantee holds; it
+         * also keeps the window's lower edge well clear of single digits.
+         */
+        private const val MAX_WINDOW = 11
+
+        /** Step 2's candidate divisors. None of them is zero, by being written here. */
+        private val DIVISORS = listOf(6, 7, 8, 9)
+
+        /**
+         * Step 3's shift. Chosen so the result is always two digits: the
+         * remainder is at most 8, so the sum lands between 11 and 48.
+         */
+        private const val ADDEND_MIN = 10
+        private const val ADDEND_MAX = 40
+
+        /** Step 5's parting subtraction, comfortably under the smallest product. */
+        private val TAILS = listOf(10, 15, 20)
     }
 }

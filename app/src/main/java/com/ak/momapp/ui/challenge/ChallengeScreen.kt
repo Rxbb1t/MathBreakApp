@@ -1,5 +1,6 @@
 package com.ak.momapp.ui.challenge
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -24,26 +25,33 @@ import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalDrawerSheet
+import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -59,11 +67,14 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ak.momapp.data.SettingsRepository
 import com.ak.momapp.i18n.LocalStrings
 import com.ak.momapp.ui.problem.ConfettiBurst
+import com.ak.momapp.ui.problem.NotebookPad
+import com.ak.momapp.ui.problem.NotebookPaper
 import com.ak.momapp.ui.problem.ProblemTextCard
 import com.ak.momapp.ui.problem.ChimeSound
 import com.ak.momapp.ui.problem.Chimes
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 
 /**
  * The daily challenge: one five-stage story a day, no timer, no strikes.
@@ -98,8 +109,33 @@ fun ChallengeScreen(
         }
     }
 
+    // The chain leans on four ideas she may want to look up mid-step, so it
+    // gets the same left-edge helper sheet the breaks have. The finished
+    // card has nothing left to explain, so the drawer goes with the stage.
+    val notes = uiState
+        ?.takeIf { it.phase != ChallengePhase.COMPLETE }
+        ?.stage?.notes.orEmpty()
+    val drawerState = rememberDrawerState(DrawerValue.Closed)
+    val scope = rememberCoroutineScope()
+    BackHandler(enabled = drawerState.isOpen) {
+        scope.launch { drawerState.close() }
+    }
+
+    ModalNavigationDrawer(
+        drawerState = drawerState,
+        gesturesEnabled = notes.isNotEmpty() || drawerState.isOpen,
+        drawerContent = {
+            ModalDrawerSheet(
+                drawerContainerColor = NotebookPaper,
+                modifier = Modifier.fillMaxWidth(0.88f),
+            ) {
+                NotebookPad(notes = notes)
+            }
+        },
+        modifier = modifier,
+    ) {
     Scaffold(
-        modifier = modifier.fillMaxSize(),
+        modifier = Modifier.fillMaxSize(),
         topBar = {
             TopAppBar(
                 title = { Text(strings.challengeTitle) },
@@ -146,11 +182,35 @@ fun ChallengeScreen(
                         onNextStage = viewModel::nextStage,
                     )
                 }
+                // The same left-edge tab the breaks have. Without it the
+                // sheet is reachable only by a swipe nobody is told about,
+                // and this chain is the one place in the app where looking
+                // a definition up mid-question is the expected move.
+                if (notes.isNotEmpty()) {
+                    Surface(
+                        onClick = { scope.launch { drawerState.open() } },
+                        shape = RoundedCornerShape(topEnd = 16.dp, bottomEnd = 16.dp),
+                        color = MaterialTheme.colorScheme.secondaryContainer,
+                        modifier = Modifier.align(Alignment.CenterStart),
+                    ) {
+                        Text(
+                            text = "📝",
+                            modifier = Modifier.padding(
+                                start = 4.dp,
+                                end = 6.dp,
+                                top = 12.dp,
+                                bottom = 12.dp,
+                            ),
+                        )
+                    }
+                }
+
                 ConfettiBurst(
                     burstKey = state.celebrations.takeIf { it > 0 },
                 )
             }
         }
+    }
     }
 }
 

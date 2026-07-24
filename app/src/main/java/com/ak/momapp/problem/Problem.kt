@@ -180,6 +180,22 @@ data class Problem(
             kind == ProblemKind.MISSING_OP
 
     /**
+     * Tries before the answer is shown.
+     *
+     * A ✓/✗ claim gets ONE. It is a coin flip, so a second try is not
+     * another go at the problem, it is the answer handed over: whatever she
+     * tapped first, the other button is now known to be right. The rest of
+     * the tap kinds offer three or four choices, so one wrong guess still
+     * leaves something to think about, and typed answers keep all three.
+     */
+    val maxAttempts: Int
+        get() = when {
+            kind == ProblemKind.TRUE_FALSE -> 1
+            submitsOnTap -> 2
+            else -> 3
+        }
+
+    /**
      * Extra thinking time when the countdown is on. Only the single
      * highest factor applies. They never stack.
      */

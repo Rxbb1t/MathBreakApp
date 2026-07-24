@@ -269,6 +269,37 @@ class ProblemQualityTest {
         )
     }
 
+    /**
+     * How many tries a problem gets has to follow how many answers it
+     * offers, or a try is not a try.
+     *
+     * A ✓/✗ claim is the sharp case and gets exactly one: with two buttons,
+     * being told the first was wrong IS being told the answer, so a second
+     * attempt tests nothing and the reveal that follows teaches nothing
+     * either. Three and four-way taps keep two, typed answers keep three.
+     */
+    @Test
+    fun `a coin-flip claim gets one try and the wider taps get more`() {
+        val generator = ProblemGenerator(Random(23))
+        val byKind = mutableMapOf<ProblemKind, Int>()
+        for (difficulty in Difficulty.entries) {
+            repeat(SAMPLE * 2) {
+                val problem = generator.generate(difficulty.toLevel())
+                byKind[problem.kind] = problem.maxAttempts
+            }
+        }
+        assertEquals("not every kind was sampled", ProblemKind.entries.toSet(), byKind.keys)
+        assertEquals("a two-button claim was forgiven a miss", 1, byKind[ProblemKind.TRUE_FALSE])
+        for (kind in listOf(ProblemKind.COMPARE, ProblemKind.MISSING_OP)) {
+            assertEquals("$kind should get two", 2, byKind[kind])
+        }
+        for ((kind, tries) in byKind) {
+            val tapped = kind == ProblemKind.TRUE_FALSE || kind == ProblemKind.COMPARE ||
+                kind == ProblemKind.MISSING_OP
+            if (!tapped) assertEquals("$kind should get the typed three", 3, tries)
+        }
+    }
+
     /** The kinds that carry working, and the ones that rightly don't. */
     @Test
     fun `story problems explain themselves`() {

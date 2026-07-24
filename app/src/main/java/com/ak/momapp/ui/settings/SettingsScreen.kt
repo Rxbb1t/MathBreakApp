@@ -182,22 +182,11 @@ private fun SettingsContent(
             .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        SettingsSection(title = strings.languageSection) {
-            SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
-                AppLanguage.entries.forEachIndexed { index, language ->
-                    SegmentedButton(
-                        selected = settings.language == language,
-                        onClick = { viewModel.setLanguage(language) },
-                        shape = SegmentedButtonDefaults.itemShape(
-                            index = index,
-                            count = AppLanguage.entries.size,
-                        ),
-                    ) {
-                        Text(if (language == AppLanguage.ENGLISH) "English" else "Română")
-                    }
-                }
-            }
-        }
+        // Three questions, in the order somebody actually asks them: when
+        // does the app interrupt me, what happens when it does, and how
+        // does the app itself behave. The cards inside each group are
+        // unchanged; only their company is.
+        SettingsGroup(strings.settingsGroupBreaks)
 
         RemindersSection(settings = settings, viewModel = viewModel)
 
@@ -243,6 +232,62 @@ private fun SettingsContent(
             }
         }
 
+        SettingsSection(title = strings.activeDays) {
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                DayOfWeek.entries.forEach { day ->
+                    FilterChip(
+                        selected = day in settings.activeDays,
+                        onClick = { viewModel.toggleDay(day) },
+                        label = { Text(day.getDisplayName(TextStyle.SHORT, strings.locale)) },
+                    )
+                }
+            }
+        }
+
+        SettingsGroup(strings.settingsGroupExercises)
+
+        SettingsSection(
+            title = strings.startingLevel,
+            subtitle = strings.startingLevelSubtitle,
+        ) {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Difficulty.entries.forEach { difficulty ->
+                    FilterChip(
+                        selected = settings.startingDifficulty == difficulty,
+                        onClick = { viewModel.setStartingDifficulty(difficulty) },
+                        label = { Text(strings.difficultyLabel(difficulty)) },
+                    )
+                }
+            }
+            // What the picked level actually deals; follows the selection.
+            Text(
+                text = strings.difficultyExplanation(settings.startingDifficulty),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            // Sits with the level rather than with the per-break cap, which
+            // is where it used to be: what this button really does is put
+            // the level back to the one picked just above, so it belongs
+            // next to that choice and nowhere else.
+            FilledTonalButton(onClick = onResetSitting, modifier = Modifier.fillMaxWidth()) {
+                Text(strings.resetSittingButton)
+            }
+            // The same three presets the first-run guide offered. A choice
+            // made before answering a single problem deserves an easy way
+            // back: one tap here rather than four settings to undo.
+            FilledTonalButton(
+                onClick = { showPresets = true },
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(strings.quickSetupAction)
+            }
+        }
+
+        ExerciseTypesRow(settings = settings, onClick = onOpenExercises)
+
         SettingsSection(
             title = strings.problemsPerBreak,
             subtitle = strings.problemsPerBreakSubtitle,
@@ -251,11 +296,6 @@ private fun SettingsContent(
                 current = settings.problemsPerBreak,
                 onSelect = viewModel::setProblemsPerBreak,
             )
-            // Starts over at the chosen level with a fresh sitting and
-            // jumps straight to the new problem; the saved limit stays.
-            FilledTonalButton(onClick = onResetSitting) {
-                Text(strings.resetSittingButton)
-            }
         }
 
         SettingsSection(
@@ -281,48 +321,22 @@ private fun SettingsContent(
             }
         }
 
-        SettingsSection(title = strings.activeDays) {
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                DayOfWeek.entries.forEach { day ->
-                    FilterChip(
-                        selected = day in settings.activeDays,
-                        onClick = { viewModel.toggleDay(day) },
-                        label = { Text(day.getDisplayName(TextStyle.SHORT, strings.locale)) },
-                    )
-                }
-            }
-        }
+        SettingsGroup(strings.settingsGroupApp)
 
-        SettingsSection(
-            title = strings.startingLevel,
-            subtitle = strings.startingLevelSubtitle,
-        ) {
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Difficulty.entries.forEach { difficulty ->
-                    FilterChip(
-                        selected = settings.startingDifficulty == difficulty,
-                        onClick = { viewModel.setStartingDifficulty(difficulty) },
-                        label = { Text(strings.difficultyLabel(difficulty)) },
-                    )
+        SettingsSection(title = strings.languageSection) {
+            SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+                AppLanguage.entries.forEachIndexed { index, language ->
+                    SegmentedButton(
+                        selected = settings.language == language,
+                        onClick = { viewModel.setLanguage(language) },
+                        shape = SegmentedButtonDefaults.itemShape(
+                            index = index,
+                            count = AppLanguage.entries.size,
+                        ),
+                    ) {
+                        Text(if (language == AppLanguage.ENGLISH) "English" else "Română")
+                    }
                 }
-            }
-            // What the picked level actually deals; follows the selection.
-            Text(
-                text = strings.difficultyExplanation(settings.startingDifficulty),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            // The same three presets the first-run guide offered. A choice
-            // made before answering a single problem deserves an easy way
-            // back: one tap here rather than four settings to undo.
-            FilledTonalButton(
-                onClick = { showPresets = true },
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text(strings.quickSetupAction)
             }
         }
 
@@ -345,8 +359,6 @@ private fun SettingsContent(
                 )
             }
         }
-
-        ExerciseTypesRow(settings = settings, onClick = onOpenExercises)
 
         Spacer(Modifier.height(8.dp))
     }
@@ -687,6 +699,24 @@ private fun PalettePickerDialog(
                 Text(strings.ok)
             }
         },
+    )
+}
+
+/**
+ * A heading over the cards that follow it.
+ *
+ * Deliberately NOT a container the sections nest inside. The screen is one
+ * long scroll, and a card of cards gains a second border and a second
+ * inset without telling her anything the heading does not. This just
+ * labels where one group starts, the way a heading in a document does.
+ */
+@Composable
+private fun SettingsGroup(title: String) {
+    Text(
+        text = title,
+        style = MaterialTheme.typography.titleSmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(start = 4.dp, top = 8.dp),
     )
 }
 

@@ -70,9 +70,15 @@ class Strings(
     val quickSetupIntro: String,
     val snooze15: String,
     val breakDone: String,
+    /** Offered on the problem screen once the per-break cap is reached. */
+    val anotherRound: String,
     val difficultyLabel: (Difficulty) -> String,
     // Settings
     val settingsTitle: String,
+    /** Headers grouping the settings cards below them. */
+    val settingsGroupBreaks: String,
+    val settingsGroupExercises: String,
+    val settingsGroupApp: String,
     val back: String,
     val languageSection: String,
     val remindersSection: String,
@@ -204,6 +210,7 @@ val EnglishStrings = Strings(
     quickSetupIntro = "Pick a style. This starts your level fresh, so give it a few problems to settle in again.",
     snooze15 = "Snooze 15 min",
     breakDone = "That's your break! See you at the next one.",
+    anotherRound = "Another round",
     difficultyLabel = {
         when (it) {
             Difficulty.EASY -> "Easy"
@@ -212,6 +219,9 @@ val EnglishStrings = Strings(
         }
     },
     settingsTitle = "Settings",
+    settingsGroupBreaks = "When breaks arrive",
+    settingsGroupExercises = "What a break is like",
+    settingsGroupApp = "The app itself",
     back = "Back",
     languageSection = "Language",
     remindersSection = "Reminders",
@@ -391,6 +401,7 @@ val RomanianStrings = Strings(
     quickSetupIntro = "Alege un stil. Nivelul o ia de la capăt, așa că lasă-i câteva probleme ca să se așeze din nou.",
     snooze15 = "Amână 15 min",
     breakDone = "Gata pauza! Ne vedem la următoarea.",
+    anotherRound = "Încă o rundă",
     difficultyLabel = {
         when (it) {
             Difficulty.EASY -> "Ușor"
@@ -399,6 +410,9 @@ val RomanianStrings = Strings(
         }
     },
     settingsTitle = "Setări",
+    settingsGroupBreaks = "Când vin pauzele",
+    settingsGroupExercises = "Cum arată o pauză",
+    settingsGroupApp = "Aplicația în sine",
     back = "Înapoi",
     languageSection = "Limbă",
     remindersSection = "Notificări",

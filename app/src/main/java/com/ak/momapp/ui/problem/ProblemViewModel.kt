@@ -192,26 +192,46 @@ class ProblemViewModel(
      * intent to start, so no extra Start press is needed.
      */
     fun onBreakOpened() {
-        _sessionDone.value = 0
-        sittingDealt = 0
-        _uiState.update { it?.copy(sessionComplete = false) }
+        clearSitting()
         startSession()
     }
 
     /**
-     * The settings button that starts over: the sitting counter restarts,
-     * the adaptive level goes back to the chosen starting difficulty, and
-     * a brand-new problem at that level is dealt right away.
+     * Keep going past the per-break cap, offered on the problem screen the
+     * moment she reaches it.
+     *
+     * Her level is deliberately untouched. Finishing the number of problems
+     * she asked for and wanting more is the app working, not a reason to
+     * hand back the ground it took to get there. That is the difference
+     * between this and [resetSitting].
+     */
+    fun startNewRound() {
+        clearSitting()
+        _started.value = true
+        timerJob?.cancel()
+        nextProblem()
+    }
+
+    /**
+     * The settings button that starts over properly: a fresh sitting AND
+     * the adaptive level back to the chosen starting difficulty, with a
+     * new problem at that level dealt right away.
      */
     fun resetSitting() {
-        _sessionDone.value = 0
-        sittingDealt = 0
+        clearSitting()
         _started.value = true
         timerJob?.cancel()
         viewModelScope.launch {
             progressRepository.resetToStartingDifficulty()
             deal()
         }
+    }
+
+    /** Forgets what this sitting has done, so the cap starts over. */
+    private fun clearSitting() {
+        _sessionDone.value = 0
+        sittingDealt = 0
+        _uiState.update { it?.copy(sessionComplete = false) }
     }
 
     /**
@@ -331,10 +351,9 @@ class ProblemViewModel(
                 recordStumble(state.problem.kind.topic)
             }
             val attempts = state.attempts + 1
-            // One-tap exercises offer fewer choices, so they forgive one
-            // miss less than typed answers do.
-            val maxAttempts = if (state.problem.submitsOnTap) MAX_TAP_ATTEMPTS else MAX_ATTEMPTS
-            val lost = attempts >= maxAttempts
+            // How many tries a problem gets depends on how many answers it
+            // offers, which the problem itself knows.
+            val lost = attempts >= state.problem.maxAttempts
             _uiState.update {
                 it?.copy(
                     phase = if (lost) AnswerPhase.REVEALED else AnswerPhase.TRY_AGAIN,
@@ -528,10 +547,6 @@ class ProblemViewModel(
         }
 
     companion object {
-        const val MAX_ATTEMPTS = 3
-
-        /** Tap kinds ([Problem.submitsOnTap]) reveal one miss earlier. */
-        const val MAX_TAP_ATTEMPTS = 2
         const val MAX_HINTS = 3
         private const val MAX_INPUT_DIGITS = 5
 

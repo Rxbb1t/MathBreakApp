@@ -154,6 +154,7 @@ fun ProblemScreen(
             onInputChange = viewModel::onInputChange,
             onSubmit = viewModel::submit,
             onNextProblem = viewModel::nextProblem,
+            onNewRound = viewModel::startNewRound,
             onUseHint = viewModel::useHint,
             onSkip = viewModel::skipProblem,
             onSubmitChoice = viewModel::submitChoice,
@@ -180,6 +181,8 @@ fun ProblemScreenContent(
     onInputChange: (String) -> Unit,
     onSubmit: () -> Unit,
     onNextProblem: () -> Unit,
+    /** Carries on past the per-break cap, leaving her level alone. */
+    onNewRound: () -> Unit = {},
     onOpenSettings: () -> Unit,
     modifier: Modifier = Modifier,
     onOpenChallenge: () -> Unit = {},
@@ -584,8 +587,20 @@ fun ProblemScreenContent(
                                 textAlign = TextAlign.Center,
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(vertical = 16.dp),
+                                    .padding(top = 16.dp, bottom = 12.dp),
                             )
+                            // The cap is a suggestion she set, not a lock.
+                            // Tonal rather than filled, so the message
+                            // stays the loud part: carrying on is offered,
+                            // not urged.
+                            FilledTonalButton(
+                                onClick = onNewRound,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .heightIn(min = 52.dp),
+                            ) {
+                                Text(strings.anotherRound, style = MaterialTheme.typography.titleMedium)
+                            }
                         } else {
                             FilledTonalButton(
                                 onClick = onNextProblem,

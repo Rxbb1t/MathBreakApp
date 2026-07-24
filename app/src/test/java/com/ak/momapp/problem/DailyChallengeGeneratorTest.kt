@@ -3,198 +3,292 @@ package com.ak.momapp.problem
 import com.ak.momapp.i18n.AppLanguage
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Every arc's math is re-derived from the printed numbers, stage by
- * stage, so a broken chain (a stage quoting the wrong earlier answer)
- * fails loudly. Days are walked in order so all arcs get exercised.
+ * The daily chain is five problems that are really one, so the thing worth
+ * testing is not any single step but that each answer is genuinely the
+ * next step's input, and that no draw can produce a step with no answer.
+ *
+ * Everything below re-derives the mathematics from the numbers actually
+ * PRINTED in the text. Asking the generator what it thinks the answer is
+ * would agree with any mistake in it.
  */
 class DailyChallengeGeneratorTest {
 
     private val generator = DailyChallengeGenerator()
-    private val numbers = Regex("""\d+""")
+    private val start = LocalDate.of(2026, 1, 1)
 
-    private fun nums(text: String): List<Int> =
-        numbers.findAll(text).map { it.value.toInt() }.toList()
+    private fun days(count: Int) = (0 until count).map { start.plusDays(it.toLong()) }
 
-    /** Minutes between the clock readings "h:mm … h:mm" in the text. */
-    private fun clockSpan(text: String): Int {
-        val n = nums(text)
-        return (n[2] * 60 + n[3]) - (n[0] * 60 + n[1])
+    private fun chain(date: LocalDate, language: AppLanguage = AppLanguage.ENGLISH) =
+        generator.generate(date, language)
+
+    /** The numbers printed in a step's text, in the order they appear. */
+    private fun numbersIn(text: String): List<Int> =
+        Regex("\\d+").findAll(text).map { it.value.toInt() }.toList()
+
+    @Test
+    fun `every day deals five steps and an intro`() {
+        for (date in days(400)) {
+            val challenge = chain(date)
+            assertEquals("$date", 5, challenge.stages.size)
+            assertTrue("$date has no intro", challenge.intro.isNotBlank())
+        }
     }
 
     @Test
-    fun `the same date always deals the same challenge`() {
-        val date = LocalDate.of(2026, 7, 10)
-        val first = generator.generate(date, AppLanguage.ENGLISH)
-        val second = generator.generate(date, AppLanguage.ENGLISH)
-        assertEquals(first, second)
+    fun `the same day always deals the same chain`() {
+        assertEquals(chain(start).stages.map { it.answer }, chain(start).stages.map { it.answer })
     }
 
     @Test
-    fun `both languages share the same numbers and answers`() {
-        for (day in 0 until 60L) {
-            val date = LocalDate.ofEpochDay(day)
-            val english = generator.generate(date, AppLanguage.ENGLISH)
-            val romanian = generator.generate(date, AppLanguage.ROMANIAN)
+    fun `both languages draw the same numbers`() {
+        for (date in days(200)) {
             assertEquals(
-                "answers differ on $date",
-                english.stages.map(Problem::answer),
-                romanian.stages.map(Problem::answer),
+                "$date",
+                chain(date, AppLanguage.ENGLISH).stages.map { it.answer },
+                chain(date, AppLanguage.ROMANIAN).stages.map { it.answer },
+            )
+        }
+    }
+
+    // ── Step 1: the anchor ───────────────────────────────────────────────
+
+    /**
+     * The hunt must have exactly ONE answer, or the step is unfair in a way
+     * she cannot argue with: the app would reject a number that satisfies
+     * everything it asked for.
+     */
+    @Test
+    fun `the anchor is the only number in its window that fits`() {
+        for (date in days(400)) {
+            val stage = chain(date).stages[0]
+            // "Step 1 ... between LOW and HIGH ... multiple of A ... of B"
+            val printed = numbersIn(stage.text).drop(1)
+            val (low, high, a, b) = printed
+            val fitting = (low..high).filter { it % a == 0 && it % b == 0 }
+            assertEquals("$date window $low..$high for $a and $b", listOf(stage.answer), fitting)
+        }
+    }
+
+    @Test
+    fun `the anchor is a moderate double-digit number`() {
+        for (date in days(400)) {
+            val anchor = chain(date).stages[0].answer
+            assertTrue("$date anchored at $anchor", anchor in 10..99)
+        }
+    }
+
+    // ── Step 2: the operator shift ───────────────────────────────────────
+
+    @Test
+    fun `the remainder is the anchor multiplied then divided`() {
+        for (date in days(400)) {
+            val stages = chain(date).stages
+            val (multiplier, divisor) = numbersIn(stages[1].text).drop(1)
+            assertEquals("$date", stages[0].answer * multiplier % divisor, stages[1].answer)
+        }
+    }
+
+    /**
+     * The draw's guarantee rather than arithmetic: never a zero divisor,
+     * and never a clean division either. A remainder of nothing would leave
+     * step 3 shifting a zero and turn this step into a yes-or-no.
+     */
+    @Test
+    fun `the divisor never divides by zero and never divides exactly`() {
+        for (date in days(400)) {
+            val stages = chain(date).stages
+            val divisor = numbersIn(stages[1].text)[2]
+            assertTrue("$date divided by $divisor", divisor > 0)
+            assertTrue("$date left no remainder", stages[1].answer > 0)
+            assertTrue("$date remainder was $divisor or more", stages[1].answer < divisor)
+        }
+    }
+
+    // ── Step 3: the working-memory twist ─────────────────────────────────
+
+    @Test
+    fun `the digit sum follows from the remainder and the shift`() {
+        for (date in days(400)) {
+            val stages = chain(date).stages
+            val shifted = stages[1].answer + numbersIn(stages[2].text)[1]
+            assertEquals("$date shifted to $shifted", shifted / 10 + shifted % 10, stages[2].answer)
+        }
+    }
+
+    /** The step says "its two digits", so it had better always have two. */
+    @Test
+    fun `the shifted value always has exactly two digits`() {
+        for (date in days(400)) {
+            val stages = chain(date).stages
+            val shifted = stages[1].answer + numbersIn(stages[2].text)[1]
+            assertTrue("$date shifted to $shifted", shifted in 10..99)
+        }
+    }
+
+    // ── Step 4: the filter ───────────────────────────────────────────────
+
+    @Test
+    fun `the gap reaches the first prime above the digit sum`() {
+        for (date in days(400)) {
+            val stages = chain(date).stages
+            val digitSum = stages[2].answer
+            val prime = generateSequence(digitSum + 1) { it + 1 }.first(::isPrime)
+            assertEquals("$date reaching up from $digitSum", prime - digitSum, stages[3].answer)
+        }
+    }
+
+    /**
+     * There is always a prime STRICTLY above, so the reach can never be
+     * zero and the step always has somewhere to go.
+     */
+    @Test
+    fun `the gap is never zero`() {
+        for (date in days(400)) {
+            assertTrue("$date", chain(date).stages[3].answer >= 1)
+        }
+    }
+
+    // ── Step 5: the finale ───────────────────────────────────────────────
+
+    @Test
+    fun `the finale multiplies the gap by the anchor from step one`() {
+        for (date in days(400)) {
+            val stages = chain(date).stages
+            val tail = numbersIn(stages[4].text).last()
+            assertEquals("$date", stages[3].answer * stages[0].answer - tail, stages[4].answer)
+        }
+    }
+
+    /**
+     * The app promises a plain number keyboard and no minus sign, so the
+     * last step is the one place the chain could break that and must not,
+     * however the draws land.
+     */
+    @Test
+    fun `every answer is a non-negative whole number that fits the field`() {
+        for (date in days(400)) {
+            for (stage in chain(date).stages) {
+                assertTrue("$date '${stage.text}'", stage.answer >= 0)
+                assertTrue("$date '${stage.text}'", stage.answer <= 99_999)
+            }
+        }
+    }
+
+    // ── What the steps carry with them ───────────────────────────────────
+
+    /**
+     * The text deliberately never restates an earlier answer, which is what
+     * makes this a memory exercise. That only works if the first hint hands
+     * the value back: forgetting a number is not a maths failure, and the
+     * challenge never reveals, so without this a slip ends the whole day.
+     */
+    @Test
+    fun `each step after the first recalls the value it needs`() {
+        for (date in days(200)) {
+            for (language in AppLanguage.entries) {
+                val stages = chain(date, language).stages
+                for (step in 1..3) {
+                    assertTrue(
+                        "$date $language step ${step + 1} does not recall step $step",
+                        stages[step].hints.first().contains(stages[step - 1].answer.toString()),
+                    )
+                }
+                val finale = stages[4].hints.first()
+                assertTrue(
+                    "$date $language the finale recalls neither W nor the anchor",
+                    finale.contains(stages[3].answer.toString()) &&
+                        finale.contains(stages[0].answer.toString()),
+                )
+            }
+        }
+    }
+
+    /**
+     * And the text must NOT hand it over, or nothing is being carried
+     * forward and step 5's reach back to step 1 costs her nothing.
+     */
+    @Test
+    fun `the finale does not print the anchor it asks her to remember`() {
+        for (date in days(400)) {
+            val stages = chain(date).stages
+            assertTrue(
+                "$date printed the anchor in '${stages[4].text}'",
+                stages[0].answer !in numbersIn(stages[4].text),
             )
         }
     }
 
     @Test
-    fun `every day of every arc is well-formed`() {
-        for (day in 0 until 120L) {
+    fun `every step carries two hints and a helper sheet`() {
+        for (date in days(200)) {
             for (language in AppLanguage.entries) {
-                val challenge = generator.generate(LocalDate.ofEpochDay(day), language)
-                assertTrue("blank intro on day $day", challenge.intro.isNotBlank())
-                assertEquals("stage count on day $day", 5, challenge.stages.size)
-                for (stage in challenge.stages) {
-                    assertTrue("negative answer in '${stage.text}'", stage.answer >= 0)
-                    assertEquals("hints in '${stage.text}'", 2, stage.hints.size)
-                    assertTrue("blank hint in '${stage.text}'", stage.hints.all(String::isNotBlank))
-                    assertTrue("placeholder in '${stage.text}'", !stage.text.contains("{"))
+                for (stage in chain(date, language).stages) {
+                    assertEquals("$date $language '${stage.text}'", 2, stage.hints.size)
+                    assertTrue("$date $language '${stage.text}'", stage.notes.isNotEmpty())
                 }
             }
         }
     }
 
+    /**
+     * The sheet teaches the ideas, so it has to be generic reference text
+     * rather than anything built out of today's numbers.
+     *
+     * Written as "it is the same every day" after the obvious version
+     * ("it never contains the answer") turned out to be the wrong claim: a
+     * sheet that lists the primes to thirty contains 2 and 3, and step 4's
+     * answer is a small number, so the two collide constantly without
+     * anything being given away. What actually matters is that no value
+     * from this chain can reach the sheet, and a sheet that never varies
+     * cannot carry one.
+     */
     @Test
-    fun `market day chains its answers correctly`() {
-        forEachArcDay(arc = 0) { stages ->
-            val (s1, s2, s3, s4, s5) = stages
-            val n1 = nums(s1.text)
-            assertEquals("'${s1.text}'", n1[0] * n1[1] + n1[2] * n1[3], s1.answer)
-            assertEquals("€", s1.answerUnit)
-
-            val n2 = nums(s2.text)
-            assertEquals("stage 2 must quote stage 1's answer", s1.answer, n2[1])
-            assertEquals("'${s2.text}'", 200 - s1.answer, s2.answer)
-
-            assertEquals("'${s3.text}'", clockSpan(s3.text), s3.answer)
-            assertEquals("min", s3.answerUnit)
-
-            val n4 = nums(s4.text)
-            assertEquals("'${s4.text}'", n4[0] * n4[1], s4.answer)
-
-            val n5 = nums(s5.text)
-            assertEquals("stage 5 must quote stage 1's answer", s1.answer, n5[0])
-            assertEquals("'${s5.text}'", n5[0] + n5[1] + n5[2], s5.answer)
-        }
-    }
-
-    @Test
-    fun `garden day chains its answers correctly`() {
-        forEachArcDay(arc = 1) { stages ->
-            val (s1, s2, s3, s4, s5) = stages
-            val (a, b) = nums(s1.text)
-            assertEquals("'${s1.text}'", 2 * (a + b), s1.answer)
-            assertTrue("no diagram in '${s1.text}'", s1.diagram is Diagram.Rectangle)
-
-            val n2 = nums(s2.text)
-            assertEquals("stage 2 must quote the fence length", s1.answer, n2[1])
-            assertEquals("'${s2.text}'", n2[0] * s1.answer, s2.answer)
-
-            val n3 = nums(s3.text)
-            assertEquals("stage 3 reuses the same garden", listOf(a, b), n3.take(2))
-            assertEquals("'${s3.text}'", a * b, s3.answer)
-            assertTrue(
-                "stage 3 should show the grid",
-                (s3.diagram as Diagram.Rectangle).grid,
-            )
-
-            val n4 = nums(s4.text)
-            assertEquals("stage 4 must quote the square count", s3.answer, n4[0])
-            assertEquals("'${s4.text}'", s3.answer - n4[1], s4.answer)
-
-            assertEquals("'${s5.text}'", clockSpan(s5.text), s5.answer)
-        }
-    }
-
-    @Test
-    fun `visit day chains its answers correctly`() {
-        forEachArcDay(arc = 2) { stages ->
-            val (s1, s2, s3, s4, s5) = stages
-            assertEquals("'${s1.text}'", clockSpan(s1.text), s1.answer)
-
-            val n2 = nums(s2.text)
-            assertEquals("'${s2.text}'", n2[0] * n2[1], s2.answer)
-
-            val n3 = nums(s3.text)
-            assertEquals("'${s3.text}'", n3[0] - n3[1], s3.answer)
-
-            val n4 = nums(s4.text)
-            assertEquals("stage 4 must quote the train ride", s1.answer, n4[1])
-            assertEquals("'${s4.text}'", n4[0] + s1.answer, s4.answer)
-
-            val n5 = nums(s5.text)
-            assertEquals("stage 5 must quote the gift cost", s2.answer, n5[1])
-            assertEquals("'${s5.text}'", n5[0] - n5[1] - n5[2], s5.answer)
-        }
-    }
-
-    @Test
-    fun `baking day chains its answers correctly`() {
-        forEachArcDay(arc = 3) { stages ->
-            val (s1, s2, s3, s4, s5) = stages
-            val n1 = nums(s1.text)
-            assertEquals("'${s1.text}'", n1[0] + n1[1] + n1[2], s1.answer)
-            assertEquals("€", s1.answerUnit)
-
-            val n2 = nums(s2.text)
-            assertEquals("stage 2 must quote stage 1's answer", s1.answer, n2[1])
-            assertEquals("'${s2.text}'", 100 - s1.answer, s2.answer)
-
-            val n3 = nums(s3.text)
-            assertEquals("'${s3.text}'", n3[0] * n3[1], s3.answer)
-
-            val n4 = nums(s4.text)
-            assertEquals("stage 4 must quote the batch size", s3.answer, n4[0])
-            assertEquals("'${s4.text}'", s3.answer - n4[1], s4.answer)
-            assertTrue("negative covrigi in '${s4.text}'", s4.answer > 0)
-
-            assertEquals("'${s5.text}'", clockSpan(s5.text), s5.answer)
-            assertEquals("min", s5.answerUnit)
-        }
-    }
-
-    @Test
-    fun `park day chains its answers correctly`() {
-        forEachArcDay(arc = 4) { stages ->
-            val (s1, s2, s3, s4, s5) = stages
-            assertEquals("'${s1.text}'", clockSpan(s1.text), s1.answer)
-
-            val (a, b) = nums(s2.text)
-            assertEquals("'${s2.text}'", 2 * (a + b), s2.answer)
-            assertTrue("no diagram in '${s2.text}'", s2.diagram is Diagram.Rectangle)
-
-            val n3 = nums(s3.text)
-            assertEquals("stage 3 must quote the lap length", s2.answer, n3[1])
-            assertEquals("'${s3.text}'", n3[0] * s2.answer, s3.answer)
-
-            val n4 = nums(s4.text)
-            assertEquals("stage 4 must quote today's distance", s3.answer, n4[1])
-            assertEquals("'${s4.text}'", n4[0] + n4[1], s4.answer)
-
-            val n5 = nums(s5.text)
-            assertEquals("'${s5.text}'", n5[0] - n5[1], s5.answer)
-            assertEquals("€", s5.answerUnit)
-        }
-    }
-
-    /** Runs [check] for 40 days of one arc, in both languages. */
-    private fun forEachArcDay(arc: Int, check: (List<Problem>) -> Unit) {
-        var day = arc.toLong()
-        repeat(40) {
-            for (language in AppLanguage.entries) {
-                check(generator.generate(LocalDate.ofEpochDay(day), language).stages)
+    fun `the helper sheet carries nothing from today's chain`() {
+        for (language in AppLanguage.entries) {
+            val fixed = chain(start, language).stages.map { it.notes }
+            for (date in days(200)) {
+                assertEquals("$date $language", fixed, chain(date, language).stages.map { it.notes })
             }
-            day += DailyChallengeGenerator.ARC_COUNT
         }
     }
+
+    @Test
+    fun `both languages are written, and differently`() {
+        for (date in days(100)) {
+            val en = chain(date, AppLanguage.ENGLISH)
+            val ro = chain(date, AppLanguage.ROMANIAN)
+            assertNotEquals("$date intro", en.intro, ro.intro)
+            for (i in en.stages.indices) {
+                assertNotEquals("$date step $i", en.stages[i].text, ro.stages[i].text)
+                assertNotEquals(
+                    "$date step $i hint",
+                    en.stages[i].hints.first(),
+                    ro.stages[i].hints.first(),
+                )
+            }
+        }
+    }
+
+    /**
+     * A chain whose numbers never moved would be memorised in a week, and
+     * seeding from the date means one wrong constant could freeze them
+     * without anything else looking wrong.
+     */
+    @Test
+    fun `the numbers move from day to day`() {
+        val finales = days(60).map { chain(it).stages.last().answer }.distinct()
+        assertTrue("only ${finales.size} distinct finales in 60 days", finales.size > 25)
+        val anchors = days(60).map { chain(it).stages.first().answer }.distinct()
+        assertTrue("only ${anchors.size} distinct anchors in 60 days", anchors.size > 8)
+    }
+
+    private fun isPrime(n: Int): Boolean = n >= 2 && (2..n / 2).none { n % it == 0 }
+
+    /** So a four-number header can be destructured in one line above. */
+    private operator fun <T> List<T>.component4(): T = this[3]
 }

@@ -1,5 +1,7 @@
 package com.ak.momapp.problem
 
+import kotlin.math.abs
+
 enum class ProblemKind {
     /** Plain number chains: "24 + 7 × 3 − 5". */
     ARITHMETIC,
@@ -42,6 +44,12 @@ enum class ProblemKind {
 
     /** "12 ? 3 = 4": tap the operation sign that makes it true. */
     MISSING_OP,
+
+    /**
+     * "Roughly how much is 297 × 4?" Typed, and a near-enough answer
+     * counts: see [Problem.tolerance].
+     */
+    ESTIMATE,
     ;
 
     /**
@@ -70,7 +78,10 @@ enum class ProblemKind {
             TARGET -> 0.7
             SELECT -> 0.8
             // The everyday middle: a story with a step or two in it.
-            ARITHMETIC -> 0.9
+            // Estimating sits here too: choosing what to round is real
+            // thinking, but the arithmetic left afterwards is deliberately
+            // easy, and being close is enough.
+            ARITHMETIC, ESTIMATE -> 0.9
             WORD, MONEY, TIME, SETS -> 1.0
             // These are the ones worth being pleased about.
             GEOMETRY, PUZZLE -> 1.2
@@ -159,10 +170,31 @@ data class Problem(
      * ("6 + 4 + 9"). Empty means the answer itself is the display.
      */
     val revealText: String = "",
+    /**
+     * How far from [answer] still counts as solved, as an absolute amount.
+     *
+     * Zero for every ordinary problem, where only the exact number will do,
+     * and that is what makes this safe to add: [accepts] collapses to an
+     * equality check everywhere it isn't wanted. Only [ProblemKind.ESTIMATE]
+     * sets it, and it is stored as a flat amount rather than a percentage so
+     * that deciding whether an answer counts is plain integer arithmetic,
+     * with no rounding to disagree about between here and the tests.
+     */
+    val tolerance: Int = 0,
 ) {
     /** The band this problem's level falls in: the name she would see. */
     val difficulty: Difficulty
         get() = level.band
+
+    /** Whether a typed [value] counts as solving this problem. */
+    fun accepts(value: Int): Boolean = abs(value - answer) <= tolerance
+
+    /**
+     * Right, but not the exact number. Worth knowing so the feedback can
+     * hand her the true value: getting close is the skill being practised,
+     * and never being told what it was close TO would waste the moment.
+     */
+    fun isApproximate(value: Int): Boolean = accepts(value) && value != answer
 
     /** The answer as it should be shown to her. */
     val answerText: String
@@ -195,16 +227,4 @@ data class Problem(
             else -> 3
         }
 
-    /**
-     * Extra thinking time when the countdown is on. Only the single
-     * highest factor applies. They never stack.
-     */
-    val timerMultiplier: Double
-        get() = when {
-            difficulty == Difficulty.HARD -> 2.0
-            kind == ProblemKind.LOGIC -> 1.5
-            kind == ProblemKind.WORD || kind == ProblemKind.GEOMETRY ||
-                kind == ProblemKind.MONEY || kind == ProblemKind.TIME -> 1.25
-            else -> 1.0
-        }
 }

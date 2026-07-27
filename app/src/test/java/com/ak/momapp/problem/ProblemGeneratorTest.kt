@@ -264,6 +264,7 @@ class ProblemGeneratorTest {
         ProblemTopic.COMPARE -> setOf(ProblemKind.COMPARE, ProblemKind.TRUE_FALSE)
         ProblemTopic.TARGET -> setOf(ProblemKind.TARGET)
         ProblemTopic.NUMBERS -> setOf(ProblemKind.SELECT, ProblemKind.SETS)
+        ProblemTopic.ESTIMATION -> setOf(ProblemKind.ESTIMATE)
     }
 
     @Test

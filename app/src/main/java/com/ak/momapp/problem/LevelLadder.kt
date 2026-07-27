@@ -112,10 +112,10 @@ enum class Outcome {
     /** Out of tries: the problem is gone and the answer is on screen. */
     LOST,
 
-    /** Walked away from it. Costs something, but only every third time. */
+    /** Walked away from it. Costs a flat [LevelLadder.STEP_SKIP] every time. */
     SKIPPED,
 
-    /** The countdown ran out, or she asked to be shown the answer. */
+    /** She asked to be shown the answer rather than finish the problem. */
     GAVE_UP,
 }
 
@@ -151,24 +151,21 @@ object LevelLadder {
      * first-try accuracy she settles at is therefore lower than this
      * number, which is intended: it leaves room to be wrong on the way.
      *
-     * At [STEP_STEADY] 2.4 against [STEP_LOST] 5 the target would be about
-     * 68% SOLVED. Lower than the old 80% on purpose: the user found that
-     * too punishing, so the gains were raised and the loss softened, both
-     * of which let the level sit a little higher, where she is stretched
-     * more often.
+     * [STREAK_BONUS] complicates it. It pays out on the answers whose two
+     * predecessors were also clean, which is p³ of them, so there is no
+     * tidy ratio to read off any more; the number below is the root of
+     * `p·STEP_STEADY + p³·STREAK_BONUS = (1−p)·STEP_LOST`, and its test
+     * solves that equation rather than restating it.
      *
-     * [STREAK_BONUS] then pays out on the share of answers whose two
-     * predecessors were also clean, which is p² of them, and that extra
-     * income lets the level climb a little further before the falling
-     * catches up. There is no tidy ratio to read off any more; the number
-     * below is the root of `p·STEP_STEADY + p³·STREAK_BONUS = (1−p)·STEP_LOST`,
-     * and its test solves that equation rather than restating it.
-     *
-     * The flip side is that she loses a slightly larger share of problems
-     * outright; that is the deliberate trade, and [STEP_LOST] is still the
-     * lever if it ever needs pulling back.
+     * THE LEVER RUNS BACKWARDS, which is worth knowing before pulling it.
+     * Every time this ladder has felt too punishing, the instinct was to
+     * soften [STEP_LOST], and every time that made things worse: a smaller
+     * penalty lets the level settle HIGHER, among harder problems she loses
+     * more often. Softening it to 5 was measured at 37% of problems lost
+     * outright. Raising it to 7 brings that back to about 30%, roughly one
+     * in three, while still leaving the bands Normal-dominant.
      */
-    const val TARGET_ACCURACY = 0.61
+    const val TARGET_ACCURACY = 0.68
 
     /**
      * The three climb sizes. Twenty percent above the old 3 / 2 / 1: the
@@ -185,18 +182,27 @@ object LevelLadder {
     const val STEP_SLOW = 1.2
 
     /**
-     * LOSING a problem: out of tries, answer revealed, or the clock ran
-     * out. A flat five points whatever the problem was worth.
+     * LOSING a problem: out of tries, or the answer revealed. A flat seven
+     * points whatever the problem was worth.
      *
-     * This is the only thing that costs anything besides a run of skips,
-     * and it is charged once at the end, not per wrong attempt. Two
-     * stumbles followed by the right answer is a solved problem and is paid
-     * for as one.
+     * This is the only thing that costs anything besides a skip, and it is
+     * charged once at the end, not per wrong attempt. Two stumbles followed
+     * by the right answer is a solved problem and is paid for as one.
+     *
+     * See [TARGET_ACCURACY] before changing this. It is not a punishment
+     * dial; it decides where the whole ladder comes to rest.
      */
-    const val STEP_LOST = 5
+    const val STEP_LOST = 7
 
-    /** Giving up, or the clock running out: the same flat five as a loss. */
-    const val STEP_GAVE_UP = 5
+    /**
+     * Giving up and asking to be shown the answer. DELIBERATELY EQUAL TO
+     * [STEP_LOST], and defined in terms of it so the two cannot drift apart.
+     *
+     * If revealing cost less than running out of tries, the cheapest way
+     * out of a problem she could not finish would be to give up early, and
+     * the ladder would be quietly teaching her to do that.
+     */
+    const val STEP_GAVE_UP = STEP_LOST
 
     /**
      * Clean right answers in a row before the run starts paying extra.

@@ -4,12 +4,14 @@ A small, calm Android app that taps you on the shoulder every few hours with one
 
 No accounts, no network, no ads, no analytics. Everything it knows stays on the phone.
 
-- **Adaptive difficulty.** A hidden 0-100 level moves with how you answer. Getting one wrong never drops it.
-- **Ten kinds of exercise.** Arithmetic, equations, geometry with diagrams, money, clocks, word problems, riddles, set theory, and tap-to-answer cards.
+- **Adaptive difficulty.** A hidden 0-100 level moves with how you answer. Getting one wrong never drops it, and answering quickly carries you further than answering slowly.
+- **Eleven kinds of exercise.** Arithmetic, equations, geometry with diagrams, money, clocks, word problems, riddles, set theory, estimation, and tap-to-answer cards. Each can be switched off on its own.
+- **Estimating, where close counts.** "Roughly how much is 297 × 4?" Round it, get near, and the app tells you what it was near.
 - **A daily challenge.** One five-step chain per day, where each step feeds the next.
 - **Worked solutions.** "Show me why" after any problem you finish.
+- **No countdown.** Nothing is ever timed. Solving something quickly still counts for more, quietly.
 - **Home-screen widget** and gentle reminder notifications.
-- **English and Romanian**, switchable in Settings.
+- **English and Romanian**, switchable in Settings. Adding a third language means re-authoring the problem templates rather than translating strings, since the app generates its own content. See the note at the bottom.
 
 ---
 
@@ -56,7 +58,7 @@ This builds and installs the debug app on whatever device is connected.
 
 ## Run the tests
 
-There are around 270 unit tests. They cover every problem generator, the adaptive level ladder, storage, and both languages.
+There are around 295 unit tests. They cover every problem generator, the adaptive level ladder, storage, and both languages.
 
 In Android Studio: right-click `app/src/test` and choose *Run 'Tests in ...'*.
 
@@ -147,3 +149,21 @@ If the phone already has a *debug* build installed, uninstall that first. Debug 
 | Run at startup | Alarms do not survive a reboot, so the app re-schedules them |
 
 All three are optional. Reminders simply get less punctual without them, and Settings points you at the right system screen when one is missing.
+
+There is **no internet permission at all**. The app cannot phone home, and there is no analytics or crash reporting. The trade is that a crash on your phone is invisible to everyone else, so *Settings → Report a problem* keeps the last one and gives you a button to copy it, along with your app version and device. Paste it into an issue if you hit something.
+
+---
+
+## A note on adding a language
+
+Harder than it looks, and worth knowing before you start.
+
+The UI strings all live in `i18n/Strings.kt`, which is the easy half. The hard half is that the app **generates** its problems, so a language needs the word-problem templates, the logic riddles, the geometry and money and clock stories, the thirty showpiece puzzles, and the helper-sheet notes all *re-authored* rather than translated. The tests depend on it: several assert per-language marker phrases and a fixed order of numbers inside each template.
+
+Each language also brings its own grammar rule that only a native speaker will catch. Romanian needs "de" before a counted noun from 20 up ("12 mere" but "45 **de** mere"), which is what `i18n/RomanianCountingTest.kt` exists to enforce, and four cases still slipped through several releases. `i18n/LanguagePurityTest.kt` catches one language leaking into the other, but nothing can tell you that generated text simply reads badly.
+
+---
+
+## License
+
+MIT. See [LICENSE](LICENSE). Do what you like with it, just keep the copyright notice.

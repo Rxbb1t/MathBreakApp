@@ -50,6 +50,7 @@ class ProblemGenerator(private val random: Random = Random.Default) {
     private val hunt = NumberHuntGenerator(random)
     private val sets = SetProblemGenerator(random)
     private val showpieces = ShowpieceGenerator(random)
+    private val estimation = EstimationGenerator(random)
 
     /**
      * How often each topic comes up, as a weight per hundred rolls;
@@ -64,8 +65,20 @@ class ProblemGenerator(private val random: Random = Random.Default) {
      * answer.
      */
     private class Mix(level: Level) {
-        /** Shape puzzles work at every level; the puzzles themselves grow. */
-        val puzzle = level.between(11, 9, 10)
+        /**
+         * EVERY WEIGHT HERE IS SPENT OUT OF THE SAME HUNDRED, and whatever
+         * is left over is what CORE gets. So a new topic is never free: it
+         * is taken from the core unless the other slices give something up
+         * for it.
+         *
+         * That is not hypothetical. Adding estimation as an eleventh topic
+         * pushed core down to ONE PERCENT in the middle of Normal, which is
+         * exactly where equations are supposed to be taking over from plain
+         * chains. Nothing failed, because no test knew core had a share
+         * worth keeping. `the core keeps a real share of every level` now
+         * does. Trim the others before adding a twelfth.
+         */
+        val puzzle = level.between(9, 8, 9)
 
         /** Riddles are the house style and stay the biggest single slice. */
         val logic = level.between(14, 15, 16)
@@ -76,18 +89,27 @@ class ProblemGenerator(private val random: Random = Random.Default) {
          */
         val geometry = (level.ramp(GEOMETRY_FROM, GEOMETRY_BY) * 15).toInt()
 
-        val money = level.between(11, 9, 10)
-        val time = level.between(10, 8, 9)
-        val word = level.between(11, 11, 11)
+        val money = level.between(9, 8, 9)
+        val time = level.between(8, 7, 8)
+        val word = level.between(10, 9, 9)
 
         /**
          * The two tap exercises are quick recognition rather than work, so
          * they thin out as the level climbs instead of stopping dead.
          */
-        val compare = 5 + (level.fade(TAPS_FROM, TAPS_BY) * 6).toInt()
-        val target = 5 + (level.fade(TAPS_FROM, TAPS_BY) * 6).toInt()
+        val compare = 4 + (level.fade(TAPS_FROM, TAPS_BY) * 6).toInt()
+        val target = 4 + (level.fade(TAPS_FROM, TAPS_BY) * 6).toInt()
 
-        val numbers = level.between(10, 9, 9)
+        val numbers = level.between(9, 8, 8)
+
+        /**
+         * Estimating stays a small slice on purpose. It is one narrow trick
+         * rather than a family of stories, so it goes stale faster than
+         * anything else here, and it thins further as she climbs: rounding
+         * 297 to 300 is a useful habit at the bottom of the scale and beside
+         * the point next to a two-unknown equation.
+         */
+        val estimation = level.between(8, 7, 5)
     }
 
     /** One story source in the roll: its share of the mix and its maker. */
@@ -263,6 +285,9 @@ class ProblemGenerator(private val random: Random = Random.Default) {
                 } else {
                     sets.generate(topicLevel, language)
                 }
+            },
+            Slice(ProblemTopic.ESTIMATION, weightOf(ProblemTopic.ESTIMATION, mix.estimation)) {
+                estimation.generate(levelFor(ProblemTopic.ESTIMATION), language)
             },
         )
 

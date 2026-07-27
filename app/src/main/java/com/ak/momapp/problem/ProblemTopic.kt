@@ -37,6 +37,9 @@ enum class ProblemTopic(val group: TopicGroup) {
 
     /** Number hunts (evens, primes, …) and set exercises (A ∩ B). */
     NUMBERS(TopicGroup.NUMBERS),
+
+    /** Round and approximate: "roughly how much is 297 × 4?" */
+    ESTIMATION(TopicGroup.NUMBERS),
     ;
 
     companion object {
@@ -60,4 +63,5 @@ val ProblemKind.topic: ProblemTopic
         ProblemKind.COMPARE, ProblemKind.TRUE_FALSE -> ProblemTopic.COMPARE
         ProblemKind.TARGET -> ProblemTopic.TARGET
         ProblemKind.SELECT, ProblemKind.SETS -> ProblemTopic.NUMBERS
+        ProblemKind.ESTIMATE -> ProblemTopic.ESTIMATION
     }

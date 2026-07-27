@@ -31,13 +31,18 @@ class Strings(
     val statsIconDescription: String,
     val settingsIconDescription: String,
     val correctFeedback: String,
+    /**
+     * Praise for an estimate that landed near the answer without hitting
+     * it. Takes the exact value, because being close is only worth
+     * anything once she knows what it was close to.
+     */
+    val closeEnoughFeedback: (String) -> String,
     val tryAgainFeedback: String,
     /** Hint button label; the number is how many presses are left. */
     val hintButton: (Int) -> String,
     val skipButton: String,
     /** Takes the display form of the answer: "42", ">", "6 + 4 + 9". */
     val revealedFeedback: (String) -> String,
-    val timeUpFeedback: (String) -> String,
     val check: String,
     val startButton: String,
     val readyLine: String,
@@ -80,6 +85,14 @@ class Strings(
     val settingsGroupExercises: String,
     val settingsGroupApp: String,
     val back: String,
+    val errorReportAction: String,
+    val errorReportTitle: String,
+    val errorReportBody: String,
+    val errorReportNoneBody: String,
+    val errorReportCopy: String,
+    val errorReportCopied: String,
+    val errorReportClear: String,
+    val supportAction: String,
     val languageSection: String,
     val remindersSection: String,
     val breakReminders: String,
@@ -100,10 +113,6 @@ class Strings(
     val problemsPerBreak: String,
     val problemsPerBreakSubtitle: String,
     val resetSittingButton: String,
-    val timerSection: String,
-    val timerSectionSubtitle: String,
-    val timerOff: String,
-    val timerMinutesOption: (Int) -> String,
     val noLimit: String,
     val customEllipsis: String,
     val customValue: (Int) -> String,
@@ -166,17 +175,17 @@ val EnglishStrings = Strings(
     statsIconDescription = "Your numbers",
     settingsIconDescription = "Settings",
     correctFeedback = "That's right!",
+    closeEnoughFeedback = { "Close enough! It was exactly $it." },
     tryAgainFeedback = "Not quite. Give it another go!",
     hintButton = { "Hint ($it)" },
     skipButton = "Skip",
     revealedFeedback = { "The answer was $it.\nOn to the next one!" },
-    timeUpFeedback = { "Time's up! The answer was $it.\nOn to the next one!" },
     check = "Check",
     startButton = "Start",
     readyLine = "Ready when you are.",
     oneMore = "One more?",
     practiceTitle = "Practice",
-    practiceIntro = "Pick one type and a level. No timer and no limit here, so take as long as you like.",
+    practiceIntro = "Pick one type and a level. Nothing is capped here, so take as long as you like.",
     practiceButton = "Practice a type",
     practiceLevel = "Level",
     showSolution = "Show me why",
@@ -198,11 +207,11 @@ val EnglishStrings = Strings(
     presetBody = {
         when (it) {
             SetupPreset.DEFAULT ->
-                "Every exercise type, no problem limit, no timer. Starts easy and finds your level as you go."
+                "Breaks of 10 problems. Starts easy and finds your level as you go."
             SetupPreset.RELAXED ->
-                "Short rounds of 5 problems, no timer, and it stays gentle however well you do."
+                "Short breaks of 5 problems, and it stays gentle however well you do."
             SetupPreset.CHALLENGE ->
-                "Starts at Normal with a 5-minute timer and 10 problems per break."
+                "Long breaks of 20 problems, starting at Normal and climbing as high as you can take it."
         }
     },
     quickSetupAction = "Change how breaks work",
@@ -223,6 +232,14 @@ val EnglishStrings = Strings(
     settingsGroupExercises = "What a break is like",
     settingsGroupApp = "The app itself",
     back = "Back",
+    errorReportAction = "Report a problem",
+    errorReportTitle = "Report a problem",
+    errorReportBody = "Something went wrong last time. Copying this and sending it along is the only way anyone will know it happened, since the app never sends anything on its own.",
+    errorReportNoneBody = "Nothing has gone wrong so far. If something does, the details will show up here so you can pass them on.",
+    errorReportCopy = "Copy the details",
+    errorReportCopied = "Copied",
+    errorReportClear = "Clear this",
+    supportAction = "Support this app",
     languageSection = "Language",
     remindersSection = "Reminders",
     breakReminders = "Break reminders",
@@ -243,10 +260,6 @@ val EnglishStrings = Strings(
     problemsPerBreak = "Problems per break",
     problemsPerBreakSubtitle = "After this many, the app sends you back to work.",
     resetSittingButton = "Start a fresh round",
-    timerSection = "Timer per problem",
-    timerSectionSubtitle = "When it runs out, the answer is shown. Trickier problems get extra time.",
-    timerOff = "Off",
-    timerMinutesOption = { "$it min" },
     noLimit = "No limit",
     customEllipsis = "Custom…",
     customValue = { "Custom: $it" },
@@ -260,7 +273,7 @@ val EnglishStrings = Strings(
             Difficulty.MEDIUM ->
                 "Normal: equations with x and y, geometry, money and clock stories, and trickier puzzles."
             Difficulty.HARD ->
-                "Hard: longer equations with 4–7 numbers, simple derivatives, tougher geometry, discounts and journeys, the hardest puzzles and riddles. The timer gives double time."
+                "Hard: longer equations with 4–7 numbers, simple derivatives, tougher geometry, discounts and journeys, the hardest puzzles and riddles."
         }
     },
     exerciseTypesTitle = "Exercise types",
@@ -286,6 +299,7 @@ val EnglishStrings = Strings(
             ProblemTopic.COMPARE -> "Comparisons (tap < = >)"
             ProblemTopic.TARGET -> "Number cards"
             ProblemTopic.NUMBERS -> "Numbers & sets"
+            ProblemTopic.ESTIMATION -> "Estimating"
         }
     },
     tapPrompt = {
@@ -293,6 +307,7 @@ val EnglishStrings = Strings(
             ProblemKind.COMPARE -> "Which sign fits between the two sides?"
             ProblemKind.TRUE_FALSE -> "True or false?"
             ProblemKind.MISSING_OP -> "Which sign is hiding behind the ?"
+            ProblemKind.ESTIMATE -> "Close is good enough here. No need to work it out exactly."
             else -> ""
         }
     },
@@ -308,6 +323,7 @@ val EnglishStrings = Strings(
             ProblemTopic.COMPARE -> "Tap <, = or > between two expressions, plus quick true-or-false checks."
             ProblemTopic.TARGET -> "Tap the cards that add up to the target."
             ProblemTopic.NUMBERS -> "Hunt evens, odds and primes; count A ∩ B."
+            ProblemTopic.ESTIMATION -> "Round the awkward numbers and get close without working it out."
         }
     },
     challengeTitle = "Today's challenge",
@@ -357,17 +373,17 @@ val RomanianStrings = Strings(
     statsIconDescription = "Cifrele tale",
     settingsIconDescription = "Setări",
     correctFeedback = "Corect!",
+    closeEnoughFeedback = { "Destul de aproape! Exact era $it." },
     tryAgainFeedback = "Nu chiar. Mai încearcă o dată!",
     hintButton = { "Indiciu ($it)" },
     skipButton = "Sari peste",
     revealedFeedback = { "Răspunsul era $it.\nMergem la următoarea!" },
-    timeUpFeedback = { "S-a scurs timpul! Răspunsul era $it.\nMergem la următoarea!" },
     check = "Verifică",
     startButton = "Începe",
     readyLine = "Gata când ești tu.",
     oneMore = "Încă una?",
     practiceTitle = "Exersează",
-    practiceIntro = "Alege un tip și un nivel. Aici nu e nici cronometru, nici limită, așa că poți sta cât vrei.",
+    practiceIntro = "Alege un tip și un nivel. Aici nu e nicio limită, așa că poți sta cât vrei.",
     practiceButton = "Exersează un tip",
     practiceLevel = "Nivel",
     showSolution = "Arată-mi de ce",
@@ -389,11 +405,11 @@ val RomanianStrings = Strings(
     presetBody = {
         when (it) {
             SetupPreset.DEFAULT ->
-                "Toate tipurile de exerciții, fără limită de probleme, fără cronometru. Începe ușor și se adaptează după tine."
+                "Pauze de 10 probleme. Începe ușor și se adaptează după tine."
             SetupPreset.RELAXED ->
-                "Runde scurte de 5 probleme, fără cronometru, și rămâne blând oricât de bine ți-ar merge."
+                "Pauze scurte, de 5 probleme, care rămân blânde oricât de bine ți-ar merge."
             SetupPreset.CHALLENGE ->
-                "Începe la Normal, cu cronometru de 5 minute și 10 probleme pe pauză."
+                "Pauze lungi, de 20 de probleme, care încep la Normal și urcă oricât de sus poți duce."
         }
     },
     quickSetupAction = "Schimbă cum decurg pauzele",
@@ -414,6 +430,14 @@ val RomanianStrings = Strings(
     settingsGroupExercises = "Cum arată o pauză",
     settingsGroupApp = "Aplicația în sine",
     back = "Înapoi",
+    errorReportAction = "Raportează o problemă",
+    errorReportTitle = "Raportează o problemă",
+    errorReportBody = "Ceva n-a mers data trecută. Dacă le copiezi și le trimiți mai departe, e singurul fel în care va afla cineva, fiindcă aplicația nu trimite nimic de la sine.",
+    errorReportNoneBody = "Până acum n-a mers nimic prost. Dacă se întâmplă, detaliile apar aici ca să le poți trimite mai departe.",
+    errorReportCopy = "Copiază detaliile",
+    errorReportCopied = "Copiat",
+    errorReportClear = "Șterge",
+    supportAction = "Sprijină aplicația",
     languageSection = "Limbă",
     remindersSection = "Notificări",
     breakReminders = "Notificări de pauză",
@@ -434,10 +458,6 @@ val RomanianStrings = Strings(
     problemsPerBreak = "Probleme pe pauză",
     problemsPerBreakSubtitle = "După atâtea, aplicația te trimite frumos înapoi la treabă.",
     resetSittingButton = "Începe o rundă nouă",
-    timerSection = "Timp pe problemă",
-    timerSectionSubtitle = "Când expiră, răspunsul apare singur. Problemele mai grele primesc timp în plus.",
-    timerOff = "Oprit",
-    timerMinutesOption = { "$it min" },
     noLimit = "Fără limită",
     customEllipsis = "Alt număr…",
     customValue = { "Alt număr: $it" },
@@ -477,6 +497,7 @@ val RomanianStrings = Strings(
             ProblemTopic.COMPARE -> "Comparații (atinge < = >)"
             ProblemTopic.TARGET -> "Cartonașe cu numere"
             ProblemTopic.NUMBERS -> "Numere și mulțimi"
+            ProblemTopic.ESTIMATION -> "Estimare"
         }
     },
     tapPrompt = {
@@ -484,6 +505,7 @@ val RomanianStrings = Strings(
             ProblemKind.COMPARE -> "Ce semn se potrivește între cele două părți?"
             ProblemKind.TRUE_FALSE -> "Adevărat sau fals?"
             ProblemKind.MISSING_OP -> "Ce semn se ascunde în spatele lui ?"
+            ProblemKind.ESTIMATE -> "Aproape e destul de bine aici. Nu trebuie calculat exact."
             else -> ""
         }
     },
@@ -499,6 +521,7 @@ val RomanianStrings = Strings(
             ProblemTopic.COMPARE -> "Atinge <, = sau > între două expresii, plus verificări rapide adevărat-fals."
             ProblemTopic.TARGET -> "Atinge cartonașele care adunate dau ținta."
             ProblemTopic.NUMBERS -> "Vânează pare, impare și prime; numără A ∩ B."
+            ProblemTopic.ESTIMATION -> "Rotunjește numerele incomode și ajungi aproape fără să calculezi."
         }
     },
     challengeTitle = "Provocarea zilei",

@@ -121,10 +121,6 @@ class SettingsViewModel(
         viewModelScope.launch { repository.setProblemsPerBreak(count) }
     }
 
-    fun setTimerMinutes(minutes: Int) {
-        viewModelScope.launch { repository.setTimerMinutes(minutes) }
-    }
-
     /** Flips one problem-type switch; never drops below [ProblemTopic.MIN_ENABLED]. */
     fun toggleTopic(topic: ProblemTopic) {
         val current = settings.value ?: return

@@ -48,18 +48,6 @@ class SettingsSerializationTest {
     }
 
     @Test
-    fun `timer minutes decode to a picker option or off`() {
-        assertEquals(BrainBreakSettings.TIMER_OFF, SettingsSerialization.decodeTimerMinutes(null))
-        assertEquals(3, SettingsSerialization.decodeTimerMinutes(3))
-        assertEquals(5, SettingsSerialization.decodeTimerMinutes(5))
-        assertEquals(10, SettingsSerialization.decodeTimerMinutes(10))
-        // Old installs stored 1 or 2 minutes; those now mean off.
-        assertEquals(BrainBreakSettings.TIMER_OFF, SettingsSerialization.decodeTimerMinutes(1))
-        assertEquals(BrainBreakSettings.TIMER_OFF, SettingsSerialization.decodeTimerMinutes(2))
-        assertEquals(BrainBreakSettings.TIMER_OFF, SettingsSerialization.decodeTimerMinutes(7))
-    }
-
-    @Test
     fun `language follows the phone before the user picks, then sticks`() {
         // Never set: the system locale decides.
         assertEquals(AppLanguage.ROMANIAN, SettingsSerialization.decodeLanguage(null, "ro"))

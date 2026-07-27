@@ -382,22 +382,6 @@ fun ProblemScreenContent(
                     }
                 }
 
-                uiState.remainingSeconds?.let { seconds ->
-                    if (!uiState.isFinished) {
-                        Spacer(Modifier.height(12.dp))
-                        Text(
-                            text = "%d:%02d".format(seconds / 60, seconds % 60),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            color = if (seconds <= 10) {
-                                MaterialTheme.colorScheme.error
-                            } else {
-                                MaterialTheme.colorScheme.onSurfaceVariant
-                            },
-                        )
-                    }
-                }
-
                 // The problem, the answer, and the feedback share the room
                 // between the header and the buttons. The problem text
                 // scales itself down to fit whatever space is left, and
@@ -414,6 +398,7 @@ fun ProblemScreenContent(
                         ProblemKind.ARITHMETIC -> MaterialTheme.typography.displayMedium
                         ProblemKind.EQUATION, ProblemKind.PUZZLE, ProblemKind.COMPARE,
                         ProblemKind.TRUE_FALSE, ProblemKind.MISSING_OP,
+                        ProblemKind.ESTIMATE,
                         ->
                             MaterialTheme.typography.headlineLarge
                         ProblemKind.WORD, ProblemKind.LOGIC, ProblemKind.GEOMETRY,
@@ -424,8 +409,14 @@ fun ProblemScreenContent(
                     ProblemTextCard(
                         text = uiState.problem.text,
                         baseStyle = baseStyle,
-                        prompt = strings.tapPrompt(uiState.problem.kind)
-                            .takeIf { uiState.problem.submitsOnTap },
+                        // Tap kinds say which buttons to use; an estimate
+                        // has to say that a near answer counts, or she will
+                        // sit there working it out exactly and never find
+                        // out that she did not have to.
+                        prompt = strings.tapPrompt(uiState.problem.kind).takeIf {
+                            uiState.problem.submitsOnTap ||
+                                uiState.problem.kind == ProblemKind.ESTIMATE
+                        },
                         diagram = uiState.problem.diagram,
                         modifier = Modifier
                             .weight(1f)
@@ -891,7 +882,13 @@ private fun FeedbackArea(uiState: ProblemUiState, modifier: Modifier = Modifier)
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
-                    text = strings.correctFeedback,
+                    // An estimate she landed near rather than on is still
+                    // right, and is told the exact number it was near.
+                    text = if (uiState.closeEnough) {
+                        strings.closeEnoughFeedback(uiState.problem.answerText)
+                    } else {
+                        strings.correctFeedback
+                    },
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.secondary,
@@ -938,11 +935,7 @@ private fun FeedbackArea(uiState: ProblemUiState, modifier: Modifier = Modifier)
 
         if (uiState.phase == AnswerPhase.REVEALED) {
             Text(
-                text = if (uiState.timedOut) {
-                    strings.timeUpFeedback(uiState.problem.answerText)
-                } else {
-                    strings.revealedFeedback(uiState.problem.answerText)
-                },
+                text = strings.revealedFeedback(uiState.problem.answerText),
                 style = MaterialTheme.typography.titleLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,

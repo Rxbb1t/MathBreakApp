@@ -28,6 +28,7 @@ import com.ak.momapp.ui.exercises.ExercisesScreen
 import com.ak.momapp.ui.practice.PracticeScreen
 import com.ak.momapp.ui.problem.ProblemScreen
 import com.ak.momapp.ui.problem.ProblemViewModel
+import com.ak.momapp.ui.settings.ErrorReportScreen
 import com.ak.momapp.ui.settings.SettingsScreen
 import com.ak.momapp.ui.stats.StatsScreen
 import com.ak.momapp.ui.theme.AppPalette
@@ -36,7 +37,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 // Six screens still don't warrant a navigation library.
-enum class AppScreen { PROBLEM, CHALLENGE, SETTINGS, STATS, EXERCISES, PRACTICE }
+enum class AppScreen { PROBLEM, CHALLENGE, SETTINGS, STATS, EXERCISES, PRACTICE, ERROR_REPORT }
 
 @Composable
 fun AppRoot(
@@ -104,6 +105,7 @@ fun AppRoot(
                         },
                         onOpenStats = { screen = AppScreen.STATS },
                         onOpenExercises = { screen = AppScreen.EXERCISES },
+                        onOpenErrorReport = { screen = AppScreen.ERROR_REPORT },
                     )
                 }
 
@@ -117,6 +119,11 @@ fun AppRoot(
                 AppScreen.EXERCISES -> {
                     BackHandler { screen = AppScreen.SETTINGS }
                     ExercisesScreen(onBack = { screen = AppScreen.SETTINGS })
+                }
+
+                AppScreen.ERROR_REPORT -> {
+                    BackHandler { screen = AppScreen.SETTINGS }
+                    ErrorReportScreen(onBack = { screen = AppScreen.SETTINGS })
                 }
 
                 // Practice hangs off the Start screen, so back goes home.

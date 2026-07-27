@@ -2,6 +2,7 @@ package com.ak.momapp.ui.settings
 
 import android.appwidget.AppWidgetManager
 import android.content.ComponentName
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
@@ -92,6 +93,7 @@ fun SettingsScreen(
     onResetSitting: () -> Unit = {},
     onOpenStats: () -> Unit = {},
     onOpenExercises: () -> Unit = {},
+    onOpenErrorReport: () -> Unit = {},
     viewModel: SettingsViewModel = viewModel(factory = SettingsViewModel.Factory),
 ) {
     val settings by viewModel.settings.collectAsState()
@@ -139,6 +141,7 @@ fun SettingsScreen(
                 viewModel = viewModel,
                 onResetSitting = onResetSitting,
                 onOpenExercises = onOpenExercises,
+                onOpenErrorReport = onOpenErrorReport,
                 modifier = Modifier
                     .padding(innerPadding)
                     .imePadding(),
@@ -161,6 +164,7 @@ private fun SettingsContent(
     viewModel: SettingsViewModel,
     onResetSitting: () -> Unit,
     onOpenExercises: () -> Unit,
+    onOpenErrorReport: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val strings = LocalStrings.current
@@ -298,29 +302,6 @@ private fun SettingsContent(
             )
         }
 
-        SettingsSection(
-            title = strings.timerSection,
-            subtitle = strings.timerSectionSubtitle,
-        ) {
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                BrainBreakSettings.TIMER_OPTIONS.forEach { minutes ->
-                    FilterChip(
-                        selected = settings.timerMinutes == minutes,
-                        onClick = { viewModel.setTimerMinutes(minutes) },
-                        label = {
-                            Text(
-                                if (minutes == BrainBreakSettings.TIMER_OFF) {
-                                    strings.timerOff
-                                } else {
-                                    strings.timerMinutesOption(minutes)
-                                },
-                            )
-                        },
-                    )
-                }
-            }
-        }
-
         SettingsGroup(strings.settingsGroupApp)
 
         SettingsSection(title = strings.languageSection) {
@@ -361,6 +342,20 @@ private fun SettingsContent(
         }
 
         Spacer(Modifier.height(8.dp))
+        LinkRow(label = strings.errorReportAction, onClick = onOpenErrorReport)
+
+        // Hidden until there is somewhere to send her. An empty link would
+        // be worse than no link.
+        if (SupportLink.URL.isNotBlank()) {
+            val context = LocalContext.current
+            Spacer(Modifier.height(8.dp))
+            LinkRow(
+                label = strings.supportAction,
+                onClick = { openSupportPage(context) },
+            )
+        }
+
+        Spacer(Modifier.height(8.dp))
     }
 
     if (showStartPicker) {
@@ -391,6 +386,58 @@ private fun SettingsContent(
  * One tappable summary row. The full picker with its grouped switches
  * lives on the Exercise types screen, so ten switches don't pile up here.
  */
+/**
+ * Where a tip would go.
+ *
+ * Left blank deliberately: the account does not exist yet, and the row
+ * above hides itself while this is empty, so filling in one string is the
+ * whole job when it does.
+ *
+ * IT MUST STAY A PLAIN LINK OUT TO A BROWSER. A donation is only allowed
+ * to sit outside the Play billing rules while it buys nothing, so nothing
+ * in the app may ever unlock, change, or improve because someone followed
+ * it. Putting the payment page in a WebView would also blur exactly the
+ * line that keeps this simple.
+ */
+private object SupportLink {
+    const val URL = ""
+}
+
+private fun openSupportPage(context: Context) {
+    runCatching {
+        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(SupportLink.URL)))
+    }
+}
+
+/** A tappable row that just leads somewhere, with no state of its own. */
+@Composable
+private fun LinkRow(label: String, onClick: () -> Unit) {
+    Surface(
+        shape = MaterialTheme.shapes.large,
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.padding(horizontal = 20.dp, vertical = 18.dp),
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.weight(1f),
+            )
+            Icon(
+                Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+            )
+        }
+    }
+}
+
 @Composable
 private fun ExerciseTypesRow(
     settings: BrainBreakSettings,

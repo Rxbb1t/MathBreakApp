@@ -50,6 +50,7 @@ class RomanianCountingTest {
         // Verbs and copulas.
         "e", "este", "sunt", "au", "are", "rămân", "face", "fac", "costă",
         "întreabă", "dă", "duci", "ia", "iau", "pune", "vinde", "adaugă",
+        "devine", "iese", "înseamnă", "încap",
         // Prepositions, conjunctions, pronouns, articles.
         "din", "și", "la", "în", "după", "se", "nu", "pe", "cu", "le", "îi",
         "i", "o", "un", "ca", "dar", "sau", "că", "care", "mai", "doar",

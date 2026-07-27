@@ -22,10 +22,7 @@ import com.ak.momapp.problem.Warmup
 import com.ak.momapp.problem.toLevel
 import com.ak.momapp.problem.topic
 import java.time.LocalDate
-import kotlin.math.roundToInt
 import kotlin.random.Random
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -47,7 +44,7 @@ enum class AnswerPhase {
     /** Solved it. */
     CORRECT,
 
-    /** Out of tries (three typed, two tapped) or time ran out. The answer is shown. */
+    /** Out of tries (three typed, two tapped), or she asked. Answer shown. */
     REVEALED,
 }
 
@@ -64,12 +61,14 @@ data class ProblemUiState(
     val encouragementSeed: Int? = null,
     /** The per-break problem cap is reached; no "One more?" offered. */
     val sessionComplete: Boolean = false,
-    /** Seconds left on the problem timer; null when the timer is off. */
-    val remainingSeconds: Int? = null,
-    /** REVEALED because the timer ran out, not because of three misses. */
-    val timedOut: Boolean = false,
     /** Hint-button presses so far; the third press reveals the answer. */
     val hintsUsed: Int = 0,
+    /**
+     * Solved by landing near the answer rather than on it, which only an
+     * estimate allows. Changes the wording of the praise so she is handed
+     * the exact number she was close to.
+     */
+    val closeEnough: Boolean = false,
 ) {
     val isFinished: Boolean
         get() = phase == AnswerPhase.CORRECT || phase == AnswerPhase.REVEALED
@@ -141,7 +140,6 @@ class ProblemViewModel(
     private var sittingDealt = 0
 
     private var problemShownAtMs: Long = 0
-    private var timerJob: Job? = null
 
     /**
      * Nothing is dealt until she presses Start (or a break notification
@@ -163,7 +161,6 @@ class ProblemViewModel(
 
     /** She picked a type and a level. Deal the first drill. */
     fun startPractice(topic: ProblemTopic, difficulty: Difficulty) {
-        timerJob?.cancel()
         _practice.value = PracticeConfig(topic, difficulty)
         _sessionDone.value = 0
         sittingDealt = 0
@@ -174,7 +171,6 @@ class ProblemViewModel(
 
     /** Back out of a drill, to the picker. */
     fun endPractice() {
-        timerJob?.cancel()
         _practice.value = null
         _started.value = false
         _uiState.value = null
@@ -208,7 +204,6 @@ class ProblemViewModel(
     fun startNewRound() {
         clearSitting()
         _started.value = true
-        timerJob?.cancel()
         nextProblem()
     }
 
@@ -220,7 +215,6 @@ class ProblemViewModel(
     fun resetSitting() {
         clearSitting()
         _started.value = true
-        timerJob?.cancel()
         viewModelScope.launch {
             progressRepository.resetToStartingDifficulty()
             deal()
@@ -243,11 +237,9 @@ class ProblemViewModel(
     fun skipProblem() {
         val state = _uiState.value ?: return
         if (state.isFinished) return
-        timerJob?.cancel()
         // ONE call, not a stats call followed by a level call: anything
-        // that reaches the ladder resets the run of skips, so recording the
-        // accuracy vote separately would clear the very run this is trying
-        // to count. Skips are free until the third in a row.
+        // that reaches the ladder also ends her run of clean answers, so
+        // recording the accuracy vote separately would end it twice.
         if (state.attempts == 0) {
             recordMiss(state.problem.kind.topic, Outcome.SKIPPED)
         } else {
@@ -318,8 +310,17 @@ class ProblemViewModel(
                     .toSet()
                 picked == state.problem.correctCards
             }
-            else -> (state.input.toIntOrNull() ?: return) == state.problem.answer
+            // Everything typed. Exact for almost every kind, but an
+            // estimate carries a tolerance and accepts anything near
+            // enough; see Problem.accepts.
+            else -> state.problem.accepts(state.input.toIntOrNull() ?: return)
         }
+
+        // Close but not exact, which only an estimate can be. She is told
+        // the true number afterwards: landing near it is the skill, and
+        // never learning what it was near would waste the moment.
+        val approximate = state.input.toIntOrNull()
+            ?.let { state.problem.isApproximate(it) } == true
 
         if (correct) {
             // Adaptivity and the fastest time only count first attempts;
@@ -340,6 +341,7 @@ class ProblemViewModel(
                 it?.copy(
                     phase = AnswerPhase.CORRECT,
                     encouragementSeed = maybeEncouragementSeed(),
+                    closeEnough = approximate,
                 )
             }
             notifyProblemFinished()
@@ -372,9 +374,8 @@ class ProblemViewModel(
 
     /**
      * Two nudges, then the third press shows the answer. Hints never cost
-     * first-try credit. Only wrong answers and timeouts do. The revealing
-     * press counts as a miss only when she hadn't attempted yet, same as a
-     * timeout.
+     * first-try credit; only wrong answers do. The revealing press counts
+     * as a miss only when she hadn't attempted yet.
      */
     fun useHint() {
         val state = _uiState.value ?: return
@@ -384,7 +385,8 @@ class ProblemViewModel(
             return
         }
         // Asking to be shown the answer is giving up, not getting it wrong.
-        // Gentler than losing it, and the same as the clock running out.
+        // It costs the same as losing the problem: if it cost less, giving
+        // up early would be the cheapest way out of anything hard.
         if (state.attempts == 0) {
             recordMiss(state.problem.kind.topic, Outcome.GAVE_UP)
         } else {
@@ -444,7 +446,6 @@ class ProblemViewModel(
     }
 
     private fun notifyProblemFinished() {
-        timerJob?.cancel()
         // A drill isn't a break: there's no notification to clear and no
         // per-break cap to fill, so she can keep going as long as she likes.
         if (_practice.value != null) return
@@ -489,54 +490,11 @@ class ProblemViewModel(
             levelFor = { topic -> eased(levels?.get(topic) ?: level) },
             review = review,
         )
+        // Recorded whatever else happens: how long an answer took is the
+        // pace signal, and that is independent of any countdown being shown.
         problemShownAtMs = System.currentTimeMillis()
-        // Tricky problems get extra time: the single highest factor
-        // (hard ×2, logic ×1.5, names ×1.25). Never stacked. A drill is
-        // untimed however the timer setting stands.
-        val timerSeconds = settings.timerMinutes
-            .takeIf { it > 0 && drill == null }
-            ?.let { minutes -> (minutes * 60 * problem.timerMultiplier).roundToInt() }
-        _uiState.update { ProblemUiState(problem = problem, remainingSeconds = timerSeconds) }
+        _uiState.update { ProblemUiState(problem = problem) }
         sittingDealt++
-        startTimer(timerSeconds)
-    }
-
-    private fun startTimer(totalSeconds: Int?) {
-        timerJob?.cancel()
-        if (totalSeconds == null) return
-        timerJob = viewModelScope.launch {
-            // Count against a deadline so ticks can't drift.
-            val deadline = System.currentTimeMillis() + totalSeconds * 1_000L
-            while (true) {
-                val remaining = ((deadline - System.currentTimeMillis()) / 1_000).toInt()
-                if (remaining <= 0) break
-                _uiState.update { it?.copy(remainingSeconds = remaining) }
-                delay(1_000)
-            }
-            onTimeUp()
-        }
-    }
-
-    private fun onTimeUp() {
-        val state = _uiState.value ?: return
-        if (state.isFinished) return
-        // Running out of time costs less than losing the problem outright.
-        // The accuracy tally only hears about it if she hadn't already
-        // stumbled, but the level moves either way: the problem is gone.
-        if (state.attempts == 0) {
-            recordMiss(state.problem.kind.topic, Outcome.GAVE_UP)
-        } else {
-            recordProblemLost(state.problem.kind.topic, Outcome.GAVE_UP)
-        }
-        _uiState.update {
-            it?.copy(
-                phase = AnswerPhase.REVEALED,
-                timedOut = true,
-                remainingSeconds = 0,
-                input = "",
-            )
-        }
-        notifyProblemFinished()
     }
 
     private fun maybeEncouragementSeed(): Int? =

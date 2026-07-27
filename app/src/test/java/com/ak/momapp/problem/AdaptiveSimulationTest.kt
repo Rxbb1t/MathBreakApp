@@ -129,13 +129,31 @@ class AdaptiveSimulationTest {
      * third of the range at a time, so it could not sit anywhere except
      * three fixed points; this one has to hold a genuine position without
      * wandering.
+     *
+     * Averaged over seeds rather than read off one. A single run's spread
+     * is a noisy statistic, and an earlier version of this test asserted a
+     * bound that the run it happened to use cleared by three points while
+     * other seeds went past it. A threshold you only pass on the seed you
+     * picked is not measuring anything.
+     *
+     * The bound scales with [LevelLadder.STEP_LOST] because that is what
+     * sets the size of a downward move: a ladder that drops seven at a time
+     * genuinely ranges wider than one that drops five, and pinning an
+     * absolute number here would just have to be edited every time that
+     * constant is tuned.
      */
     @Test
     fun `once settled it stays put instead of wandering`() {
-        val history = run(ability = 55, problems = 400, start = Level.of(50), seed = 9)
-        val tail = history.takeLast(200).map { it.points }
-        val spread = (tail.max() - tail.min())
-        assertTrue("the level swung across $spread points", spread <= 40)
+        val spreads = (1..8).map { seed ->
+            val history = run(ability = 55, problems = 400, start = Level.of(50), seed = seed)
+            val tail = history.takeLast(200).map { it.points }
+            tail.max() - tail.min()
+        }
+        val mean = spreads.average()
+        assertTrue(
+            "the level swung across ${"%.1f".format(mean)} points on average (runs: $spreads)",
+            mean <= LevelLadder.STEP_LOST * 7.0,
+        )
     }
 
     @Test

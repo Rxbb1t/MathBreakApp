@@ -25,8 +25,6 @@ data class BrainBreakSettings(
     val startingDifficulty: Difficulty = Difficulty.EASY,
     /** Problems allowed per sitting; [UNLIMITED_PROBLEMS] means no cap. */
     val problemsPerBreak: Int = UNLIMITED_PROBLEMS,
-    /** Minutes allowed per problem; [TIMER_OFF] disables the countdown. */
-    val timerMinutes: Int = TIMER_OFF,
     /** Problem families the mix may draw from; never below [ProblemTopic.MIN_ENABLED]. */
     val enabledTopics: Set<ProblemTopic> = ProblemTopic.ALL,
     /** The look picked under Settings → P ersonalize. */
@@ -45,9 +43,6 @@ data class BrainBreakSettings(
         const val MAX_PROBLEMS_PER_BREAK = 99
         /** Quick-pick options offered in settings. */
         val PROBLEM_LIMIT_PRESETS = listOf(5, 10, 20)
-        const val TIMER_OFF = 0
-        /** Off by default; tricky problems stretch these via a multiplier. */
-        val TIMER_OPTIONS = listOf(TIMER_OFF, 3, 5, 10)
         const val DEFAULT_ACTIVE_START = 9 * 60
         const val DEFAULT_ACTIVE_END = 17 * 60
         val DEFAULT_ACTIVE_DAYS: Set<DayOfWeek> = setOf(
@@ -84,10 +79,6 @@ object SettingsSerialization {
             "EXPERT" -> Difficulty.HARD
             else -> Difficulty.entries.firstOrNull { it.name == raw } ?: default
         }
-
-    /** Values outside the current picker (incl. the old 1–3 min) mean off. */
-    fun decodeTimerMinutes(raw: Int?): Int =
-        if (raw != null && raw in BrainBreakSettings.TIMER_OPTIONS) raw else BrainBreakSettings.TIMER_OFF
 
     /** Before the user ever picks, a Romanian phone starts in Romanian. */
     fun decodeLanguage(
@@ -170,30 +161,43 @@ object ActiveWindow {
  * The three styles offered by the first-run setup guide. Picking one
  * writes these values in a single edit; every one of them can still be
  * changed piece by piece in Settings afterwards.
+ *
+ * THE THREE ARE ONE DIAL, and the ordering below is the whole design:
+ * every axis moves the same way, so each preset is more of everything than
+ * the one before it. Nothing crosses over.
+ *
+ *                problems   starts at   climbs to
+ *     RELAXED         5       Easy       Normal
+ *     DEFAULT        10       Easy       Hard
+ *     CHALLENGE      20       Normal     Hard
+ *
+ * This needed redrawing when the countdown was removed. The timer had been
+ * carrying most of the difference (CHALLENGE was the only one with a clock
+ * on it), and without it DEFAULT was left UNCAPPED while CHALLENGE stopped
+ * at ten, which made the demanding option look like the shorter one.
+ * [BrainBreakSettings.UNLIMITED_PROBLEMS] is still reachable, but as
+ * something she chooses in Settings rather than something a preset hands
+ * her before she knows what a break feels like.
  */
 enum class SetupPreset(
     val problemsPerBreak: Int,
     val startingDifficulty: Difficulty,
-    val timerMinutes: Int,
     /** RELAXED never climbs past MEDIUM; the others are uncapped. */
     val maxDifficulty: Difficulty,
 ) {
     DEFAULT(
-        problemsPerBreak = BrainBreakSettings.UNLIMITED_PROBLEMS,
+        problemsPerBreak = 10,
         startingDifficulty = Difficulty.EASY,
-        timerMinutes = BrainBreakSettings.TIMER_OFF,
         maxDifficulty = Difficulty.HARD,
     ),
     RELAXED(
         problemsPerBreak = 5,
         startingDifficulty = Difficulty.EASY,
-        timerMinutes = BrainBreakSettings.TIMER_OFF,
         maxDifficulty = Difficulty.MEDIUM,
     ),
     CHALLENGE(
-        problemsPerBreak = 10,
+        problemsPerBreak = 20,
         startingDifficulty = Difficulty.MEDIUM,
-        timerMinutes = 5,
         maxDifficulty = Difficulty.HARD,
     ),
 }
@@ -210,7 +214,6 @@ class SettingsRepository(private val context: Context) {
         /** The adaptive climb's ceiling; missing means uncapped. */
         val MAX_DIFFICULTY = stringPreferencesKey("max_difficulty")
         val PROBLEMS_PER_BREAK = intPreferencesKey("problems_per_break")
-        val TIMER_MINUTES = intPreferencesKey("timer_minutes")
         /** The switched-OFF topics; see [SettingsSerialization.encodeTopics]. */
         val DISABLED_TOPICS = stringPreferencesKey("disabled_problem_topics")
         /** Old enabled-set encodings, kept readable for migration only. */
@@ -233,7 +236,6 @@ class SettingsRepository(private val context: Context) {
             startingDifficulty = SettingsSerialization.decodeDifficulty(prefs[Keys.STARTING_DIFFICULTY]),
             problemsPerBreak = (prefs[Keys.PROBLEMS_PER_BREAK] ?: BrainBreakSettings.UNLIMITED_PROBLEMS)
                 .coerceIn(BrainBreakSettings.UNLIMITED_PROBLEMS, BrainBreakSettings.MAX_PROBLEMS_PER_BREAK),
-            timerMinutes = SettingsSerialization.decodeTimerMinutes(prefs[Keys.TIMER_MINUTES]),
             enabledTopics = SettingsSerialization.decodeTopics(
                 prefs[Keys.DISABLED_TOPICS],
                 prefs[Keys.LEGACY_ENABLED_TOPICS_V2],
@@ -289,7 +291,6 @@ class SettingsRepository(private val context: Context) {
     suspend fun applyPreset(preset: SetupPreset) {
         context.brainBreakDataStore.edit {
             it[Keys.PROBLEMS_PER_BREAK] = preset.problemsPerBreak
-            it[Keys.TIMER_MINUTES] = preset.timerMinutes
             it[Keys.STARTING_DIFFICULTY] = preset.startingDifficulty.name
             it[Keys.MAX_DIFFICULTY] = preset.maxDifficulty.name
             it[Keys.GUIDE_SHOWN] = true
@@ -310,13 +311,6 @@ class SettingsRepository(private val context: Context) {
     private fun MutablePreferences.startAt(difficulty: Difficulty) {
         this[ProgressRepository.Keys.CURRENT_POINTS] = difficulty.toLevel().points
         this[ProgressRepository.Keys.CURRENT_BAND] = difficulty.name
-    }
-
-    suspend fun setTimerMinutes(minutes: Int) {
-        context.brainBreakDataStore.edit {
-            it[Keys.TIMER_MINUTES] =
-                if (minutes in BrainBreakSettings.TIMER_OPTIONS) minutes else BrainBreakSettings.TIMER_OFF
-        }
     }
 
     suspend fun setEnabledTopics(topics: Set<ProblemTopic>) {

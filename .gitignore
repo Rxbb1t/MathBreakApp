@@ -22,3 +22,6 @@ keystore.properties
 
 # Built APKs kept in the project root for sideloading
 *.apk
+
+# Agent scratch: ledgers, task briefs, review diffs. The git history is the record.
+.superpowers/

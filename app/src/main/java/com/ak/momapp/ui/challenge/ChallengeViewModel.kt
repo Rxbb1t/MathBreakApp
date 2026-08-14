@@ -14,7 +14,9 @@ import java.time.LocalDate
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -39,12 +41,15 @@ data class ChallengeUiState(
     val input: String = "",
     val phase: ChallengePhase = ChallengePhase.ANSWERING,
     val hintsUsed: Int = 0,
-    val currentHint: String? = null,
     val totalCompleted: Int = 0,
     /** Bumped on every solve so the confetti knows when to fire. */
     val celebrations: Int = 0,
 ) {
     val stage: Problem get() = stages[stageIndex]
+
+    /** The nudge currently on screen, if any hint has been used. */
+    val currentHint: String?
+        get() = if (hintsUsed > 0) stage.hints.getOrNull(hintsUsed - 1) else null
 }
 
 /**
@@ -66,20 +71,37 @@ class ChallengeViewModel(
 
     init {
         viewModelScope.launch {
-            val language = settingsRepository.settings.first().language
-            val saved = challengeRepository.state.first()
-            val date = today()
-            day = date.toEpochDay()
-            val challenge: DailyChallenge = generator.generate(date, language)
-            val sameDay = saved.day == day
-            _uiState.value = ChallengeUiState(
-                intro = challenge.intro,
-                stages = challenge.stages,
-                stageIndex = if (sameDay) saved.stage.coerceIn(0, challenge.stages.lastIndex) else 0,
-                phase = if (sameDay && saved.done) ChallengePhase.COMPLETE else ChallengePhase.ANSWERING,
-                totalCompleted = saved.totalCompleted,
-            )
-            if (!sameDay) challengeRepository.saveProgress(day, 0)
+            // A one-shot read meant the challenge kept whatever language was
+            // active when it was first built. The numbers come from
+            // Random(epochDay), so rebuilding costs nothing and returns the
+            // same story correctly worded. Only intro/stages get swapped on
+            // a language change: her typed input, hint count and phase live
+            // only in memory (not in ChallengeRepository) and must survive
+            // a swap untouched, or she could farm free hints by toggling
+            // the language on a screen whose one rule is "solve it or don't".
+            settingsRepository.settings
+                .map { it.language }
+                .distinctUntilChanged()
+                .collect { language ->
+                    val date = today()
+                    day = date.toEpochDay()
+                    val challenge: DailyChallenge = generator.generate(date, language)
+                    val existing = _uiState.value
+                    if (existing == null) {
+                        val saved = challengeRepository.state.first()
+                        val sameDay = saved.day == day
+                        _uiState.value = ChallengeUiState(
+                            intro = challenge.intro,
+                            stages = challenge.stages,
+                            stageIndex = if (sameDay) saved.stage.coerceIn(0, challenge.stages.lastIndex) else 0,
+                            phase = if (sameDay && saved.done) ChallengePhase.COMPLETE else ChallengePhase.ANSWERING,
+                            totalCompleted = saved.totalCompleted,
+                        )
+                        if (!sameDay) challengeRepository.saveProgress(day, 0)
+                    } else {
+                        _uiState.value = existing.copy(intro = challenge.intro, stages = challenge.stages)
+                    }
+                }
         }
     }
 
@@ -106,12 +128,7 @@ class ChallengeViewModel(
         val state = _uiState.value ?: return
         if (state.phase != ChallengePhase.ANSWERING && state.phase != ChallengePhase.TRY_AGAIN) return
         if (state.hintsUsed >= MAX_HINTS) return
-        _uiState.update {
-            it?.copy(
-                hintsUsed = state.hintsUsed + 1,
-                currentHint = state.stage.hints.getOrNull(state.hintsUsed),
-            )
-        }
+        _uiState.update { it?.copy(hintsUsed = state.hintsUsed + 1) }
     }
 
     private fun finishStage() {
@@ -146,7 +163,6 @@ class ChallengeViewModel(
                 input = "",
                 phase = ChallengePhase.ANSWERING,
                 hintsUsed = 0,
-                currentHint = null,
             )
         }
         viewModelScope.launch { challengeRepository.saveProgress(day, next) }

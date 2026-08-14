@@ -287,6 +287,18 @@ class DailyChallengeGeneratorTest {
         assertTrue("only ${anchors.size} distinct anchors in 60 days", anchors.size > 8)
     }
 
+    @Test
+    fun `the same day gives the same numbers in both languages`() {
+        val date = java.time.LocalDate.of(2026, 8, 14)
+        val en = DailyChallengeGenerator().generate(date, AppLanguage.ENGLISH)
+        val ro = DailyChallengeGenerator().generate(date, AppLanguage.ROMANIAN)
+        assertEquals(en.stages.size, ro.stages.size)
+        en.stages.zip(ro.stages).forEach { (e, r) ->
+            assertEquals("stage answers must match across languages", e.answer, r.answer)
+            assertNotEquals("stage text should be translated", e.text, r.text)
+        }
+    }
+
     private fun isPrime(n: Int): Boolean = n >= 2 && (2..n / 2).none { n % it == 0 }
 
     /** So a four-number header can be destructured in one line above. */

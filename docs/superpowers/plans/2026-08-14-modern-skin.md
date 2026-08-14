@@ -383,10 +383,28 @@ git commit -m "The daily challenge follows the language setting"
 
 ### Task 4: Phase 1 verification
 
-- [ ] **Step 1:** Run `./gradlew :app:testDebugUnitTest`. Expected: all green, count >= the pre-change count plus 4.
+**This task is the ONLY gate on Tasks 2 and 3.** Neither is covered by an automated
+test: this project has no view-model test at all, because `SettingsRepository` takes a
+Context and there is no fake or Robolectric setup. The unit suite passing proves
+nothing about the wiring. Treat every step below as evidence to capture, not a glance.
+
+- [ ] **Step 1:** Run `./gradlew :app:testDebugUnitTest`. Expected: all green, at least 4 above the 295 baseline.
 - [ ] **Step 2:** Run `./gradlew :app:assembleDebug`. Expected: BUILD SUCCESSFUL.
-- [ ] **Step 3:** Install and check by hand: start a problem, open Settings, switch EN to RO, go back. The problem text must be in Romanian with the same numbers. Repeat inside the daily challenge.
-- [ ] **Step 4:** Report results before starting Phase 2.
+- [ ] **Step 3: The problem screen re-words and keeps her place.**
+  Start a break and get a TYPED problem (not a tap kind). Type two digits of an answer but do NOT submit. Note the exact numbers in the question. Open Settings, switch EN to RO, come back.
+  - The question is in Romanian.
+  - **The numbers are identical** to what you noted. Different numbers mean replay is re-rolling instead of rebuilding, which is a Critical failure.
+  - **Your two typed digits are still there**, and the attempt count has not reset.
+- [ ] **Step 4: A hint survives the switch.** On a problem with hints, press Hint once, then switch language. The nudge on screen must be in the new language, not the old one.
+- [ ] **Step 5: The challenge re-words without giving away hints.**
+  Open the daily challenge, use ONE hint, note the stage number, then switch language.
+  - The stage text and the nudge are both in the new language.
+  - **You are on the same stage**, with your progress intact.
+  - **The hint budget still shows one used, not zero.** A reset here means language switching farms unlimited hints against a two-hint budget, which is a Critical failure.
+- [ ] **Step 6:** Switch back EN. Everything above must hold in reverse, which proves the spec survives a second replay.
+- [ ] **Step 7:** Record what you actually observed for each step, then report before starting Phase 2.
+
+Emulator notes: `adb` is not on PATH, use `/c/Users/Anto/AppData/Local/Android/Sdk/platform-tools`. Taps only register as `input swipe x y x y 80`. Set `MSYS_NO_PATHCONV=1` in Git Bash. Screenshot before believing a `uiautomator dump`, which often returns the previous screen. Allow 15-20 s after `am start` before the first tap.
 
 ---
 

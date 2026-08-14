@@ -120,25 +120,6 @@ class ProblemViewModel(
         .map { it.successSound }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
 
-    init {
-        // The words are baked into a problem when it is generated, so a
-        // language change has to rebuild the one she is looking at. Her
-        // typed input, attempt count and phase all survive: only the
-        // wording is replaced.
-        viewModelScope.launch {
-            settingsRepository.settings
-                .map { it.language }
-                .distinctUntilChanged()
-                .drop(1)
-                .collect { language ->
-                    _uiState.update { state ->
-                        val spec = state?.problem?.spec ?: return@update state
-                        state.copy(problem = ProblemGenerator.replay(spec, language))
-                    }
-                }
-        }
-    }
-
     /**
      * Where she sits on the fine scale. Shown ONLY behind the long-press on
      * the level chip, never as part of the ordinary screen: a number on
@@ -179,6 +160,25 @@ class ProblemViewModel(
      */
     private val _practice = MutableStateFlow<PracticeConfig?>(null)
     val practice: StateFlow<PracticeConfig?> = _practice.asStateFlow()
+
+    init {
+        // The words are baked into a problem when it is generated, so a
+        // language change has to rebuild the one she is looking at. Her
+        // typed input, attempt count and phase all survive: only the
+        // wording is replaced.
+        viewModelScope.launch {
+            settingsRepository.settings
+                .map { it.language }
+                .distinctUntilChanged()
+                .drop(1)
+                .collect { language ->
+                    _uiState.update { state ->
+                        val spec = state?.problem?.spec ?: return@update state
+                        state.copy(problem = ProblemGenerator.replay(spec, language))
+                    }
+                }
+        }
+    }
 
     /** She picked a type and a level. Deal the first drill. */
     fun startPractice(topic: ProblemTopic, difficulty: Difficulty) {

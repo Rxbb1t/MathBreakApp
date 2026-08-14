@@ -27,6 +27,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -117,6 +119,25 @@ class ProblemViewModel(
     val successSound: StateFlow<Boolean> = settingsRepository.settings
         .map { it.successSound }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+
+    init {
+        // The words are baked into a problem when it is generated, so a
+        // language change has to rebuild the one she is looking at. Her
+        // typed input, attempt count and phase all survive: only the
+        // wording is replaced.
+        viewModelScope.launch {
+            settingsRepository.settings
+                .map { it.language }
+                .distinctUntilChanged()
+                .drop(1)
+                .collect { language ->
+                    _uiState.update { state ->
+                        val spec = state?.problem?.spec ?: return@update state
+                        state.copy(problem = ProblemGenerator.replay(spec, language))
+                    }
+                }
+        }
+    }
 
     /**
      * Where she sits on the fine scale. Shown ONLY behind the long-press on

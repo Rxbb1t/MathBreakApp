@@ -45,4 +45,17 @@ class LanguageReplayTest {
         // a floor rather than a total. Most problems must actually translate.
         assertTrue("only $differed of 200 problems changed wording", differed > 120)
     }
+
+    @Test
+    fun `re-wording preserves everything the answer depends on`() {
+        val generator = ProblemGenerator(Random(99))
+        val english = generator.generate(Level.of(60), AppLanguage.ENGLISH)
+        val romanian = ProblemGenerator.replay(english.spec!!, AppLanguage.ROMANIAN)
+        // The spec must survive the round trip, or a second switch back
+        // would have nothing to replay from.
+        assertEquals(english.spec, romanian.spec)
+        assertEquals(english.maxAttempts, romanian.maxAttempts)
+        assertEquals(english.submitsOnTap, romanian.submitsOnTap)
+        assertEquals(english.effort, romanian.effort, 0.0001)
+    }
 }

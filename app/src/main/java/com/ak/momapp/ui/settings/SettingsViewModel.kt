@@ -17,6 +17,7 @@ import com.ak.momapp.problem.Difficulty
 import com.ak.momapp.problem.Level
 import com.ak.momapp.problem.ProblemTopic
 import com.ak.momapp.ui.theme.AppPalette
+import com.ak.momapp.ui.theme.UiSkin
 import java.time.DayOfWeek
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -141,6 +142,10 @@ class SettingsViewModel(
 
     fun setSuccessSound(enabled: Boolean) {
         viewModelScope.launch { repository.setSuccessSound(enabled) }
+    }
+
+    fun setSkin(skin: UiSkin) {
+        viewModelScope.launch { repository.setSkin(skin) }
     }
 
     companion object {

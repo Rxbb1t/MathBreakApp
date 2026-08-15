@@ -33,6 +33,7 @@ import com.ak.momapp.ui.settings.SettingsScreen
 import com.ak.momapp.ui.stats.StatsScreen
 import com.ak.momapp.ui.theme.AppPalette
 import com.ak.momapp.ui.theme.MomAppTheme
+import com.ak.momapp.ui.theme.UiSkin
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
@@ -49,9 +50,9 @@ fun AppRoot(
     val context = LocalContext.current
     val settingsRepository = remember { SettingsRepository(context.applicationContext) }
     val appearance by remember {
-        settingsRepository.settings.map { it.language to it.palette }
-    }.collectAsState(initial = AppLanguage.ENGLISH to AppPalette.CLAY)
-    val (language, palette) = appearance
+        settingsRepository.settings.map { Appearance(it.language, it.palette, it.skin) }
+    }.collectAsState(initial = Appearance(AppLanguage.ENGLISH, AppPalette.CLAY, UiSkin.MODERN))
+    val language = appearance.language
     // Null while the first read is in flight, so neither the guide nor the
     // notification prompt can fire before the stored value is known.
     val guideShown by remember {
@@ -75,7 +76,7 @@ fun AppRoot(
     // the setup guide has been answered, never on top of it.
     NotificationPermissionRequest(enabled = guideShown == true)
 
-    MomAppTheme(palette = palette) {
+    MomAppTheme(palette = appearance.palette, skin = appearance.skin) {
         CompositionLocalProvider(LocalStrings provides language.strings()) {
             when (screen) {
                 AppScreen.PROBLEM -> ProblemScreen(
@@ -162,3 +163,14 @@ private fun NotificationPermissionRequest(enabled: Boolean) {
         if (!granted) launcher.launch(Manifest.permission.POST_NOTIFICATIONS)
     }
 }
+
+/**
+ * The three settings the whole tree is rebuilt for. One object rather
+ * than nested Pairs so a fourth can be added without every reader having
+ * to be rewritten around it.
+ */
+private data class Appearance(
+    val language: AppLanguage,
+    val palette: AppPalette,
+    val skin: UiSkin,
+)

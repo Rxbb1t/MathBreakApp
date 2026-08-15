@@ -81,6 +81,7 @@ import com.ak.momapp.problem.Difficulty
 import com.ak.momapp.problem.ProblemTopic
 import com.ak.momapp.ui.PresetDialog
 import com.ak.momapp.ui.theme.AppPalette
+import com.ak.momapp.ui.theme.UiSkin
 import com.ak.momapp.widget.BrainBreakWidgetReceiver
 import java.time.DayOfWeek
 import java.time.format.TextStyle
@@ -316,6 +317,32 @@ private fun SettingsContent(
                         ),
                     ) {
                         Text(if (language == AppLanguage.ENGLISH) "English" else "Română")
+                    }
+                }
+            }
+        }
+
+        SettingsSection(
+            title = strings.appearanceTitle,
+            subtitle = strings.appearanceSubtitle,
+        ) {
+            SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+                UiSkin.entries.forEachIndexed { index, skin ->
+                    SegmentedButton(
+                        selected = settings.skin == skin,
+                        onClick = { viewModel.setSkin(skin) },
+                        shape = SegmentedButtonDefaults.itemShape(
+                            index = index,
+                            count = UiSkin.entries.size,
+                        ),
+                    ) {
+                        Text(
+                            if (skin == UiSkin.LEGACY) {
+                                strings.appearanceLegacy
+                            } else {
+                                strings.appearanceModern
+                            },
+                        )
                     }
                 }
             }

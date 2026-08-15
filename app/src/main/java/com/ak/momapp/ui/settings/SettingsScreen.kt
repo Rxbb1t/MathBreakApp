@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -221,11 +222,14 @@ private fun SettingsContent(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = Modifier.fillMaxWidth(),
             ) {
+                // heightIn, not height: at a large system font size
+                // "Until 17:00" wraps to two lines, and a fixed height cut
+                // the time off halfway through the digits.
                 OutlinedButton(
                     onClick = { showStartPicker = true },
                     modifier = Modifier
                         .weight(1f)
-                        .height(52.dp),
+                        .heightIn(min = 52.dp),
                 ) {
                     Text(strings.fromTime(formatTimeOfDay(settings.activeStartMinutes)))
                 }
@@ -233,7 +237,7 @@ private fun SettingsContent(
                     onClick = { showEndPicker = true },
                     modifier = Modifier
                         .weight(1f)
-                        .height(52.dp),
+                        .heightIn(min = 52.dp),
                 ) {
                     Text(strings.untilTime(formatTimeOfDay(settings.activeEndMinutes)))
                 }

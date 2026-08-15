@@ -308,7 +308,7 @@ private fun StageContent(
                 onClick = onNextStage,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(60.dp),
+                    .heightIn(min = 60.dp),
             ) {
                 Text(strings.challengeContinue, style = MaterialTheme.typography.titleLarge)
             }
@@ -318,7 +318,7 @@ private fun StageContent(
                 enabled = state.input.isNotEmpty(),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(60.dp),
+                    .heightIn(min = 60.dp),
             ) {
                 Text(strings.check, style = MaterialTheme.typography.titleLarge)
             }

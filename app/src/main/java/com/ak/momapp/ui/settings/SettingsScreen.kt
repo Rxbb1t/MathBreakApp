@@ -80,7 +80,10 @@ import com.ak.momapp.i18n.formatTimeOfDay
 import com.ak.momapp.problem.Difficulty
 import com.ak.momapp.problem.ProblemTopic
 import com.ak.momapp.ui.PresetDialog
+import com.ak.momapp.ui.sectionSurfaceBorder
+import com.ak.momapp.ui.sectionSurfaceColor
 import com.ak.momapp.ui.theme.AppPalette
+import com.ak.momapp.ui.theme.LocalSkin
 import com.ak.momapp.ui.theme.UiSkin
 import com.ak.momapp.widget.BrainBreakWidgetReceiver
 import java.time.DayOfWeek
@@ -441,7 +444,8 @@ private fun openSupportPage(context: Context) {
 private fun LinkRow(label: String, onClick: () -> Unit) {
     Surface(
         shape = MaterialTheme.shapes.large,
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+        color = sectionSurfaceColor(),
+        border = sectionSurfaceBorder(),
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
     ) {
@@ -473,7 +477,8 @@ private fun ExerciseTypesRow(
     val strings = LocalStrings.current
     Surface(
         shape = MaterialTheme.shapes.large,
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+        color = sectionSurfaceColor(),
+        border = sectionSurfaceBorder(),
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
     ) {
@@ -786,9 +791,18 @@ private fun PalettePickerDialog(
  */
 @Composable
 private fun SettingsGroup(title: String) {
+    // Modern sets the group heading small and spaced instead of large,
+    // so it reads as a label over the cards rather than competing with
+    // the card titles inside them, which are the things she is choosing
+    // between. Legacy keeps titleSmall.
+    val modern = LocalSkin.current == UiSkin.MODERN
     Text(
         text = title,
-        style = MaterialTheme.typography.titleSmall,
+        style = if (modern) {
+            MaterialTheme.typography.labelSmall
+        } else {
+            MaterialTheme.typography.titleSmall
+        },
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier.padding(start = 4.dp, top = 8.dp),
     )
@@ -803,7 +817,8 @@ private fun SettingsSection(
     // Each section sits on its own soft, warm card.
     Surface(
         shape = MaterialTheme.shapes.large,
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+        color = sectionSurfaceColor(),
+        border = sectionSurfaceBorder(),
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column(

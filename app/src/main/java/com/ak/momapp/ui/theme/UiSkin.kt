@@ -1,5 +1,6 @@
 package com.ak.momapp.ui.theme
 
+import androidx.compose.material3.Typography
 import androidx.compose.runtime.staticCompositionLocalOf
 
 /**
@@ -12,12 +13,29 @@ import androidx.compose.runtime.staticCompositionLocalOf
  * LAYOUT genuinely differs, and each use wants a comment saying why a
  * token could not express it.
  */
-enum class UiSkin {
+enum class UiSkin(
+    /**
+     * How large text renders before her system setting is applied.
+     * Modern sits a quarter below Legacy, which was the explicit ask. The
+     * app has no in-app text size control, so Legacy is the way back.
+     */
+    val textScale: Float,
+    /**
+     * How far chrome follows her system font size before it stops.
+     * Modern's rows reflow, so it needs no ceiling; Legacy's cannot, which
+     * is the only reason the cap exists.
+     */
+    val chromeFontScaleCeiling: Float,
+) {
     /** Exactly the look shipped through v1.6. Frozen on purpose. */
-    LEGACY,
+    LEGACY(textScale = 0.99f, chromeFontScaleCeiling = 1.5f),
 
     /** Inter, tonal depth, drawn icons. */
-    MODERN,
+    MODERN(textScale = 0.75f, chromeFontScaleCeiling = Float.MAX_VALUE),
+    ;
+
+    val typography: Typography
+        get() = if (this == LEGACY) LegacyTypography else ModernTypography
 }
 
 val LocalSkin = staticCompositionLocalOf { UiSkin.MODERN }

@@ -101,7 +101,7 @@ fun MomAppTheme(
     ) {
         MaterialTheme(
             colorScheme = palette.colors(isDark),
-            typography = Typography,
+            typography = LegacyTypography,
             shapes = SoftShapes,
             content = content,
         )

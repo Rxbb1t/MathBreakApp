@@ -11,6 +11,7 @@ import com.ak.momapp.problem.Difficulty
 import com.ak.momapp.problem.ProblemTopic
 import com.ak.momapp.problem.toLevel
 import com.ak.momapp.ui.theme.AppPalette
+import com.ak.momapp.ui.theme.UiSkin
 import java.time.DayOfWeek
 import java.util.Locale
 import kotlinx.coroutines.flow.Flow
@@ -34,6 +35,8 @@ data class BrainBreakSettings(
     val language: AppLanguage = AppLanguage.ENGLISH,
     /** A soft chime on a correct answer; silent mode always wins. */
     val successSound: Boolean = true,
+    /** Which look the app wears; see [UiSkin]. */
+    val skin: UiSkin = UiSkin.MODERN,
 ) {
     companion object {
         const val MIN_INTERVAL_HOURS = 1
@@ -90,6 +93,13 @@ object SettingsSerialization {
 
     fun decodePalette(raw: String?): AppPalette =
         AppPalette.entries.firstOrNull { it.name == raw } ?: AppPalette.CLAY
+
+    /**
+     * An install that has never chosen gets Modern. Legacy is a deliberate
+     * choice to go back, not somewhere anybody lands by default.
+     */
+    fun decodeSkin(raw: String?): UiSkin =
+        UiSkin.entries.firstOrNull { it.name == raw } ?: UiSkin.MODERN
 
     /**
      * Topics are stored as the switched-OFF set: a topic added in a later
@@ -223,6 +233,8 @@ class SettingsRepository(private val context: Context) {
         val GUIDE_SHOWN = booleanPreferencesKey("guide_shown")
         val LANGUAGE = stringPreferencesKey("language")
         val SUCCESS_SOUND = booleanPreferencesKey("success_sound")
+        /** Which look; see [SettingsSerialization.decodeSkin]. */
+        val UI_SKIN = stringPreferencesKey("ui_skin")
     }
 
     val settings: Flow<BrainBreakSettings> = context.brainBreakDataStore.data.map { prefs ->
@@ -245,6 +257,7 @@ class SettingsRepository(private val context: Context) {
             guideShown = prefs[Keys.GUIDE_SHOWN] ?: false,
             language = SettingsSerialization.decodeLanguage(prefs[Keys.LANGUAGE]),
             successSound = prefs[Keys.SUCCESS_SOUND] ?: true,
+            skin = SettingsSerialization.decodeSkin(prefs[Keys.UI_SKIN]),
         )
     }
 
@@ -325,6 +338,10 @@ class SettingsRepository(private val context: Context) {
 
     suspend fun setLanguage(language: AppLanguage) {
         context.brainBreakDataStore.edit { it[Keys.LANGUAGE] = language.name }
+    }
+
+    suspend fun setSkin(skin: UiSkin) {
+        context.brainBreakDataStore.edit { it[Keys.UI_SKIN] = skin.name }
     }
 
     suspend fun setProblemsPerBreak(count: Int) {

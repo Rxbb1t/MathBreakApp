@@ -4,6 +4,7 @@ import com.ak.momapp.i18n.AppLanguage
 import com.ak.momapp.problem.Difficulty
 import com.ak.momapp.problem.ProblemTopic
 import com.ak.momapp.ui.theme.AppPalette
+import com.ak.momapp.ui.theme.UiSkin
 import java.time.DayOfWeek
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -144,5 +145,18 @@ class SettingsSerializationTest {
             setOf(ProblemTopic.MONEY, ProblemTopic.TIME, ProblemTopic.NUMBERS),
             SettingsSerialization.decodeTopics(null, "MONEY,TIME", "LOGIC,PUZZLE"),
         )
+    }
+
+    @Test
+    fun `an unset or unknown skin means modern`() {
+        assertEquals(UiSkin.MODERN, SettingsSerialization.decodeSkin(null))
+        assertEquals(UiSkin.MODERN, SettingsSerialization.decodeSkin(""))
+        assertEquals(UiSkin.MODERN, SettingsSerialization.decodeSkin("SPARKLY"))
+    }
+
+    @Test
+    fun `a stored skin round trips`() {
+        assertEquals(UiSkin.LEGACY, SettingsSerialization.decodeSkin("LEGACY"))
+        assertEquals(UiSkin.MODERN, SettingsSerialization.decodeSkin("MODERN"))
     }
 }

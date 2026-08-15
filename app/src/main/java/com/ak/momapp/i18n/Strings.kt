@@ -171,6 +171,9 @@ class Strings(
     val appearanceSubtitle: String,
     val appearanceLegacy: String,
     val appearanceModern: String,
+    // The app's own keypad. Digits describe themselves; these two do not.
+    val keypadClear: String,
+    val keypadBackspace: String,
 )
 
 val EnglishStrings = Strings(
@@ -373,6 +376,8 @@ val EnglishStrings = Strings(
     appearanceSubtitle = "Legacy keeps the original look",
     appearanceLegacy = "Legacy",
     appearanceModern = "Modern",
+    keypadClear = "Clear",
+    keypadBackspace = "Delete one digit",
 )
 
 val RomanianStrings = Strings(
@@ -584,4 +589,6 @@ val RomanianStrings = Strings(
     appearanceSubtitle = "Clasic păstrează stilul original",
     appearanceLegacy = "Clasic",
     appearanceModern = "Modern",
+    keypadClear = "Șterge tot",
+    keypadBackspace = "Șterge o cifră",
 )

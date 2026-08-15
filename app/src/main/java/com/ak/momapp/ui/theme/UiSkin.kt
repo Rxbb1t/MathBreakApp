@@ -1,7 +1,10 @@
 package com.ak.momapp.ui.theme
 
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Shapes
 import androidx.compose.material3.Typography
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.unit.dp
 
 /**
  * Which look the app wears.
@@ -36,6 +39,32 @@ enum class UiSkin(
 
     val typography: Typography
         get() = if (this == LEGACY) LegacyTypography else ModernTypography
+
+    /**
+     * Legacy's generous rounding is part of its cozy look and is frozen
+     * with the rest of it. Modern draws a few dp tighter so that edges
+     * read as deliberate rather than soft, which is what lets the tonal
+     * surfaces in Task 9 separate from each other by shape as well as
+     * tone.
+     */
+    val shapes: Shapes
+        get() = if (this == LEGACY) LegacyShapes else ModernShapes
 }
+
+private val LegacyShapes = Shapes(
+    extraSmall = RoundedCornerShape(10.dp),
+    small = RoundedCornerShape(14.dp),
+    medium = RoundedCornerShape(20.dp),
+    large = RoundedCornerShape(28.dp),
+    extraLarge = RoundedCornerShape(32.dp),
+)
+
+private val ModernShapes = Shapes(
+    extraSmall = RoundedCornerShape(8.dp),
+    small = RoundedCornerShape(12.dp),
+    medium = RoundedCornerShape(18.dp),
+    large = RoundedCornerShape(24.dp),
+    extraLarge = RoundedCornerShape(30.dp),
+)
 
 val LocalSkin = staticCompositionLocalOf { UiSkin.MODERN }

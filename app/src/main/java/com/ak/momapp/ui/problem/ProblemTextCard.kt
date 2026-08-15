@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ak.momapp.problem.Diagram
 import com.ak.momapp.ui.theme.AtUserFontScale
+import com.ak.momapp.ui.theme.ProblemFloorScaleCeiling
 
 /**
  * As small as the problem text is ever allowed to shrink itself, at a
@@ -43,22 +44,25 @@ import com.ak.momapp.ui.theme.AtUserFontScale
 private val MinProblemFontSize = 19.sp
 
 /**
- * The shrink floor, corrected for the font scale in force. Above the
- * chrome clamp it keeps its absolute size instead of growing, so long
- * text can still shrink onto one screen however large her text is set.
+ * The shrink floor, corrected for the font scale in force. Above
+ * [ProblemFloorScaleCeiling] it keeps its absolute size instead of
+ * growing, so long text can still shrink onto one screen however large
+ * her text is set.
+ *
+ * That ceiling is the floor's own, not the skin's chrome clamp, even
+ * though the two share a value. Modern's chrome has no clamp, so reading
+ * one from the other would let this floor grow without limit and leave a
+ * long question unable to shrink to fit.
  */
 @Composable
 private fun problemFontFloor(): TextUnit {
     val fontScale = LocalDensity.current.fontScale
-    return if (fontScale <= ChromeFontScaleCeiling) {
+    return if (fontScale <= ProblemFloorScaleCeiling) {
         MinProblemFontSize
     } else {
-        MinProblemFontSize * (ChromeFontScaleCeiling / fontScale)
+        MinProblemFontSize * (ProblemFloorScaleCeiling / fontScale)
     }
 }
-
-/** Mirrors the theme's chrome clamp; see MomAppTheme. */
-private const val ChromeFontScaleCeiling = 1.5f
 
 /**
  * The tinted card the question lives in, shared by the break screen and

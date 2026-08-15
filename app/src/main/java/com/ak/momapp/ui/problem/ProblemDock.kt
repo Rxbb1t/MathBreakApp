@@ -120,7 +120,7 @@ fun ProblemDock(
             }
 
             else -> {
-                AnswerDisplay(uiState = uiState)
+                AnswerDisplay(input = uiState.input, unit = problem.answerUnit)
                 Spacer(Modifier.height(12.dp))
                 Keypad(
                     onKey = onKey,
@@ -298,12 +298,12 @@ private fun QuietButton(
  * Legacy keeps its outline, because Legacy keeps its look.
  */
 @Composable
-private fun AnswerDisplay(
-    uiState: ProblemUiState,
+fun AnswerDisplay(
+    input: String,
+    unit: String,
     modifier: Modifier = Modifier,
 ) {
     val modern = LocalSkin.current == UiSkin.MODERN
-    val unit = uiState.problem.answerUnit
     Surface(
         shape = MaterialTheme.shapes.medium,
         color = if (modern) {
@@ -324,11 +324,11 @@ private fun AnswerDisplay(
             Text(
                 // A placeholder question mark rather than an empty box, so
                 // the row never looks like something failed to load.
-                text = uiState.input.ifEmpty { "?" },
+                text = input.ifEmpty { "?" },
                 fontSize = 34.sp,
                 fontWeight = FontWeight.SemiBold,
                 textAlign = TextAlign.Center,
-                color = if (uiState.input.isEmpty()) {
+                color = if (input.isEmpty()) {
                     MaterialTheme.colorScheme.onSurfaceVariant
                 } else {
                     MaterialTheme.colorScheme.onSurface

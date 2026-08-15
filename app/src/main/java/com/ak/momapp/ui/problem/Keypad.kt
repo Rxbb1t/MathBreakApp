@@ -19,6 +19,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.ak.momapp.i18n.LocalStrings
+import com.ak.momapp.ui.theme.LocalSkin
+import com.ak.momapp.ui.theme.UiSkin
 import com.ak.momapp.ui.theme.asControl
 
 /** The longest answer any generator produces is well under this. */
@@ -130,17 +132,28 @@ private fun Key(
     // Measured from the key rather than the type scale, so the figures
     // stay legible whichever skin is on and whatever her text size is.
     val glyphSize = with(LocalDensity.current) { (height * GlyphFraction).toSp() }
+    // One of the few places a token cannot answer on its own. Only Modern
+    // defines the surfaceContainer ladder; in Legacy those roles fall
+    // through to Material's baseline, which paints stark white keys and
+    // lilac editing keys on top of whichever palette she chose. Legacy is
+    // frozen, so the keypad asks it for roles it actually defines instead.
+    val modern = LocalSkin.current == UiSkin.MODERN
     Surface(
         onClick = { onKey(key) },
         enabled = enabled,
         shape = MaterialTheme.shapes.small,
-        color = if (isDigit) {
-            MaterialTheme.colorScheme.surfaceContainerLowest
-        } else {
+        color = when {
             // The two editing keys read as chrome, not as answers.
-            MaterialTheme.colorScheme.surfaceContainerHigh
+            modern && isDigit -> MaterialTheme.colorScheme.surfaceContainerLowest
+            modern -> MaterialTheme.colorScheme.surfaceContainerHigh
+            isDigit -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
+            else -> MaterialTheme.colorScheme.secondaryContainer
         },
-        contentColor = MaterialTheme.colorScheme.onSurface,
+        contentColor = if (modern || isDigit) {
+            MaterialTheme.colorScheme.onSurface
+        } else {
+            MaterialTheme.colorScheme.onSecondaryContainer
+        },
         modifier = modifier
             .height(height)
             .semantics { contentDescription = label },

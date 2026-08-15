@@ -40,9 +40,20 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.ak.momapp.i18n.LocalStrings
+import com.ak.momapp.ui.icons.AppIcons
+import com.ak.momapp.ui.icons.StartMark
+import com.ak.momapp.ui.theme.LocalSkin
+import com.ak.momapp.ui.theme.UiSkin
 
 /** The halo behind an unsolved day's trophy. Gold in every palette. */
 private val TrophyGold = Color(0xFFF5B301)
+
+/**
+ * The drawn trophy's own colour, dark enough to hold against the gold
+ * halo in every palette. Deliberately not a theme role: the halo is not
+ * one either, so a role here would come adrift from it in some palette.
+ */
+private val TrophyInk = Color(0xFF5A3A00)
 
 /**
  * The daily challenge lives behind the little trophy. A golden pulse
@@ -52,10 +63,14 @@ private val TrophyGold = Color(0xFFF5B301)
 @Composable
 internal fun TrophyButton(challengeDone: Boolean, onClick: () -> Unit) {
     val strings = LocalStrings.current
+    // Sanctioned skin branch, same reason as the start mark: Modern draws
+    // its trophy so it takes the palette, Legacy keeps the emoji it shipped.
+    val drawn = LocalSkin.current == UiSkin.MODERN
     IconButton(onClick = onClick) {
         if (challengeDone) {
-            Text(
-                text = "🏆",
+            TrophyMark(
+                drawn = drawn,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier
                     .alpha(0.35f)
                     .semantics { contentDescription = strings.challengeTitle },
@@ -81,8 +96,9 @@ internal fun TrophyButton(challengeDone: Boolean, onClick: () -> Unit) {
                     .clip(CircleShape)
                     .background(TrophyGold.copy(alpha = glow)),
             ) {
-                Text(
-                    text = "🏆",
+                TrophyMark(
+                    drawn = drawn,
+                    tint = TrophyInk,
                     modifier = Modifier
                         .graphicsLayer {
                             scaleX = scale
@@ -92,6 +108,24 @@ internal fun TrophyButton(challengeDone: Boolean, onClick: () -> Unit) {
                 )
             }
         }
+    }
+}
+
+/**
+ * The trophy itself, drawn or set, so the pulsing and resting states
+ * cannot drift apart by being written out twice.
+ */
+@Composable
+private fun TrophyMark(drawn: Boolean, tint: Color, modifier: Modifier = Modifier) {
+    if (drawn) {
+        Icon(
+            imageVector = AppIcons.Trophy,
+            contentDescription = null,
+            tint = tint,
+            modifier = modifier.size(22.dp),
+        )
+    } else {
+        Text(text = "🏆", modifier = modifier)
     }
 }
 
@@ -144,7 +178,15 @@ internal fun StartContent(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center,
             ) {
-                Text(text = "🧮", style = MaterialTheme.typography.displayLarge)
+                // Sanctioned skin branch: this is a picture, not a token.
+                // Legacy's abacus is an emoji drawn by the system font, so
+                // it ignores the palette and differs on every phone; there
+                // is no colour token that turns one into the other.
+                if (LocalSkin.current == UiSkin.MODERN) {
+                    StartMark()
+                } else {
+                    Text(text = "🧮", style = MaterialTheme.typography.displayLarge)
+                }
                 Spacer(Modifier.height(20.dp))
                 Text(
                     text = strings.readyLine,

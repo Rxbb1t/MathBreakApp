@@ -5,6 +5,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -19,6 +21,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.ak.momapp.i18n.LocalStrings
+import com.ak.momapp.ui.icons.AppIcons
 import com.ak.momapp.ui.theme.LocalSkin
 import com.ak.momapp.ui.theme.UiSkin
 import com.ak.momapp.ui.theme.asControl
@@ -163,18 +166,30 @@ private fun Key(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.fillMaxWidth(),
         ) {
-            Text(
-                // Digits print themselves; the editing keys get a mark,
-                // because their words are far too long to fit on a key.
-                text = when (key) {
-                    KeypadKey.CLEAR -> "C"
-                    KeypadKey.BACKSPACE -> "⌫"
-                    else -> label
-                },
-                fontSize = glyphSize,
-                fontWeight = if (isDigit) FontWeight.Medium else FontWeight.SemiBold,
-                textAlign = TextAlign.Center,
-            )
+            // Digits print themselves; the editing keys get a mark,
+            // because their words are far too long to fit on a key.
+            if (key == KeypadKey.BACKSPACE && modern) {
+                // Sanctioned skin branch: the erase mark is a picture. The
+                // font's own U+232B renders at whatever weight and shape
+                // the system face happens to have, which next to Inter
+                // reads as borrowed. Legacy keeps that character.
+                Icon(
+                    imageVector = AppIcons.Backspace,
+                    contentDescription = null,
+                    modifier = Modifier.size(with(LocalDensity.current) { glyphSize.toDp() * 1.15f }),
+                )
+            } else {
+                Text(
+                    text = when (key) {
+                        KeypadKey.CLEAR -> "C"
+                        KeypadKey.BACKSPACE -> "⌫"
+                        else -> label
+                    },
+                    fontSize = glyphSize,
+                    fontWeight = if (isDigit) FontWeight.Medium else FontWeight.SemiBold,
+                    textAlign = TextAlign.Center,
+                )
+            }
         }
     }
 }

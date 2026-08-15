@@ -4,6 +4,8 @@ import androidx.compose.material3.ColorScheme
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.luminance
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -43,11 +45,68 @@ class PaletteContrastTest {
         check("$name tertiary/background", scheme.tertiary, scheme.background, 3f)
     }
 
+    /**
+     * Both skins, because Modern replaces background, surface and the
+     * container ladder while keeping the same on-colours. That is exactly
+     * the kind of change that can quietly cost contrast, so it gets the
+     * same sweep Legacy has always had.
+     */
     @Test
     fun `every palette stays readable in light and dark mode`() {
         for (palette in AppPalette.entries) {
-            checkScheme("$palette-light", palette.colors(darkTheme = false))
-            checkScheme("$palette-dark", palette.colors(darkTheme = true))
+            for (skin in UiSkin.entries) {
+                checkScheme("$palette-light-$skin", palette.colors(darkTheme = false, skin = skin))
+                checkScheme("$palette-dark-$skin", palette.colors(darkTheme = true, skin = skin))
+            }
+        }
+    }
+
+    /**
+     * Modern stacks surfaces on top of each other to build depth, so the
+     * text sitting on the highest container has to survive it too. Legacy
+     * never uses these roles.
+     */
+    @Test
+    fun `modern container roles stay readable`() {
+        for (palette in AppPalette.entries) {
+            for (dark in listOf(false, true)) {
+                val scheme = palette.colors(darkTheme = dark, skin = UiSkin.MODERN)
+                val name = "$palette-${if (dark) "dark" else "light"}"
+                listOf(
+                    "Lowest" to scheme.surfaceContainerLowest,
+                    "Low" to scheme.surfaceContainerLow,
+                    "Container" to scheme.surfaceContainer,
+                    "High" to scheme.surfaceContainerHigh,
+                    "Highest" to scheme.surfaceContainerHighest,
+                ).forEach { (role, container) ->
+                    check("$name onSurface/$role", scheme.onSurface, container, 4.5f)
+                    check("$name onSurfaceVariant/$role", scheme.onSurfaceVariant, container, 4.5f)
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `modern defines the container ladder from the palette seed`() {
+        AppPalette.entries.forEach { palette ->
+            listOf(true, false).forEach { dark ->
+                val modern = palette.colors(dark, UiSkin.MODERN)
+                val legacy = palette.colors(dark, UiSkin.LEGACY)
+                // The five container roles must differ from each other, or
+                // there is no ladder to build depth on.
+                val ladder = listOf(
+                    modern.surfaceContainerLowest, modern.surfaceContainerLow,
+                    modern.surfaceContainer, modern.surfaceContainerHigh,
+                    modern.surfaceContainerHighest,
+                )
+                assertEquals("$palette $dark ladder has duplicates", 5, ladder.toSet().size)
+                // Legacy must keep Material's baseline outlineVariant, which
+                // is the bug the Stats chart shows today.
+                assertNotEquals(
+                    "$palette $dark: modern must not inherit the baseline outline",
+                    legacy.outlineVariant, modern.outlineVariant,
+                )
+            }
         }
     }
 

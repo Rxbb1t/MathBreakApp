@@ -86,7 +86,7 @@ fun MomAppTheme(
         LocalSkin provides skin,
     ) {
         MaterialTheme(
-            colorScheme = palette.colors(isDark),
+            colorScheme = palette.colors(isDark, skin),
             typography = skin.typography,
             shapes = skin.shapes,
             content = content,

@@ -49,11 +49,17 @@ import com.ak.momapp.ui.theme.UiSkin
 private val TrophyGold = Color(0xFFF5B301)
 
 /**
- * The drawn trophy's own colour, dark enough to hold against the gold
- * halo in every palette. Deliberately not a theme role: the halo is not
- * one either, so a role here would come adrift from it in some palette.
+ * The drawn trophy's colour follows onSurface rather than being a fixed
+ * ink.
+ *
+ * A fixed dark brown looked right on the light palettes and vanished
+ * completely on the dark ones: the halo is gold at 10-40% alpha, so over
+ * a black background it composites to a dark amber that a dark trophy
+ * disappears into. onSurface is dark on light schemes and light on dark
+ * ones, which is exactly the contrast this needs.
  */
-private val TrophyInk = Color(0xFF5A3A00)
+@Composable
+private fun trophyInk(): Color = MaterialTheme.colorScheme.onSurface
 
 /**
  * The daily challenge lives behind the little trophy. A golden pulse
@@ -98,7 +104,7 @@ internal fun TrophyButton(challengeDone: Boolean, onClick: () -> Unit) {
             ) {
                 TrophyMark(
                     drawn = drawn,
-                    tint = TrophyInk,
+                    tint = trophyInk(),
                     modifier = Modifier
                         .graphicsLayer {
                             scaleX = scale

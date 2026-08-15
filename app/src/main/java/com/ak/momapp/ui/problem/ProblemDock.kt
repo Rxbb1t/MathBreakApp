@@ -59,7 +59,6 @@ fun ProblemDock(
     onToggleCard: (Int) -> Unit,
     onUseHint: () -> Unit,
     onSkip: () -> Unit,
-    onOpenNotes: () -> Unit,
     onNextProblem: () -> Unit,
     onNewRound: () -> Unit,
     onSnooze: () -> Unit,
@@ -203,32 +202,32 @@ fun ProblemDock(
 
         QuietRow(
             hasHints = problem.hints.isNotEmpty(),
-            hasNotes = problem.notes.isNotEmpty(),
             hintsLeft = ProblemViewModel.MAX_HINTS - uiState.hintsUsed,
             enabled = !uiState.isFinished,
             onUseHint = onUseHint,
-            onOpenNotes = onOpenNotes,
             onSkip = onSkip,
         )
     }
 }
 
 /**
- * Hint, Notes and Skip, in that order, on every problem.
+ * Hint and Skip, in that order, on every problem.
  *
- * A missing button leaves a gap of exactly its own width rather than
- * letting the others slide across to fill it. Skip is the one she reaches
- * for without looking, so it has to be in the same place whether or not
- * this particular problem happens to carry hints.
+ * A missing Hint leaves a gap of exactly its own width rather than
+ * letting Skip slide across to fill it. Skip is the one she reaches for
+ * without looking, so it has to be in the same place whether or not this
+ * particular problem happens to carry hints.
+ *
+ * The helper sheet is deliberately NOT here. It lives on the left edge,
+ * pulled out with a swipe, which is where it has always been and what
+ * the notebook metaphor means.
  */
 @Composable
 private fun QuietRow(
     hasHints: Boolean,
-    hasNotes: Boolean,
     hintsLeft: Int,
     enabled: Boolean,
     onUseHint: () -> Unit,
-    onOpenNotes: () -> Unit,
     onSkip: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -242,16 +241,6 @@ private fun QuietRow(
                 text = strings.hintButton(hintsLeft),
                 enabled = enabled,
                 onClick = onUseHint,
-                modifier = Modifier.weight(1f),
-            )
-        } else {
-            Spacer(Modifier.weight(1f))
-        }
-        if (hasNotes) {
-            QuietButton(
-                text = strings.notebookTitle,
-                enabled = true,
-                onClick = onOpenNotes,
                 modifier = Modifier.weight(1f),
             )
         } else {

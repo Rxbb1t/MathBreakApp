@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Settings
@@ -235,11 +236,16 @@ fun ProblemScreenContent(
                     .padding(horizontal = 24.dp, vertical = 16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                // Chrome recedes while she is thinking and returns the
+                // Chrome settles back while she is thinking and returns the
                 // moment she answers. Never to zero and never disabled: a
                 // control that vanishes reads as a control that is gone.
+                //
+                // 0.38 was too far. It made the trophy and the gear read as
+                // greyed-out rather than quiet, and the trophy is how she
+                // reaches the daily challenge at all. This is a small step
+                // back, not a fade.
                 val chromeAlpha by animateFloatAsState(
-                    targetValue = if (uiState.phase == AnswerPhase.ANSWERING) 0.38f else 1f,
+                    targetValue = if (uiState.phase == AnswerPhase.ANSWERING) 0.75f else 1f,
                     label = "chrome",
                 )
                 Row(
@@ -411,12 +417,35 @@ fun ProblemScreenContent(
                     onToggleCard = onToggleCard,
                     onUseHint = onUseHint,
                     onSkip = onSkip,
-                    onOpenNotes = { scope.launch { drawerState.open() } },
                     onNextProblem = onNextProblem,
                     onNewRound = onNewRound,
                     onSnooze = onSnooze,
                     showSnooze = showSnooze,
                 )
+            }
+
+            // A little tab on the left edge. The tap alternative to the
+            // swipe, and the visual hint that the notebook exists. It sits
+            // over the content rather than in the dock on purpose: the
+            // helper sheet is a thing you pull out from the side, and the
+            // tab is what says so.
+            if (notebookAvailable) {
+                Surface(
+                    onClick = { scope.launch { drawerState.open() } },
+                    shape = RoundedCornerShape(topEnd = 16.dp, bottomEnd = 16.dp),
+                    color = MaterialTheme.colorScheme.secondaryContainer,
+                    modifier = Modifier.align(Alignment.CenterStart),
+                ) {
+                    Text(
+                        text = "📝",
+                        modifier = Modifier.padding(
+                            start = 4.dp,
+                            end = 6.dp,
+                            top = 12.dp,
+                            bottom = 12.dp,
+                        ),
+                    )
+                }
             }
 
             ConfettiBurst(

@@ -49,17 +49,15 @@ import com.ak.momapp.ui.theme.UiSkin
 private val TrophyGold = Color(0xFFF5B301)
 
 /**
- * The drawn trophy's colour follows onSurface rather than being a fixed
- * ink.
+ * The trophy's own colour, dark enough to hold against a gold disc.
  *
- * A fixed dark brown looked right on the light palettes and vanished
- * completely on the dark ones: the halo is gold at 10-40% alpha, so over
- * a black background it composites to a dark amber that a dark trophy
- * disappears into. onSurface is dark on light schemes and light on dark
- * ones, which is exactly the contrast this needs.
+ * This can be a fixed ink again because the halo below is now close to
+ * opaque. When the halo was a 10-40% wash it took its character from
+ * whatever was behind it, so a fixed ink worked on the light palettes
+ * and vanished on the dark ones; a solid gold disc looks the same in
+ * both, and dark-on-gold is legible against either.
  */
-@Composable
-private fun trophyInk(): Color = MaterialTheme.colorScheme.onSurface
+private val TrophyInk = Color(0xFF4A2E00)
 
 /**
  * The daily challenge lives behind the little trophy. A golden pulse
@@ -74,11 +72,14 @@ internal fun TrophyButton(challengeDone: Boolean, onClick: () -> Unit) {
     val drawn = LocalSkin.current == UiSkin.MODERN
     IconButton(onClick = onClick) {
         if (challengeDone) {
+            // Done for today: it rests rather than disappearing. Still
+            // legible, because it is also how she gets back in to re-read
+            // a chain she has already finished.
             TrophyMark(
                 drawn = drawn,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier
-                    .alpha(0.35f)
+                    .alpha(0.6f)
                     .semantics { contentDescription = strings.challengeTitle },
             )
         } else {
@@ -89,9 +90,12 @@ internal fun TrophyButton(challengeDone: Boolean, onClick: () -> Unit) {
                 animationSpec = infiniteRepeatable(tween(850), RepeatMode.Reverse),
                 label = "trophyScale",
             )
+            // A solid gold disc that breathes, rather than a faint wash
+            // that pulses. At 10-40% the halo barely registered against a
+            // warm background and the trophy inside it read as grey.
             val glow by pulse.animateFloat(
-                initialValue = 0.1f,
-                targetValue = 0.4f,
+                initialValue = 0.72f,
+                targetValue = 1f,
                 animationSpec = infiniteRepeatable(tween(850), RepeatMode.Reverse),
                 label = "trophyGlow",
             )
@@ -104,7 +108,7 @@ internal fun TrophyButton(challengeDone: Boolean, onClick: () -> Unit) {
             ) {
                 TrophyMark(
                     drawn = drawn,
-                    tint = trophyInk(),
+                    tint = TrophyInk,
                     modifier = Modifier
                         .graphicsLayer {
                             scaleX = scale

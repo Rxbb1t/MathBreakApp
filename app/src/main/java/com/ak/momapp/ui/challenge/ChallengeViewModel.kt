@@ -69,6 +69,9 @@ class ChallengeViewModel(
 
     private var day: Long = 0
 
+    /** Which story today is told through; see the resume check below. */
+    private var theme: String = ""
+
     init {
         viewModelScope.launch {
             // A one-shot read meant the challenge kept whatever language was
@@ -86,18 +89,34 @@ class ChallengeViewModel(
                     val date = today()
                     day = date.toEpochDay()
                     val challenge: DailyChallenge = generator.generate(date, language)
+                    theme = generator.themeFor(date).name
                     val existing = _uiState.value
                     if (existing == null) {
                         val saved = challengeRepository.state.first()
-                        val sameDay = saved.day == day
+                        // The same day AND the same story. A stage index
+                        // is only meaningful inside the chain it was
+                        // counted in: resuming at stage 3 of a story she
+                        // never started would hand her a step whose
+                        // earlier answers she has no way to know. That is
+                        // not hypothetical, it is what an update landing
+                        // mid-chain does.
+                        val resumable = saved.day == day && saved.theme == theme
                         _uiState.value = ChallengeUiState(
                             intro = challenge.intro,
                             stages = challenge.stages,
-                            stageIndex = if (sameDay) saved.stage.coerceIn(0, challenge.stages.lastIndex) else 0,
-                            phase = if (sameDay && saved.done) ChallengePhase.COMPLETE else ChallengePhase.ANSWERING,
+                            stageIndex = if (resumable) {
+                                saved.stage.coerceIn(0, challenge.stages.lastIndex)
+                            } else {
+                                0
+                            },
+                            phase = if (resumable && saved.done) {
+                                ChallengePhase.COMPLETE
+                            } else {
+                                ChallengePhase.ANSWERING
+                            },
                             totalCompleted = saved.totalCompleted,
                         )
-                        if (!sameDay) challengeRepository.saveProgress(day, 0)
+                        if (!resumable) challengeRepository.saveProgress(day, 0, theme)
                     } else {
                         _uiState.value = existing.copy(intro = challenge.intro, stages = challenge.stages)
                     }
@@ -165,7 +184,7 @@ class ChallengeViewModel(
                 hintsUsed = 0,
             )
         }
-        viewModelScope.launch { challengeRepository.saveProgress(day, next) }
+        viewModelScope.launch { challengeRepository.saveProgress(day, next, theme) }
     }
 
     companion object {

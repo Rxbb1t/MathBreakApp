@@ -43,7 +43,9 @@ import java.time.LocalDate
 import java.time.format.TextStyle
 import com.ak.momapp.i18n.LocalStrings
 import com.ak.momapp.problem.ProblemTopic
+import com.ak.momapp.ui.theme.LocalSkin
 import com.ak.momapp.ui.theme.MomAppTheme
+import com.ak.momapp.ui.theme.UiSkin
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -224,10 +226,20 @@ private fun ActivityChartCard(days: List<DayCount>, modifier: Modifier = Modifie
                                 .height(if (day.count == 0) 3.dp else (8 + 64f * day.count / max).dp)
                                 .clip(RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp))
                                 .background(
-                                    if (day.count == 0) {
-                                        MaterialTheme.colorScheme.outlineVariant
-                                    } else {
-                                        MaterialTheme.colorScheme.primary
+                                    when {
+                                        // A zero day is a stub, not a bar.
+                                        // This role is undefined in Legacy,
+                                        // so it renders Material's baseline
+                                        // lilac there and the palette's own
+                                        // outline in Modern. That is Task 9
+                                        // working, not a bug here.
+                                        day.count == 0 -> MaterialTheme.colorScheme.outlineVariant
+                                        // Today reads darker than the rest,
+                                        // so the newest day is findable
+                                        // without counting along the axis.
+                                        isToday && LocalSkin.current == UiSkin.MODERN ->
+                                            MaterialTheme.colorScheme.onBackground
+                                        else -> MaterialTheme.colorScheme.primary
                                     },
                                 ),
                         )
@@ -317,15 +329,28 @@ private fun StatCard(value: String, label: String, modifier: Modifier = Modifier
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
+            // Modern's headlineSmall carries Inter's tabular figures, so
+            // "1284" and "74%" sit on the same grid and the four tiles
+            // stop twitching as the numbers change. Legacy's
+            // headlineMedium has proportional digits and keeps them.
+            val modern = LocalSkin.current == UiSkin.MODERN
             Text(
                 text = value,
-                style = MaterialTheme.typography.headlineMedium,
+                style = if (modern) {
+                    MaterialTheme.typography.headlineSmall
+                } else {
+                    MaterialTheme.typography.headlineMedium
+                },
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center,
             )
             Text(
                 text = label,
-                style = MaterialTheme.typography.labelLarge,
+                style = if (modern) {
+                    MaterialTheme.typography.labelSmall
+                } else {
+                    MaterialTheme.typography.labelLarge
+                },
                 textAlign = TextAlign.Center,
             )
         }

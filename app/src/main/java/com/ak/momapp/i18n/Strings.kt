@@ -166,6 +166,14 @@ class Strings(
     val soundSection: String,
     val successSoundLabel: String,
     val successSoundSubtitle: String,
+    // Which look the app wears
+    val appearanceTitle: String,
+    val appearanceSubtitle: String,
+    val appearanceLegacy: String,
+    val appearanceModern: String,
+    // The app's own keypad. Digits describe themselves; these two do not.
+    val keypadClear: String,
+    val keypadBackspace: String,
 )
 
 val EnglishStrings = Strings(
@@ -364,6 +372,12 @@ val EnglishStrings = Strings(
     soundSection = "Sound",
     successSoundLabel = "Success chime",
     successSoundSubtitle = "A soft ding for right answers. Silent mode always wins.",
+    appearanceTitle = "Appearance",
+    appearanceSubtitle = "Legacy keeps the original look",
+    appearanceLegacy = "Legacy",
+    appearanceModern = "Modern",
+    keypadClear = "Clear",
+    keypadBackspace = "Delete one digit",
 )
 
 val RomanianStrings = Strings(
@@ -571,4 +585,10 @@ val RomanianStrings = Strings(
     soundSection = "Sunet",
     successSoundLabel = "Clinchet de reușită",
     successSoundSubtitle = "Un ding blând la răspunsurile corecte. Modul silențios are mereu prioritate.",
+    appearanceTitle = "Aspect",
+    appearanceSubtitle = "Clasic păstrează stilul original",
+    appearanceLegacy = "Clasic",
+    appearanceModern = "Modern",
+    keypadClear = "Șterge tot",
+    keypadBackspace = "Șterge o cifră",
 )

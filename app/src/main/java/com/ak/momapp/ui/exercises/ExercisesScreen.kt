@@ -41,6 +41,10 @@ import com.ak.momapp.problem.Level
 import com.ak.momapp.problem.ProblemTopic
 import com.ak.momapp.problem.TopicGroup
 import com.ak.momapp.ui.problem.LevelProgressReveal
+import com.ak.momapp.ui.sectionSurfaceBorder
+import com.ak.momapp.ui.sectionSurfaceColor
+import com.ak.momapp.ui.theme.LocalSkin
+import com.ak.momapp.ui.theme.UiSkin
 import com.ak.momapp.ui.problem.holdToReveal
 import com.ak.momapp.ui.settings.SettingsViewModel
 
@@ -134,7 +138,8 @@ private fun TopicGroupCard(
     val strings = LocalStrings.current
     Surface(
         shape = MaterialTheme.shapes.large,
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+        color = sectionSurfaceColor(),
+        border = sectionSurfaceBorder(),
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column(
@@ -175,7 +180,16 @@ private fun TopicGroupCard(
                             var showDetail by remember { mutableStateOf(false) }
                             Text(
                                 text = strings.difficultyLabel(level),
-                                style = MaterialTheme.typography.labelMedium,
+                                // A short marker rather than another line of
+                                // prose. At maximum system text the row
+                                // already carries a name and a description,
+                                // and a third full-size line turns each row
+                                // into a paragraph to scroll past.
+                                style = if (LocalSkin.current == UiSkin.MODERN) {
+                                    MaterialTheme.typography.labelSmall
+                                } else {
+                                    MaterialTheme.typography.labelMedium
+                                },
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 // Hold the level to see where this topic
                                 // actually sits, let go and it's gone. Tap

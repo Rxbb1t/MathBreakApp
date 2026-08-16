@@ -1,5 +1,6 @@
 package com.ak.momapp.ui.problem
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -29,6 +30,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ak.momapp.problem.Diagram
 import com.ak.momapp.ui.theme.AtUserFontScale
+import com.ak.momapp.ui.theme.LocalSkin
+import com.ak.momapp.ui.theme.ProblemFloorScaleCeiling
+import com.ak.momapp.ui.theme.UiSkin
 
 /**
  * As small as the problem text is ever allowed to shrink itself, at a
@@ -43,22 +47,25 @@ import com.ak.momapp.ui.theme.AtUserFontScale
 private val MinProblemFontSize = 19.sp
 
 /**
- * The shrink floor, corrected for the font scale in force. Above the
- * chrome clamp it keeps its absolute size instead of growing, so long
- * text can still shrink onto one screen however large her text is set.
+ * The shrink floor, corrected for the font scale in force. Above
+ * [ProblemFloorScaleCeiling] it keeps its absolute size instead of
+ * growing, so long text can still shrink onto one screen however large
+ * her text is set.
+ *
+ * That ceiling is the floor's own, not the skin's chrome clamp, even
+ * though the two share a value. Modern's chrome has no clamp, so reading
+ * one from the other would let this floor grow without limit and leave a
+ * long question unable to shrink to fit.
  */
 @Composable
 private fun problemFontFloor(): TextUnit {
     val fontScale = LocalDensity.current.fontScale
-    return if (fontScale <= ChromeFontScaleCeiling) {
+    return if (fontScale <= ProblemFloorScaleCeiling) {
         MinProblemFontSize
     } else {
-        MinProblemFontSize * (ChromeFontScaleCeiling / fontScale)
+        MinProblemFontSize * (ProblemFloorScaleCeiling / fontScale)
     }
 }
-
-/** Mirrors the theme's chrome clamp; see MomAppTheme. */
-private const val ChromeFontScaleCeiling = 1.5f
 
 /**
  * The tinted card the question lives in, shared by the break screen and
@@ -83,9 +90,25 @@ fun ProblemTextCard(
     var overflowed by remember(text) { mutableStateOf(false) }
     val scrollState = rememberScrollState()
 
+    // The problem lifts off the background; the answer below it sinks
+    // into one. Two directions from a single light source, which is what
+    // stops a screen of stacked cards reading as flat. Compose has no
+    // inset shadow, so the well under the answer is read from tone alone:
+    // it takes the darkest container while this takes the lightest.
+    val lifted = LocalSkin.current == UiSkin.MODERN
     Surface(
         shape = MaterialTheme.shapes.extraLarge,
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+        color = if (lifted) {
+            MaterialTheme.colorScheme.surfaceContainerLowest
+        } else {
+            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+        },
+        shadowElevation = if (lifted) 6.dp else 0.dp,
+        border = if (lifted) {
+            BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+        } else {
+            null
+        },
         modifier = modifier,
     ) {
         // The question is the one thing that should honour a huge system

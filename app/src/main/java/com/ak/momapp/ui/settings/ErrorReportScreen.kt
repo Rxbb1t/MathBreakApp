@@ -36,6 +36,8 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import com.ak.momapp.data.CrashLog
 import com.ak.momapp.i18n.LocalStrings
+import com.ak.momapp.ui.sectionSurfaceBorder
+import com.ak.momapp.ui.sectionSurfaceColor
 
 /**
  * What went wrong last time, and a button that puts it on the clipboard.
@@ -131,7 +133,8 @@ fun ErrorReportScreen(
 @Composable
 private fun DetailCard(text: String) {
     Surface(
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+        color = sectionSurfaceColor(),
+        border = sectionSurfaceBorder(),
         shape = MaterialTheme.shapes.medium,
         modifier = Modifier.fillMaxWidth(),
     ) {

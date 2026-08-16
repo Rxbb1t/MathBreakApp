@@ -91,6 +91,23 @@ enum class ProblemKind {
 }
 
 /**
+ * Everything needed to build one particular problem again.
+ *
+ * A problem's words are baked in at generation time, so changing the
+ * language cannot re-word one that already exists. Replaying its seed can:
+ * every sub-generator draws from the one [ProblemGenerator] random, so a
+ * seed plus the level it was dealt at determines the problem completely.
+ */
+data class ProblemSpec(
+    val seed: Long,
+    val level: Level,
+    val topics: Set<ProblemTopic>,
+    /** Resolved per-topic levels, so replay needs no lambda. */
+    val levels: Map<ProblemTopic, Level>,
+    val review: ReviewPick?,
+)
+
+/**
  * A single math problem. Answers are always non-negative whole numbers
  * so the input field only ever needs a plain number keyboard.
  */
@@ -181,6 +198,11 @@ data class Problem(
      * with no rounding to disagree about between here and the tests.
      */
     val tolerance: Int = 0,
+    /**
+     * How to rebuild this problem in another language. Null for problems
+     * built by hand in tests, which never need re-wording.
+     */
+    val spec: ProblemSpec? = null,
 ) {
     /** The band this problem's level falls in: the name she would see. */
     val difficulty: Difficulty

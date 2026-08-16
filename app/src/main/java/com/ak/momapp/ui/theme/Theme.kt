@@ -15,22 +15,8 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
 
-/** Text renders at 99% of its nominal size, app-wide. */
-private const val TextScale = 0.99f
-
 /**
- * How far the app's chrome follows the system font size before it stops.
- *
- * Labels, chips and buttons live in rows and boxes that have to hold
- * their shape; past roughly half again their normal size they start
- * shoving each other off the screen. The problem text has no such
- * limit — see [AtUserFontScale], which hands the real scale back to the
- * things she actually reads.
- */
-private const val MaxChromeFontScale = 1.5f
-
-/**
- * The system font scale, before [MaxChromeFontScale] clamps it. Only
+ * The system font scale, before the skin's chrome ceiling clamps it. Only
  * [AtUserFontScale] needs this; everything else wants the clamped value
  * that [LocalDensity] already carries.
  */
@@ -56,21 +42,13 @@ fun AtUserFontScale(content: @Composable () -> Unit) {
     }
 }
 
-// Generously rounded corners everywhere. Part of the cozy look.
-private val SoftShapes = Shapes(
-    extraSmall = RoundedCornerShape(10.dp),
-    small = RoundedCornerShape(14.dp),
-    medium = RoundedCornerShape(20.dp),
-    large = RoundedCornerShape(28.dp),
-    extraLarge = RoundedCornerShape(32.dp),
-)
-
 // Colors come from the palette picked under Settings → Personalize;
 // dynamic (wallpaper-based) color is intentionally not used.
 @Composable
 fun MomAppTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     palette: AppPalette = AppPalette.CLAY,
+    skin: UiSkin = UiSkin.MODERN,
     content: @Composable () -> Unit,
 ) {
     val isDark = darkTheme || palette.alwaysDark
@@ -86,23 +64,31 @@ fun MomAppTheme(
             }
         }
     }
-    // Every sp in the app rendered a hair smaller (1%), which buys back a
-    // line or two of room at a large system font size without anything
-    // looking shrunken. On top of that the chrome stops growing at
-    // MaxChromeFontScale, so headers and buttons keep their shape however
-    // large she has set the system text; AtUserFontScale gives the full
-    // size back to the problem itself.
     val density = LocalDensity.current
-    val userScale = density.fontScale * TextScale
-    val chromeScale = userScale.coerceAtMost(MaxChromeFontScale)
+    // Three scales, deliberately separate, because they answer different
+    // questions:
+    //
+    //  - TYPE follows her system setting times the skin's own baseline.
+    //    Modern sits a quarter below Legacy, which buys back several lines
+    //    of room at a large font size without anything looking shrunken.
+    //  - CHROME stops where the skin says. Legacy's rows cannot reflow, so
+    //    past half again their size they shove each other off the screen;
+    //    Modern's do reflow, so it never stops. AtUserFontScale hands the
+    //    full size back to the problem text either way.
+    //  - CONTROLS follow the ACCESSIBILITY setting alone. A 25% smaller
+    //    type baseline must never shrink a button she has to hit.
+    val userScale = density.fontScale * skin.textScale
+    val chromeScale = userScale.coerceAtMost(skin.chromeFontScaleCeiling)
     CompositionLocalProvider(
         LocalDensity provides Density(density.density, chromeScale),
         LocalUserFontScale provides userScale,
+        LocalControlScale provides controlScaleFor(density.fontScale),
+        LocalSkin provides skin,
     ) {
         MaterialTheme(
-            colorScheme = palette.colors(isDark),
-            typography = Typography,
-            shapes = SoftShapes,
+            colorScheme = palette.colors(isDark, skin),
+            typography = skin.typography,
+            shapes = skin.shapes,
             content = content,
         )
     }

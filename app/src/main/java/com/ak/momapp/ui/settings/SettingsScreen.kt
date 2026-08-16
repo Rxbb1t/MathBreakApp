@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -80,7 +81,11 @@ import com.ak.momapp.i18n.formatTimeOfDay
 import com.ak.momapp.problem.Difficulty
 import com.ak.momapp.problem.ProblemTopic
 import com.ak.momapp.ui.PresetDialog
+import com.ak.momapp.ui.sectionSurfaceBorder
+import com.ak.momapp.ui.sectionSurfaceColor
 import com.ak.momapp.ui.theme.AppPalette
+import com.ak.momapp.ui.theme.LocalSkin
+import com.ak.momapp.ui.theme.UiSkin
 import com.ak.momapp.widget.BrainBreakWidgetReceiver
 import java.time.DayOfWeek
 import java.time.format.TextStyle
@@ -217,11 +222,14 @@ private fun SettingsContent(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = Modifier.fillMaxWidth(),
             ) {
+                // heightIn, not height: at a large system font size
+                // "Until 17:00" wraps to two lines, and a fixed height cut
+                // the time off halfway through the digits.
                 OutlinedButton(
                     onClick = { showStartPicker = true },
                     modifier = Modifier
                         .weight(1f)
-                        .height(52.dp),
+                        .heightIn(min = 52.dp),
                 ) {
                     Text(strings.fromTime(formatTimeOfDay(settings.activeStartMinutes)))
                 }
@@ -229,7 +237,7 @@ private fun SettingsContent(
                     onClick = { showEndPicker = true },
                     modifier = Modifier
                         .weight(1f)
-                        .height(52.dp),
+                        .heightIn(min = 52.dp),
                 ) {
                     Text(strings.untilTime(formatTimeOfDay(settings.activeEndMinutes)))
                 }
@@ -316,6 +324,32 @@ private fun SettingsContent(
                         ),
                     ) {
                         Text(if (language == AppLanguage.ENGLISH) "English" else "Română")
+                    }
+                }
+            }
+        }
+
+        SettingsSection(
+            title = strings.appearanceTitle,
+            subtitle = strings.appearanceSubtitle,
+        ) {
+            SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+                UiSkin.entries.forEachIndexed { index, skin ->
+                    SegmentedButton(
+                        selected = settings.skin == skin,
+                        onClick = { viewModel.setSkin(skin) },
+                        shape = SegmentedButtonDefaults.itemShape(
+                            index = index,
+                            count = UiSkin.entries.size,
+                        ),
+                    ) {
+                        Text(
+                            if (skin == UiSkin.LEGACY) {
+                                strings.appearanceLegacy
+                            } else {
+                                strings.appearanceModern
+                            },
+                        )
                     }
                 }
             }
@@ -414,7 +448,8 @@ private fun openSupportPage(context: Context) {
 private fun LinkRow(label: String, onClick: () -> Unit) {
     Surface(
         shape = MaterialTheme.shapes.large,
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+        color = sectionSurfaceColor(),
+        border = sectionSurfaceBorder(),
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
     ) {
@@ -446,7 +481,8 @@ private fun ExerciseTypesRow(
     val strings = LocalStrings.current
     Surface(
         shape = MaterialTheme.shapes.large,
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+        color = sectionSurfaceColor(),
+        border = sectionSurfaceBorder(),
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
     ) {
@@ -759,9 +795,18 @@ private fun PalettePickerDialog(
  */
 @Composable
 private fun SettingsGroup(title: String) {
+    // Modern sets the group heading small and spaced instead of large,
+    // so it reads as a label over the cards rather than competing with
+    // the card titles inside them, which are the things she is choosing
+    // between. Legacy keeps titleSmall.
+    val modern = LocalSkin.current == UiSkin.MODERN
     Text(
         text = title,
-        style = MaterialTheme.typography.titleSmall,
+        style = if (modern) {
+            MaterialTheme.typography.labelSmall
+        } else {
+            MaterialTheme.typography.titleSmall
+        },
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier.padding(start = 4.dp, top = 8.dp),
     )
@@ -776,7 +821,8 @@ private fun SettingsSection(
     // Each section sits on its own soft, warm card.
     Surface(
         shape = MaterialTheme.shapes.large,
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+        color = sectionSurfaceColor(),
+        border = sectionSurfaceBorder(),
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column(

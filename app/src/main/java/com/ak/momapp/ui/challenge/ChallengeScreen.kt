@@ -1,13 +1,6 @@
 package com.ak.momapp.ui.challenge
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -15,19 +8,14 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
@@ -40,7 +28,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -56,17 +43,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ak.momapp.data.SettingsRepository
 import com.ak.momapp.i18n.LocalStrings
+import com.ak.momapp.ui.problem.AnswerDisplay
 import com.ak.momapp.ui.problem.ConfettiBurst
+import com.ak.momapp.ui.problem.Keypad
+import com.ak.momapp.ui.problem.applyKey
 import com.ak.momapp.ui.problem.NotebookPad
 import com.ak.momapp.ui.problem.NotebookPaper
 import com.ak.momapp.ui.problem.ProblemTextCard
@@ -224,13 +211,9 @@ private fun StageContent(
     onNextStage: () -> Unit,
 ) {
     val strings = LocalStrings.current
-    // While she's typing, the Hint button slides down out of the way.
-    val imeVisible = WindowInsets.isImeVisible
-
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .imePadding()
             .padding(horizontal = 24.dp, vertical = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
@@ -271,42 +254,17 @@ private fun StageContent(
 
             Spacer(Modifier.height(24.dp))
 
-            OutlinedTextField(
-                value = state.input,
-                onValueChange = onInputChange,
+            // Same readout and keypad as a break, so the two screens work
+            // the same way. The system keyboard would be worse here than
+            // anywhere: a challenge stage is long, and half the screen
+            // disappearing under an IME is half the story gone.
+            AnswerDisplay(input = state.input, unit = state.stage.answerUnit)
+
+            Spacer(Modifier.height(12.dp))
+
+            Keypad(
+                onKey = { key -> onInputChange(applyKey(state.input, key)) },
                 enabled = state.phase != ChallengePhase.STAGE_DONE,
-                textStyle = TextStyle(
-                    fontSize = 34.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    textAlign = TextAlign.Center,
-                ),
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.Number,
-                    imeAction = ImeAction.Done,
-                ),
-                keyboardActions = KeyboardActions(onDone = { onSubmit() }),
-                suffix = state.stage.answerUnit
-                    .takeIf(String::isNotEmpty)
-                    ?.let { unit ->
-                        {
-                            Text(
-                                text = unit,
-                                fontSize = 22.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                    },
-                placeholder = {
-                    Text(
-                        text = "?",
-                        fontSize = 34.sp,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth(),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                },
-                modifier = Modifier.fillMaxWidth(),
             )
 
             Spacer(Modifier.height(20.dp))
@@ -350,7 +308,7 @@ private fun StageContent(
                 onClick = onNextStage,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(60.dp),
+                    .heightIn(min = 60.dp),
             ) {
                 Text(strings.challengeContinue, style = MaterialTheme.typography.titleLarge)
             }
@@ -360,32 +318,25 @@ private fun StageContent(
                 enabled = state.input.isNotEmpty(),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(60.dp),
+                    .heightIn(min = 60.dp),
             ) {
                 Text(strings.check, style = MaterialTheme.typography.titleLarge)
             }
-            // The keyboard slides the Hint button away, keeping the story
-            // and hint readable and out of accidental tapping range.
-            AnimatedVisibility(
-                visible = !imeVisible,
-                enter = expandVertically() + slideInVertically { it } + fadeIn(),
-                exit = slideOutVertically { it } + shrinkVertically() + fadeOut(),
+            // Always present now. There is no keyboard left to slide it
+            // out of the way of, and a Hint button that comes and goes is
+            // one she has to look for every time.
+            Spacer(Modifier.height(8.dp))
+            FilledTonalButton(
+                onClick = onUseHint,
+                enabled = state.hintsUsed < ChallengeViewModel.MAX_HINTS,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 48.dp),
             ) {
-                Column(Modifier.fillMaxWidth()) {
-                    Spacer(Modifier.height(8.dp))
-                    FilledTonalButton(
-                        onClick = onUseHint,
-                        enabled = state.hintsUsed < ChallengeViewModel.MAX_HINTS,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .heightIn(min = 48.dp),
-                    ) {
-                        Text(
-                            text = strings.hintButton(ChallengeViewModel.MAX_HINTS - state.hintsUsed),
-                            style = MaterialTheme.typography.titleMedium,
-                        )
-                    }
-                }
+                Text(
+                    text = strings.hintButton(ChallengeViewModel.MAX_HINTS - state.hintsUsed),
+                    style = MaterialTheme.typography.titleMedium,
+                )
             }
         }
     }

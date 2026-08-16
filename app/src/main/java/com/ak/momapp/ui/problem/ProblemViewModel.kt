@@ -27,6 +27,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -80,6 +82,21 @@ data class ProblemUiState(
 
 /** One drill: a single topic at a level she picked herself. */
 data class PracticeConfig(val topic: ProblemTopic, val difficulty: Difficulty)
+
+/**
+ * Whether an answer arriving at [now] counts, for a problem dealt at
+ * [dealtAt].
+ *
+ * A negative gap means the wall clock moved backwards under us, which an
+ * NTP correction can do at any moment. That is allowed through rather
+ * than blocked: the worst a wrongly accepted tap does is answer one
+ * problem, while a wrongly rejected one would leave her tapping a dead
+ * screen with no way forward.
+ */
+fun acceptsInputAt(dealtAt: Long, now: Long): Boolean {
+    val elapsed = now - dealtAt
+    return elapsed >= ProblemViewModel.INPUT_LOCKOUT_MS || elapsed < 0
+}
 
 class ProblemViewModel(
     private val settingsRepository: SettingsRepository,
@@ -158,6 +175,25 @@ class ProblemViewModel(
      */
     private val _practice = MutableStateFlow<PracticeConfig?>(null)
     val practice: StateFlow<PracticeConfig?> = _practice.asStateFlow()
+
+    init {
+        // The words are baked into a problem when it is generated, so a
+        // language change has to rebuild the one she is looking at. Her
+        // typed input, attempt count and phase all survive: only the
+        // wording is replaced.
+        viewModelScope.launch {
+            settingsRepository.settings
+                .map { it.language }
+                .distinctUntilChanged()
+                .drop(1)
+                .collect { language ->
+                    _uiState.update { state ->
+                        val spec = state?.problem?.spec ?: return@update state
+                        state.copy(problem = ProblemGenerator.replay(spec, language))
+                    }
+                }
+        }
+    }
 
     /** She picked a type and a level. Deal the first drill. */
     fun startPractice(topic: ProblemTopic, difficulty: Difficulty) {
@@ -284,6 +320,9 @@ class ProblemViewModel(
 
     /** One tap answers a comparison: sets the choice and checks it at once. */
     fun submitChoice(choice: Int) {
+        // Guarded before the choice is even recorded, so a swallowed tap
+        // leaves no trace of itself on screen.
+        if (!acceptsInputAt(problemShownAtMs, System.currentTimeMillis())) return
         _uiState.update { state ->
             if (state == null || state.isFinished) state else state.copy(input = choice.toString())
         }
@@ -293,6 +332,7 @@ class ProblemViewModel(
     fun submit() {
         val state = _uiState.value ?: return
         if (state.isFinished) return
+        if (!acceptsInputAt(problemShownAtMs, System.currentTimeMillis())) return
 
         val correct = when (state.problem.kind) {
             // The picked cards (by index) must be the asked-for count and
@@ -507,6 +547,16 @@ class ProblemViewModel(
     companion object {
         const val MAX_HINTS = 3
         private const val MAX_INPUT_DIGITS = 5
+
+        /**
+         * How long a freshly dealt problem ignores input.
+         *
+         * Long enough to swallow the second half of a double-tap, short
+         * enough that a deliberate answer never bounces. It matters most
+         * on TRUE_FALSE, which allows a single attempt: there a stray
+         * second tap loses the whole problem and costs seven points.
+         */
+        const val INPUT_LOCKOUT_MS = 350L
 
         val Factory = viewModelFactory {
             initializer {

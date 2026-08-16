@@ -66,8 +66,51 @@ enum class AppPalette(
     val swatch: List<Color>
         get() = listOf(primarySeed, secondarySeed, tertiarySeed)
 
-    fun colors(darkTheme: Boolean): ColorScheme =
-        if (darkTheme || alwaysDark) dark() else light()
+    fun colors(darkTheme: Boolean, skin: UiSkin = UiSkin.LEGACY): ColorScheme {
+        val isDark = darkTheme || alwaysDark
+        val base = if (isDark) dark() else light()
+        return if (skin == UiSkin.LEGACY) base else base.withModernSurfaces(isDark)
+    }
+
+    /**
+     * The roles [light] and [dark] never set.
+     *
+     * Material fills them from its own baseline palette, which is why the
+     * Stats chart's zero-day stubs are lilac in every palette today. Modern
+     * derives them from the same seed as everything else, so depth and
+     * dividers belong to the palette she chose. Legacy keeps the baseline,
+     * because Legacy is the look that shipped.
+     *
+     * The ladder has to be ordered AND distinct: five roles that resolve to
+     * the same colour give a surface nothing to sit against, and depth
+     * drawn in one flat tone is not depth.
+     */
+    private fun ColorScheme.withModernSurfaces(isDark: Boolean): ColorScheme =
+        if (!isDark) {
+            copy(
+                background = primarySeed.tint(0.945f),
+                surface = primarySeed.tint(0.945f),
+                surfaceContainerLowest = primarySeed.tint(0.986f),
+                surfaceContainerLow = primarySeed.tint(0.965f),
+                surfaceContainer = primarySeed.tint(0.945f),
+                surfaceContainerHigh = primarySeed.tint(0.92f),
+                surfaceContainerHighest = primarySeed.tint(0.90f),
+                outline = primarySeed.tint(0.62f),
+                outlineVariant = primarySeed.tint(0.80f),
+            )
+        } else {
+            copy(
+                background = primarySeed.shade(0.90f),
+                surface = primarySeed.shade(0.90f),
+                surfaceContainerLowest = primarySeed.shade(0.92f),
+                surfaceContainerLow = primarySeed.shade(0.875f),
+                surfaceContainer = primarySeed.shade(0.855f),
+                surfaceContainerHigh = primarySeed.shade(0.82f),
+                surfaceContainerHighest = primarySeed.shade(0.79f),
+                outline = primarySeed.shade(0.50f),
+                outlineVariant = primarySeed.shade(0.66f),
+            )
+        }
 
     private fun light(): ColorScheme {
         val onLight = primarySeed.shade(0.65f)

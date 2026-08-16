@@ -163,9 +163,18 @@ class ProblemGenerator(private val random: Random = Random.Default) {
          */
         review: ReviewPick? = null,
     ): Problem {
+        // Resolved once per call, not once per candidate: which topic a
+        // candidate lands on can change from roll to roll, but the level
+        // each topic is dealt at does not move within one generate() call.
+        val levels = ProblemTopic.ALL.associateWith(levelFor)
         var spare: Problem? = null
         repeat(REROLL_LIMIT) {
-            val problem = roll(level, language, topics, levelFor, review)
+            // Drawn here, once per candidate, so replay can rebuild exactly
+            // this roll from its seed alone. Drawing it inside roll (or
+            // reusing one seed across the loop) would desync replay from
+            // the very candidate it is meant to reproduce.
+            val spec = ProblemSpec(random.nextLong(), level, topics, levels, review)
+            val problem = replay(spec, language)
             if (worthKeeping(problem, spare)) spare = problem
             // Nothing gets past this, a due shape included: two of the same
             // kind running is the one thing she was promised would not
@@ -181,7 +190,9 @@ class ProblemGenerator(private val random: Random = Random.Default) {
                 return remember(problem)
             }
         }
-        return remember(spare ?: roll(level, language, topics, levelFor, review))
+        return remember(
+            spare ?: replay(ProblemSpec(random.nextLong(), level, topics, levels, review), language),
+        )
     }
 
     /**
@@ -705,6 +716,21 @@ class ProblemGenerator(private val random: Random = Random.Default) {
     }
 
     companion object {
+        /**
+         * Rebuilds exactly the problem [spec] describes, worded in
+         * [language].
+         *
+         * Deliberately NOT routed through [generate]. The repeat rings are
+         * keyed on the problem's TEXT, which differs by language, so a roll
+         * accepted in English can be rejected as a repeat in Romanian and
+         * the two runs diverge. Replay builds one known problem on a
+         * throwaway generator with empty rings; it never chooses.
+         */
+        fun replay(spec: ProblemSpec, language: AppLanguage): Problem =
+            ProblemGenerator(Random(spec.seed))
+                .roll(spec.level, language, spec.topics, { spec.levels[it] ?: spec.level }, spec.review)
+                .copy(spec = spec)
+
         /** How many rerolls before taking whatever the dice gave. */
         private const val REROLL_LIMIT = 12
 

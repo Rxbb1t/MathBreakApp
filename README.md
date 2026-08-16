@@ -1,6 +1,7 @@
 # Brain Break
 
 A small, calm Android app that taps you on the shoulder every few hours with one math problem.
+ ( originally an app made specifically for my mom, I decided to generalize its content and publish it to github)
 
 No accounts, no network, no ads, no analytics. Everything it knows stays on the phone.
 
@@ -166,4 +167,4 @@ Each language also brings its own grammar rule that only a native speaker will c
 
 ## License
 
-MIT. See [LICENSE](LICENSE). Do what you like with it, just keep the copyright notice.
+MIT. See [LICENSE](LICENSE). 

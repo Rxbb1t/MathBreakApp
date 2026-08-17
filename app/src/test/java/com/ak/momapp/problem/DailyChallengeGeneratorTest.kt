@@ -18,9 +18,12 @@ import org.junit.Test
  * would agree with any mistake in it.
  *
  * The file is in two halves. The first holds what is true of EVERY chain
- * whatever story it is telling, and those run across all four themes at
- * once. The second checks each theme's own arithmetic, on the days that
- * theme is actually dealt.
+ * whatever story it is telling. The second checks each theme's own
+ * arithmetic on the days that theme is dealt, and since the middle three
+ * steps are now drawn from pools, it first works out WHICH variant was
+ * dealt by reading the English wording, then re-derives that variant.
+ * A variant whose wording changes without its test changing will fail
+ * loudly here rather than quietly stop being checked.
  */
 class DailyChallengeGeneratorTest {
 
@@ -42,6 +45,13 @@ class DailyChallengeGeneratorTest {
 
     /** The same, minus the leading step number every step opens with. */
     private fun argsIn(text: String): List<Int> = numbersIn(text).drop(1)
+
+    /**
+     * Fails rather than passes when a step's wording matches no known
+     * variant, so a new variant cannot slip in untested.
+     */
+    private fun unknown(step: Problem): Nothing =
+        throw AssertionError("no test knows this variant: '${step.text}'")
 
     // ── True of every chain, whatever the story ──────────────────────────
 
@@ -81,6 +91,24 @@ class DailyChallengeGeneratorTest {
             for (stage in chain(date).stages) {
                 assertTrue("$date '${stage.text}'", stage.answer >= 0)
                 assertTrue("$date '${stage.text}'", stage.answer <= 99_999)
+            }
+        }
+    }
+
+    /**
+     * No step may hand the next one a value it cannot work with. A zero
+     * or a one arriving mid-chain is how a pool runs out of applicable
+     * variants, and it is also how a step stops being a question.
+     */
+    @Test
+    fun `every middle step leaves something for the next one to work on`() {
+        for (date in days(400)) {
+            val stages = chain(date).stages
+            for (step in 1..3) {
+                assertTrue(
+                    "$date step ${step + 1} answered ${stages[step].answer}",
+                    stages[step].answer >= 1,
+                )
             }
         }
     }
@@ -144,27 +172,28 @@ class DailyChallengeGeneratorTest {
      * The sheet teaches the ideas, so it has to be generic reference text
      * rather than anything built out of today's numbers.
      *
-     * Written as "it is the same every day" after the obvious version
-     * ("it never contains the answer") turned out to be the wrong claim:
-     * a sheet that lists the primes to thirty contains 2 and 3, and step
-     * 4's answer is a small number, so the two collide constantly without
-     * anything being given away. What actually matters is that no value
-     * from this chain can reach the sheet, and a sheet that never varies
-     * cannot carry one. Now compared WITHIN a theme, since a market stall
-     * and a clock face teach different ideas.
+     * Written as "the same sheet always comes with the same question"
+     * after the obvious version ("it never contains the answer") turned
+     * out to be the wrong claim: a sheet that lists the primes to thirty
+     * contains 2 and 3, and a step's answer is a small number, so the two
+     * collide constantly without anything being given away. What actually
+     * matters is that no value from today's chain can reach the sheet,
+     * and a sheet that never varies with the numbers cannot carry one.
      */
     @Test
     fun `the helper sheet carries nothing from today's chain`() {
-        for (theme in ChallengeTheme.entries) {
-            for (language in AppLanguage.entries) {
-                val dates = daysOf(theme)
-                val fixed = chain(dates.first(), language).stages.map { it.notes }
-                for (date in dates) {
-                    assertEquals(
-                        "$theme $date $language",
-                        fixed,
-                        chain(date, language).stages.map { it.notes },
-                    )
+        for (language in AppLanguage.entries) {
+            // Keyed on the question's shape rather than the day: two days
+            // dealing the same variant must bring the identical sheet,
+            // whatever numbers landed in it.
+            val sheets = mutableMapOf<String, List<String>>()
+            for (date in days(400)) {
+                for (stage in chain(date, language).stages) {
+                    val shape = stage.text.replace(Regex("\\d+"), "#")
+                    val seen = sheets.putIfAbsent(shape, stage.notes)
+                    if (seen != null) {
+                        assertEquals("$date $language '$shape'", seen, stage.notes)
+                    }
                 }
             }
         }
@@ -198,7 +227,7 @@ class DailyChallengeGeneratorTest {
         assertTrue("only ${finales.size} distinct finales in 60 days", finales.size > 25)
     }
 
-    // ── The themes themselves ────────────────────────────────────────────
+    // ── The themes and their shapes ──────────────────────────────────────
 
     /**
      * Every theme has to actually turn up, and none of them may crowd the
@@ -222,258 +251,258 @@ class DailyChallengeGeneratorTest {
         }
     }
 
-    /**
-     * Two chains told through different stories should not read as the
-     * same five sentences with the nouns swapped.
-     */
     @Test
     fun `each theme opens with its own words`() {
-        val intros = ChallengeTheme.entries.map { theme ->
-            chain(daysOf(theme).first()).intro
-        }
+        val intros = ChallengeTheme.entries.map { chain(daysOf(it).first()).intro }
         assertEquals("two themes share an intro", intros.size, intros.distinct().size)
+    }
+
+    /**
+     * The whole point of the pools: a theme must not always ask the same
+     * five questions. Eight shapes per theme are possible; over a year of
+     * that theme's days most of them should show up, and certainly more
+     * than one.
+     */
+    @Test
+    fun `every theme asks more than one shape of question`() {
+        for (theme in ChallengeTheme.entries) {
+            val shapes = daysOf(theme)
+                .map { date ->
+                    chain(date).stages.joinToString("|") { it.text.replace(Regex("\\d+"), "#") }
+                }
+                .distinct()
+            assertTrue("$theme only ever asks ${shapes.size} shape(s)", shapes.size >= 4)
+        }
+    }
+
+    /**
+     * And every individual variant has to be reachable. A variant that
+     * never fires is dead code that still has to be read and maintained,
+     * and it usually means its own guard rejects everything.
+     */
+    @Test
+    fun `every written variant is dealt at least once`() {
+        val seen = days(400).flatMap { date ->
+            chain(date).stages.map { it.text.replace(Regex("\\d+"), "#") }
+        }.toSet()
+        // Two openings and two finales are fixed, plus three pools of two
+        // in each of four themes: 4 * (1 + 2 + 2 + 2 + 1) = 32 shapes.
+        assertEquals("some variant never came up:\n" + seen.sorted().joinToString("\n"), 32, seen.size)
     }
 
     // ── Theme: the anchor ────────────────────────────────────────────────
 
-    /**
-     * The hunt must have exactly ONE answer, or the step is unfair in a
-     * way she cannot argue with: the app would reject a number that
-     * satisfies everything it asked for.
-     */
     @Test
-    fun `the anchor is the only number in its window that fits`() {
+    fun `the anchor chain adds up`() {
         for (date in daysOf(ChallengeTheme.ANCHOR)) {
-            val stage = chain(date).stages[0]
-            val (low, high, a, b) = argsIn(stage.text)
-            val fitting = (low..high).filter { it % a == 0 && it % b == 0 }
-            assertEquals("$date window $low..$high for $a and $b", listOf(stage.answer), fitting)
-        }
-    }
+            val stages = chain(date).stages
+            val anchor = stages[0].answer
 
-    @Test
-    fun `the anchor is a moderate double-digit number`() {
-        for (date in daysOf(ChallengeTheme.ANCHOR)) {
-            val anchor = chain(date).stages[0].answer
+            // Step 1: the hunt must have exactly ONE answer, or the step
+            // is unfair in a way she cannot argue with.
+            val (low, high, a, b) = argsIn(stages[0].text)
+            assertEquals(
+                "$date window $low..$high for $a and $b",
+                listOf(anchor),
+                (low..high).filter { it % a == 0 && it % b == 0 },
+            )
             assertTrue("$date anchored at $anchor", anchor in 10..99)
-        }
-    }
 
-    @Test
-    fun `the remainder is the anchor multiplied then divided`() {
-        for (date in daysOf(ChallengeTheme.ANCHOR)) {
-            val stages = chain(date).stages
-            val (multiplier, divisor) = argsIn(stages[1].text)
-            assertEquals("$date", stages[0].answer * multiplier % divisor, stages[1].answer)
-        }
-    }
+            val y = stages[1].answer
+            when {
+                "keep only the remainder" in stages[1].text -> {
+                    val (multiplier, divisor) = argsIn(stages[1].text)
+                    assertEquals("$date", anchor * multiplier % divisor, y)
+                    // Never a clean division: a remainder of nothing would
+                    // turn the step into a yes-or-no.
+                    assertTrue("$date left no remainder", y in 1 until divisor)
+                }
+                "next whole ten" in stages[1].text ->
+                    assertEquals("$date", 10 - anchor % 10, y)
+                else -> unknown(stages[1])
+            }
 
-    /**
-     * The draw's guarantee rather than arithmetic: never a zero divisor,
-     * and never a clean division either. A remainder of nothing would
-     * leave step 3 shifting a zero and turn this step into a yes-or-no.
-     */
-    @Test
-    fun `the divisor never divides by zero and never divides exactly`() {
-        for (date in daysOf(ChallengeTheme.ANCHOR)) {
-            val stages = chain(date).stages
-            val divisor = argsIn(stages[1].text)[1]
-            assertTrue("$date divided by $divisor", divisor > 0)
-            assertTrue("$date left no remainder", stages[1].answer > 0)
-            assertTrue("$date remainder was $divisor or more", stages[1].answer < divisor)
-        }
-    }
+            val z = stages[2].answer
+            when {
+                "digit sum" in stages[2].text -> {
+                    val shifted = y + argsIn(stages[2].text).first()
+                    assertTrue("$date shifted to $shifted", shifted in 10..99)
+                    assertEquals("$date", shifted / 10 + shifted % 10, z)
+                }
+                "Double Y" in stages[2].text ->
+                    assertEquals("$date", 2 * y + argsIn(stages[2].text).first(), z)
+                else -> unknown(stages[2])
+            }
 
-    @Test
-    fun `the digit sum follows from the remainder and the shift`() {
-        for (date in daysOf(ChallengeTheme.ANCHOR)) {
-            val stages = chain(date).stages
-            val shifted = stages[1].answer + argsIn(stages[2].text)[0]
-            assertEquals("$date shifted to $shifted", shifted / 10 + shifted % 10, stages[2].answer)
-        }
-    }
+            val w = stages[3].answer
+            when {
+                "smallest prime" in stages[3].text -> {
+                    val prime = generateSequence(z + 1) { it + 1 }.first(::isPrime)
+                    assertEquals("$date reaching up from $z", prime - z, w)
+                }
+                "divide Z exactly" in stages[3].text ->
+                    assertEquals("$date", (1..z).count { z % it == 0 }, w)
+                else -> unknown(stages[3])
+            }
 
-    /** The step says "its two digits", so it had better always have two. */
-    @Test
-    fun `the shifted value always has exactly two digits`() {
-        for (date in daysOf(ChallengeTheme.ANCHOR)) {
-            val stages = chain(date).stages
-            val shifted = stages[1].answer + argsIn(stages[2].text)[0]
-            assertTrue("$date shifted to $shifted", shifted in 10..99)
-        }
-    }
-
-    @Test
-    fun `the gap reaches the first prime above the digit sum`() {
-        for (date in daysOf(ChallengeTheme.ANCHOR)) {
-            val stages = chain(date).stages
-            val digitSum = stages[2].answer
-            val prime = generateSequence(digitSum + 1) { it + 1 }.first(::isPrime)
-            assertEquals("$date reaching up from $digitSum", prime - digitSum, stages[3].answer)
-            assertTrue("$date the gap was zero", stages[3].answer >= 1)
-        }
-    }
-
-    @Test
-    fun `the anchor finale multiplies the gap by the anchor from step one`() {
-        for (date in daysOf(ChallengeTheme.ANCHOR)) {
-            val stages = chain(date).stages
             val tail = numbersIn(stages[4].text).last()
-            assertEquals("$date", stages[3].answer * stages[0].answer - tail, stages[4].answer)
+            assertEquals("$date", w * anchor - tail, stages[4].answer)
         }
     }
 
     // ── Theme: the clock ─────────────────────────────────────────────────
 
     @Test
-    fun `the journey is the minutes between the two printed times`() {
+    fun `the clock chain adds up`() {
         for (date in daysOf(ChallengeTheme.CLOCK)) {
-            val stage = chain(date).stages[0]
-            val (departHour, departMinute, arriveHour, arriveMinute) = argsIn(stage.text)
+            val stages = chain(date).stages
+            val trip = stages[0].answer
+
+            val (departHour, departMinute, arriveHour, arriveMinute) = argsIn(stages[0].text)
             val depart = departHour * 60 + departMinute
             val arrive = arriveHour * 60 + arriveMinute
-            assertEquals("$date", arrive - depart, stage.answer)
+            assertEquals("$date", arrive - depart, trip)
             assertTrue("$date arrived before it left", arrive > depart)
-        }
-    }
 
-    @Test
-    fun `the spare minutes are what the whole hours leave behind`() {
-        for (date in daysOf(ChallengeTheme.CLOCK)) {
-            val stages = chain(date).stages
-            assertEquals("$date", stages[0].answer % 60, stages[1].answer)
-            // Five or more, or step 3 has no whole block to find.
-            assertTrue("$date only ${stages[1].answer} spare", stages[1].answer >= 5)
-        }
-    }
+            val y = stages[1].answer
+            when {
+                "spare minutes" in stages[1].text -> assertEquals("$date", trip % 60, y)
+                "fall short" in stages[1].text ->
+                    assertEquals("$date", argsIn(stages[1].text).first() - trip, y)
+                else -> unknown(stages[1])
+            }
+            // Whatever the variant, it has to leave a workable number of
+            // minutes: under five and the block step finds nothing.
+            assertTrue("$date only $y minutes", y in 5..59)
 
-    @Test
-    fun `the blocks are whole fives inside the spare minutes`() {
-        for (date in daysOf(ChallengeTheme.CLOCK)) {
-            val stages = chain(date).stages
-            assertEquals("$date", stages[1].answer / 5, stages[2].answer)
-            assertTrue("$date found no blocks", stages[2].answer >= 1)
-        }
-    }
+            val z = stages[2].answer
+            when {
+                "five-minute blocks" in stages[2].text -> assertEquals("$date", y / 5, z)
+                "two figures" in stages[2].text -> {
+                    assertTrue("$date asked for two figures of $y", y >= 10)
+                    assertEquals("$date", y / 10 + y % 10, z)
+                }
+                else -> unknown(stages[2])
+            }
 
-    @Test
-    fun `the stops cost one lot per block`() {
-        for (date in daysOf(ChallengeTheme.CLOCK)) {
-            val stages = chain(date).stages
-            val perStop = argsIn(stages[3].text).first()
-            assertEquals("$date", stages[2].answer * perStop, stages[3].answer)
-        }
-    }
+            val w = stages[3].answer
+            when {
+                "one stop for every block" in stages[3].text ->
+                    assertEquals("$date", z * argsIn(stages[3].text).first(), w)
+                "return trip" in stages[3].text ->
+                    assertEquals("$date", 2 * z + argsIn(stages[3].text).first(), w)
+                else -> unknown(stages[3])
+            }
 
-    @Test
-    fun `the clock finale adds the stops to the journey from step one`() {
-        for (date in daysOf(ChallengeTheme.CLOCK)) {
-            val stages = chain(date).stages
             val tail = numbersIn(stages[4].text).last()
-            assertEquals("$date", stages[0].answer + stages[3].answer - tail, stages[4].answer)
+            assertEquals("$date", trip + w - tail, stages[4].answer)
         }
     }
 
     // ── Theme: the market ────────────────────────────────────────────────
 
     @Test
-    fun `the stock is what the crates brought in less what sold`() {
-        for (date in daysOf(ChallengeTheme.MARKET)) {
-            val stage = chain(date).stages[0]
-            val (perCrate, crates, sold) = argsIn(stage.text)
-            assertEquals("$date", perCrate * crates - sold, stage.answer)
-            assertTrue("$date left only ${stage.answer}", stage.answer >= 20)
-        }
-    }
-
-    @Test
-    fun `the loose ones are what the full bags leave behind`() {
+    fun `the market chain adds up`() {
         for (date in daysOf(ChallengeTheme.MARKET)) {
             val stages = chain(date).stages
+
+            val (perCrate, crates, sold) = argsIn(stages[0].text)
+            val stock = stages[0].answer
+            assertEquals("$date", perCrate * crates - sold, stock)
+            // The finale multiplies the stock and then subtracts, so a
+            // tiny stock is the one way it could go negative.
+            assertTrue("$date left only $stock", stock >= 20)
+
+            val y = stages[1].answer
             val bag = argsIn(stages[1].text).first()
-            assertEquals("$date", stages[0].answer % bag, stages[1].answer)
-            assertTrue("$date bagged everything", stages[1].answer >= 1)
-        }
-    }
+            when {
+                "still loose" in stages[1].text -> {
+                    assertEquals("$date", stock % bag, y)
+                    assertTrue("$date bagged everything", y >= 1)
+                }
+                "full bags does that make" in stages[1].text ->
+                    assertEquals("$date", stock / bag, y)
+                else -> unknown(stages[1])
+            }
 
-    @Test
-    fun `the loose ones are worth their count times the price`() {
-        for (date in daysOf(ChallengeTheme.MARKET)) {
-            val stages = chain(date).stages
-            val price = argsIn(stages[2].text).first()
-            assertEquals("$date", stages[1].answer * price, stages[2].answer)
-        }
-    }
+            val z = stages[2].answer
+            when {
+                "carried home" in stages[2].text -> {
+                    val (price, carriage) = argsIn(stages[2].text)
+                    assertEquals("$date", y * price + carriage, z)
+                }
+                "sells for" in stages[2].text ->
+                    assertEquals("$date", y * argsIn(stages[2].text).first(), z)
+                else -> unknown(stages[2])
+            }
 
-    /** Change from a note, so the note has to cover the bill. */
-    @Test
-    fun `the change is the note less the bill and never negative`() {
-        for (date in daysOf(ChallengeTheme.MARKET)) {
-            val stages = chain(date).stages
-            val note = argsIn(stages[3].text).first()
-            assertTrue("$date paid $note for a bill of ${stages[2].answer}", note > stages[2].answer)
-            assertEquals("$date", note - stages[2].answer, stages[3].answer)
-        }
-    }
+            val w = stages[3].answer
+            when {
+                "pays with a note" in stages[3].text -> {
+                    val note = argsIn(stages[3].text).first()
+                    assertTrue("$date paid $note for a bill of $z", note > z)
+                    assertEquals("$date", note - z, w)
+                }
+                "ten-euro notes" in stages[3].text -> {
+                    assertTrue("$date counted tens out of $z", z >= 10)
+                    assertEquals("$date", z / 10, w)
+                }
+                else -> unknown(stages[3])
+            }
 
-    @Test
-    fun `the market finale multiplies the change by the stock from step one`() {
-        for (date in daysOf(ChallengeTheme.MARKET)) {
-            val stages = chain(date).stages
             val tail = numbersIn(stages[4].text).last()
-            assertEquals("$date", stages[3].answer * stages[0].answer - tail, stages[4].answer)
+            assertEquals("$date", w * stock - tail, stages[4].answer)
         }
     }
 
     // ── Theme: the workshop ──────────────────────────────────────────────
 
     @Test
-    fun `the border goes twice round both sides`() {
+    fun `the workshop chain adds up`() {
         for (date in daysOf(ChallengeTheme.WORKSHOP)) {
-            val stage = chain(date).stages[0]
-            val (length, width) = argsIn(stage.text)
-            assertEquals("$date", 2 * (length + width), stage.answer)
+            val stages = chain(date).stages
+
+            val (length, width) = argsIn(stages[0].text)
+            val border = stages[0].answer
+            assertEquals("$date", 2 * (length + width), border)
             assertNotEquals("$date the rug was square", length, width)
-        }
-    }
 
-    /**
-     * The square's side has to come out whole. It is the one place this
-     * chain could need a decimal point, and the keypad has none.
-     */
-    @Test
-    fun `the square side divides the border exactly by four`() {
-        for (date in daysOf(ChallengeTheme.WORKSHOP)) {
-            val stages = chain(date).stages
-            assertEquals("$date border ${stages[0].answer} is not a multiple of 4",
-                0, stages[0].answer % 4)
-            assertEquals("$date", stages[0].answer / 4, stages[1].answer)
-        }
-    }
+            val y = stages[1].answer
+            when {
+                "same distance round" in stages[1].text -> {
+                    // The one place this chain could need a decimal point,
+                    // and the keypad has none.
+                    assertEquals("$date border $border is not a multiple of 4", 0, border % 4)
+                    assertEquals("$date", border / 4, y)
+                }
+                "Half the Border" in stages[1].text -> assertEquals("$date", border / 2, y)
+                else -> unknown(stages[1])
+            }
 
-    @Test
-    fun `the area is the side times itself`() {
-        for (date in daysOf(ChallengeTheme.WORKSHOP)) {
-            val stages = chain(date).stages
-            assertEquals("$date", stages[1].answer * stages[1].answer, stages[2].answer)
-        }
-    }
+            val z = stages[2].answer
+            when {
+                "A square is cut" in stages[2].text -> assertEquals("$date", y * y, z)
+                "A runner is cut" in stages[2].text ->
+                    assertEquals("$date", y * argsIn(stages[2].text).first(), z)
+                else -> unknown(stages[2])
+            }
+            // Squaring grows fast; the bounds exist to keep the finale
+            // something she can still multiply by hand.
+            assertTrue("$date area of $z", z in 100..2600)
 
-    @Test
-    fun `the hundreds are whole hundreds inside the area`() {
-        for (date in daysOf(ChallengeTheme.WORKSHOP)) {
-            val stages = chain(date).stages
-            assertEquals("$date", stages[2].answer / 100, stages[3].answer)
-            assertTrue("$date found no whole hundreds", stages[3].answer >= 1)
-        }
-    }
+            val w = stages[3].answer
+            when {
+                "whole hundreds" in stages[3].text -> assertEquals("$date", z / 100, w)
+                "Tiles of" in stages[3].text -> {
+                    val tile = argsIn(stages[3].text).first()
+                    assertTrue("$date tiled $z with $tile", tile <= z)
+                    assertEquals("$date", z / tile, w)
+                }
+                else -> unknown(stages[3])
+            }
 
-    @Test
-    fun `the workshop finale multiplies the hundreds by the border from step one`() {
-        for (date in daysOf(ChallengeTheme.WORKSHOP)) {
-            val stages = chain(date).stages
             val tail = numbersIn(stages[4].text).last()
-            assertEquals("$date", stages[3].answer * stages[0].answer - tail, stages[4].answer)
+            assertEquals("$date", w * border - tail, stages[4].answer)
         }
     }
 

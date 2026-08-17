@@ -55,6 +55,49 @@ internal interface ChallengeChain {
 }
 
 /**
+ * One step of a chain, already drawn but not yet worded.
+ *
+ * Held as functions of the language rather than as finished strings so
+ * that the same drawn step can be asked in either language without being
+ * drawn twice, which is what keeps both languages on identical numbers.
+ */
+internal class ChainStep(
+    val answer: Int,
+    private val text: (AppLanguage) -> String,
+    private val hint: (AppLanguage) -> String,
+    private val notes: (AppLanguage) -> List<String>,
+) {
+    fun problem(language: AppLanguage): Problem =
+        stage(text(language), answer, hint(language), notes(language), language)
+}
+
+/**
+ * A step that might or might not suit the value handed to it.
+ *
+ * Returns null when it cannot work on that input: "how many whole
+ * hundreds fit inside this" has nothing to say about 40, and "add the
+ * two figures on the display" has nothing to say about a single digit.
+ * Refusing is how each variant states its own domain, instead of the
+ * caller having to know all of them.
+ */
+internal typealias StepSpec = (input: Int, random: Random) -> ChainStep?
+
+/**
+ * Picks one of [pool] that will work on [input].
+ *
+ * Every pool must hold at least one variant that accepts anything its
+ * slot can be handed, so this can always find one. That is a rule about
+ * how the pools are written, and [DailyChallengeGeneratorTest] sweeps
+ * enough days to hold it: if a pool ever fails to produce a step, the
+ * chain cannot be built at all and the test says so loudly.
+ *
+ * Shuffled rather than indexed so that adding a variant reshuffles which
+ * day gets which shape, instead of shifting every later day by one.
+ */
+internal fun pick(pool: List<StepSpec>, input: Int, random: Random): ChainStep =
+    pool.shuffled(random).firstNotNullOf { it(input, random) }
+
+/**
  * One step, with the two hints and the helper sheet every step carries.
  *
  * The second hint is always the digit count, which narrows without
@@ -111,6 +154,21 @@ internal fun digitsOf(n: Int): Int {
     return total
 }
 
+/**
+ * The first prime strictly above [n].
+ *
+ * Computed rather than looked up in a table, so a step that hands it a
+ * larger number than its author expected still gets the right answer
+ * instead of running off the end of a list.
+ */
+internal fun nextPrimeAbove(n: Int): Int =
+    generateSequence(n + 1) { it + 1 }.first(::isPrime)
+
+/** How many whole numbers divide [n] exactly, counting 1 and [n]. */
+internal fun divisorCount(n: Int): Int = (1..n).count { n % it == 0 }
+
+private fun isPrime(n: Int): Boolean = n >= 2 && (2..n / 2).none { n % it == 0 }
+
 /** A time of day as HH:MM, from minutes since midnight. */
 internal fun clockFace(minutesOfDay: Int): String {
     val hour = minutesOfDay / 60
@@ -159,6 +217,23 @@ internal fun groupingNotes(language: AppLanguage): List<String> =
             "Câte grupe ies și cât rămâne pe dinafară sunt două întrebări diferite. " +
                 "Citește care dintre ele se cere.",
             "Ce rămâne e mereu mai mic decât grupa, altfel ar mai încăpea o grupă întreagă.",
+        )
+    }
+
+internal fun digitNotes(language: AppLanguage): List<String> =
+    if (en(language)) {
+        listOf(
+            "A digit sum ignores what the number is worth and just adds the figures: " +
+                "52 becomes 5 + 2 = 7.",
+            "Because it throws the place value away, a digit sum is always small. " +
+                "Two digits can never add up past 18.",
+        )
+    } else {
+        listOf(
+            "Suma cifrelor nu ține cont de cât valorează numărul, ci doar adună figurile. " +
+                "Suma cifrelor lui 52: 5 + 2 = 7.",
+            "Fiindcă lasă deoparte valoarea de poziție, suma cifrelor e mereu mică. " +
+                "Două cifre nu pot depăși 18.",
         )
     }
 

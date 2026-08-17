@@ -6,53 +6,47 @@ import kotlin.random.Random
 /**
  * The original chain, and still the most abstract of the four.
  *
- *  1. THE ANCHOR. A small hunt rather than a sum: the one number in a
- *     window that both given numbers divide. Everything else hangs off it.
- *  2. THE OPERATOR SHIFT. Multiply the anchor, then take a remainder. The
- *     product is big, the answer is tiny, and getting from one to the
- *     other is the work.
- *  3. THE WORKING MEMORY TWIST. Shift that remainder along, then stop
- *     treating the result as a quantity and start treating it as digits.
- *  4. THE FILTER. Apply a rule to the digit sum: reach up to the next
- *     prime and measure the gap.
- *  5. THE GRAND FINALE. Back to the anchor from step one, which by now
- *     she has had to hold for four steps.
+ * Step 1 is always the Anchor hunt and step 5 always reaches back to it.
+ * Between them the Anchor might be worked into a remainder or measured
+ * against the next whole ten, that small number shifted along or
+ * doubled, and the result filtered by reaching for a prime or by
+ * counting what divides it.
  */
 internal object AnchorChain : ChallengeChain {
 
     override fun build(random: Random, language: AppLanguage): DailyChallenge {
-        val state = draw(random)
+        val hunt = drawHunt(random)
+        val opening = anchorStep(hunt)
+        val second = pick(SECOND, opening.answer, random)
+        val third = pick(THIRD, second.answer, random)
+        val fourth = pick(FOURTH, third.answer, random)
+        val finale = finaleStep(opening.answer, fourth.answer, random)
         return DailyChallenge(
             intro = if (en(language)) {
                 "Five steps, and each answer feeds the next. Hold on to your Anchor."
             } else {
                 "Cinci pași, iar fiecare răspuns îl hrănește pe următorul. Ține minte Ancora."
             },
-            stages = listOf(
-                anchorStep(state, language),
-                operatorStep(state, language),
-                memoryStep(state, language),
-                filterStep(state, language),
-                finaleStep(state, language),
-            ),
+            stages = listOf(opening, second, third, fourth, finale).map { it.problem(language) },
         )
     }
 
+    private data class Hunt(
+        val anchor: Int,
+        val low: Int,
+        val high: Int,
+        val factorA: Int,
+        val factorB: Int,
+    )
+
     /**
-     * Draws one day's numbers, every bound chosen so the chain cannot
-     * produce a step without an answer.
-     *
-     * Three things are guaranteed here rather than checked later:
-     *
-     *  - step 1 has exactly ONE solution, because the window is narrower
-     *    than the gap between consecutive multiples of both factors;
-     *  - step 2 never divides by zero and never leaves a remainder of
-     *    zero, because the divisor is drawn from the candidates that do
-     *    not divide the product exactly, and that list can never be empty;
-     *  - step 5 never goes negative, because the smallest possible product
-     *    already clears the largest possible subtraction.
+     * Draws the hunt so it has exactly ONE solution: the window is
+     * narrower than the gap between consecutive multiples of both
+     * factors, and it holds the anchor. Anything else would be unfair in
+     * a way she cannot argue with, because the app would reject a number
+     * that satisfies everything it asked for.
      */
-    private fun draw(random: Random): State {
+    private fun drawHunt(random: Random): Hunt {
         val (factorA, factorB) = FACTOR_PAIRS.random(random)
         // Both factors divide their least common multiple, so every
         // multiple of the stride is a multiple of both and nothing else is.
@@ -60,133 +54,245 @@ internal object AnchorChain : ChallengeChain {
         val steps = ceilingDivide(ANCHOR_MIN, stride)..(ANCHOR_MAX / stride)
         val anchor = stride * random.nextInt(steps.first, steps.last + 1)
 
-        // A window narrower than the stride can hold only one multiple of
-        // it, and it holds the anchor, so the hunt has a single answer.
         val spread = minOf(stride - 1, MAX_WINDOW)
         val below = random.nextInt(1, spread)
         val above = random.nextInt(1, spread - below + 1)
-
-        val multiplier = random.nextInt(2, 5)
-        val product = anchor * multiplier
-        // The divisor has to leave something behind: a remainder of zero
-        // turns the step into a yes-or-no and gives step 3 nothing to
-        // shift. At least one candidate always qualifies, because dividing
-        // exactly by all of them at once needs a multiple of 504 and the
-        // product cannot reach that.
-        val divisor = DIVISORS.filter { product % it != 0 }.random(random)
-
-        return State(
-            anchor = anchor,
-            low = anchor - below,
-            high = anchor + above,
-            factorA = factorA,
-            factorB = factorB,
-            multiplier = multiplier,
-            divisor = divisor,
-            addend = random.nextInt(ADDEND_MIN, ADDEND_MAX + 1),
-            tail = TAILS.random(random),
-        )
+        return Hunt(anchor, anchor - below, anchor + above, factorA, factorB)
     }
 
-    private fun anchorStep(state: State, language: AppLanguage): Problem = stage(
-        text = if (en(language)) {
-            "Step 1, your Anchor. Which number between ${state.low} and ${state.high} " +
-                "is a multiple of ${state.factorA} and a multiple of ${state.factorB}?"
-        } else {
-            "Pasul 1, Ancora ta. Care număr dintre ${state.low} și ${state.high} " +
-                "e multiplu de ${state.factorA} și multiplu de ${state.factorB}?"
+    private fun anchorStep(hunt: Hunt) = ChainStep(
+        answer = hunt.anchor,
+        text = { language ->
+            if (en(language)) {
+                "Step 1, your Anchor. Which number between ${hunt.low} and ${hunt.high} " +
+                    "is a multiple of ${hunt.factorA} and a multiple of ${hunt.factorB}?"
+            } else {
+                "Pasul 1, Ancora ta. Care număr dintre ${hunt.low} și ${hunt.high} " +
+                    "e multiplu de ${hunt.factorA} și multiplu de ${hunt.factorB}?"
+            }
         },
-        answer = state.anchor,
-        hint = if (en(language)) {
-            "A multiple is a number that divides exactly, with nothing left over. " +
-                "Only one number in that stretch works for both."
-        } else {
-            "Un multiplu se împarte exact, fără rest. " +
-                "Un singur număr din acel interval merge pentru amândouă."
+        hint = { language ->
+            if (en(language)) {
+                "A multiple is a number that divides exactly, with nothing left over. " +
+                    "Only one number in that stretch works for both."
+            } else {
+                "Un multiplu se împarte exact, fără rest. " +
+                    "Un singur număr din acel interval merge pentru amândouă."
+            }
         },
-        notes = multipleNotes(language),
-        language = language,
+        notes = ::multipleNotes,
     )
 
-    private fun operatorStep(state: State, language: AppLanguage): Problem = stage(
-        text = if (en(language)) {
-            "Step 2. Multiply your Anchor by ${state.multiplier}, then divide by " +
-                "${state.divisor} and keep only the remainder. That remainder is Y."
-        } else {
-            "Pasul 2. Înmulțește Ancora cu ${state.multiplier}, apoi împarte la " +
-                "${state.divisor} și păstrează doar restul. Acel rest e Y."
+    // ── Step 2: the Anchor, worked down to a single figure ───────────────
+
+    /** The always-applicable variant is the remainder; see [pick]. */
+    private val SECOND: List<StepSpec> = listOf(
+        // Multiply, then keep only what will not divide out. The divisor
+        // is drawn from the ones that leave something behind: a remainder
+        // of zero would turn this into a yes-or-no and give the next step
+        // nothing to work on.
+        { anchor, random ->
+            val multiplier = random.nextInt(2, 5)
+            val product = anchor * multiplier
+            val divisors = DIVISORS.filter { product % it != 0 }
+            if (divisors.isEmpty()) {
+                null
+            } else {
+                val divisor = divisors.random(random)
+                ChainStep(
+                    answer = product % divisor,
+                    text = { language ->
+                        if (en(language)) {
+                            "Step 2. Multiply your Anchor by $multiplier, then divide by " +
+                                "$divisor and keep only the remainder. That remainder is Y."
+                        } else {
+                            "Pasul 2. Înmulțește Ancora cu $multiplier, apoi împarte la " +
+                                "$divisor și păstrează doar restul. Acel rest e Y."
+                        }
+                    },
+                    hint = { language ->
+                        if (en(language)) {
+                            "Your Anchor was $anchor. The remainder is what is left once " +
+                                "every whole lot of $divisor has been taken out."
+                        } else {
+                            "Ancora ta a fost $anchor. Restul e ce rămâne după ce scoți " +
+                                "toate grupele întregi de $divisor."
+                        }
+                    },
+                    notes = ::remainderNotes,
+                )
+            }
         },
-        answer = state.remainder,
-        hint = if (en(language)) {
-            "Your Anchor was ${state.anchor}. The remainder is what is left once " +
-                "every whole lot of ${state.divisor} has been taken out."
-        } else {
-            "Ancora ta a fost ${state.anchor}. Restul e ce rămâne după ce scoți " +
-                "toate grupele întregi de ${state.divisor}."
+        // How far it sits below the next whole ten. Nothing to measure
+        // when the Anchor is already sitting on one.
+        { anchor, _ ->
+            if (anchor % 10 == 0) {
+                null
+            } else {
+                ChainStep(
+                    answer = 10 - anchor % 10,
+                    text = { language ->
+                        if (en(language)) {
+                            "Step 2. Count up from your Anchor to the next whole ten above " +
+                                "it. How many steps is that? Call it Y."
+                        } else {
+                            "Pasul 2. Numără de la Ancora ta până la următoarea zece " +
+                                "întreagă de deasupra. Câți pași sunt? Să-i zicem Y."
+                        }
+                    },
+                    hint = { language ->
+                        if (en(language)) {
+                            "Your Anchor was $anchor. Only the units figure matters here: " +
+                                "the tens are already behind you."
+                        } else {
+                            "Ancora ta a fost $anchor. Contează doar cifra unităților: " +
+                                "zecile sunt deja în urmă."
+                        }
+                    },
+                    notes = ::tenNotes,
+                )
+            }
         },
-        notes = remainderNotes(language),
-        language = language,
     )
 
-    private fun memoryStep(state: State, language: AppLanguage): Problem = stage(
-        text = if (en(language)) {
-            "Step 3. Add ${state.addend} to Y. Now stop reading that as a quantity " +
-                "and add its two digits together. That digit sum is Z."
-        } else {
-            "Pasul 3. Adună ${state.addend} la Y. Acum nu-l mai citi ca pe o cantitate " +
-                "și adună-i cele două cifre. Suma cifrelor e Z."
+    // ── Step 3: that figure, grown into a small number ───────────────────
+
+    /** Both variants accept anything a single figure can be. */
+    private val THIRD: List<StepSpec> = listOf(
+        // Shift it along, then stop reading it as a quantity.
+        { y, random ->
+            val addend = random.nextInt(ADDEND_MIN, ADDEND_MAX + 1)
+            ChainStep(
+                answer = digitsOf(y + addend),
+                text = { language ->
+                    if (en(language)) {
+                        "Step 3. Add $addend to Y. Now stop reading that as a quantity and " +
+                            "add its two digits together. That digit sum is Z."
+                    } else {
+                        "Pasul 3. Adună $addend la Y. Acum nu-l mai citi ca pe o cantitate " +
+                            "și adună-i cele două cifre. Suma cifrelor e Z."
+                    }
+                },
+                hint = { language ->
+                    if (en(language)) {
+                        "Y was $y. A digit sum is the tens digit and the units digit added " +
+                            "together, so 34 gives 7."
+                    } else {
+                        "Y a fost $y. Suma cifrelor e cifra zecilor plus cifra unităților, " +
+                            "deci 34 dă 7."
+                    }
+                },
+                notes = ::digitNotes,
+            )
         },
-        answer = state.digitSum,
-        hint = if (en(language)) {
-            "Y was ${state.remainder}. A digit sum is the tens digit and the units " +
-                "digit added together, so 34 gives 7."
-        } else {
-            "Y a fost ${state.remainder}. Suma cifrelor e cifra zecilor plus cifra " +
-                "unităților, deci 34 dă 7."
+        // Double it and push it along.
+        { y, random ->
+            val extra = random.nextInt(3, 10)
+            ChainStep(
+                answer = 2 * y + extra,
+                text = { language ->
+                    if (en(language)) {
+                        "Step 3. Double Y, then add $extra to what you get. Call that Z."
+                    } else {
+                        "Pasul 3. Dublează Y, apoi adaugă $extra la cât îți iese. " +
+                            "Să-i zicem Z."
+                    }
+                },
+                hint = { language ->
+                    if (en(language)) {
+                        "Y was $y. Double it first and add afterwards: the other way round " +
+                            "gives a different number."
+                    } else {
+                        "Y a fost $y. Întâi dublează și abia apoi adună: invers iese " +
+                            "alt număr."
+                    }
+                },
+                notes = ::doubleNotes,
+            )
         },
-        notes = digitNotes(language),
-        language = language,
     )
 
-    private fun filterStep(state: State, language: AppLanguage): Problem = stage(
-        text = if (en(language)) {
-            "Step 4. Find the smallest prime number bigger than Z, then take Z away " +
-                "from it. That difference is W."
-        } else {
-            "Pasul 4. Găsește cel mai mic număr prim mai mare decât Z, apoi scade Z " +
-                "din el. Acea diferență e W."
+    // ── Step 4: that number, put through a filter ────────────────────────
+
+    /** Both variants accept anything from two upward. */
+    private val FOURTH: List<StepSpec> = listOf(
+        { z, _ ->
+            ChainStep(
+                answer = nextPrimeAbove(z) - z,
+                text = { language ->
+                    if (en(language)) {
+                        "Step 4. Find the smallest prime number bigger than Z, then take Z " +
+                            "away from it. That difference is W."
+                    } else {
+                        "Pasul 4. Găsește cel mai mic număr prim mai mare decât Z, apoi " +
+                            "scade Z din el. Acea diferență e W."
+                    }
+                },
+                hint = { language ->
+                    if (en(language)) {
+                        "Z was $z. A prime divides by nothing but itself and one, and the " +
+                            "one you want is the first prime above Z, not below it."
+                    } else {
+                        "Z a fost $z. Un număr prim nu se împarte decât la el însuși și la " +
+                            "unu, iar cel căutat e primul prim de deasupra lui Z."
+                    }
+                },
+                notes = ::primeNotes,
+            )
         },
-        answer = state.gap,
-        hint = if (en(language)) {
-            "Z was ${state.digitSum}. A prime divides by nothing but itself and one, " +
-                "and the one you want is the first prime above Z, not below it."
-        } else {
-            "Z a fost ${state.digitSum}. Un număr prim nu se împarte decât la el " +
-                "însuși și la unu, iar cel căutat e primul prim de deasupra lui Z."
+        { z, _ ->
+            if (z < 2) {
+                null
+            } else {
+                ChainStep(
+                    answer = divisorCount(z),
+                    text = { language ->
+                        if (en(language)) {
+                            "Step 4. How many whole numbers divide Z exactly, counting 1 and " +
+                                "Z themselves? That count is W."
+                        } else {
+                            "Pasul 4. Câte numere întregi se împart exact în Z, punând la " +
+                                "socoteală și pe 1, și pe Z? Numărul lor e W."
+                        }
+                    },
+                    hint = { language ->
+                        if (en(language)) {
+                            "Z was $z. Walk up from 1 and keep the ones that leave no " +
+                                "remainder. Every number has at least two."
+                        } else {
+                            "Z a fost $z. Urcă de la 1 și păstrează-le pe cele care nu lasă " +
+                                "rest. Orice număr are cel puțin două."
+                        }
+                    },
+                    notes = ::divisorNotes,
+                )
+            }
         },
-        notes = primeNotes(language),
-        language = language,
     )
 
-    private fun finaleStep(state: State, language: AppLanguage): Problem = stage(
-        text = if (en(language)) {
-            "Step 5, the finish. Multiply W by your Anchor from step 1, " +
-                "then subtract ${state.tail}. What are you left with?"
-        } else {
-            "Pasul 5, finalul. Înmulțește W cu Ancora de la pasul 1, " +
-                "apoi scade ${state.tail}. Cu cât rămâi?"
-        },
-        answer = state.finale,
-        hint = if (en(language)) {
-            "W was ${state.gap} and your Anchor, all the way back at step 1, " +
-                "was ${state.anchor}."
-        } else {
-            "W a fost ${state.gap}, iar Ancora, tocmai de la pasul 1, " +
-                "a fost ${state.anchor}."
-        },
-        notes = anchorChainNotes(language),
-        language = language,
-    )
+    private fun finaleStep(anchor: Int, w: Int, random: Random): ChainStep {
+        val tail = TAILS.random(random)
+        return ChainStep(
+            answer = w * anchor - tail,
+            text = { language ->
+                if (en(language)) {
+                    "Step 5, the finish. Multiply W by your Anchor from step 1, " +
+                        "then subtract $tail. What are you left with?"
+                } else {
+                    "Pasul 5, finalul. Înmulțește W cu Ancora de la pasul 1, " +
+                        "apoi scade $tail. Cu cât rămâi?"
+                }
+            },
+            hint = { language ->
+                if (en(language)) {
+                    "W was $w and your Anchor, all the way back at step 1, was $anchor."
+                } else {
+                    "W a fost $w, iar Ancora, tocmai de la pasul 1, a fost $anchor."
+                }
+            },
+            notes = ::chainNotes,
+        )
+    }
 
     private fun multipleNotes(language: AppLanguage): List<String> =
         if (en(language)) {
@@ -207,20 +313,36 @@ internal object AnchorChain : ChallengeChain {
             )
         }
 
-    private fun digitNotes(language: AppLanguage): List<String> =
+    private fun tenNotes(language: AppLanguage): List<String> =
         if (en(language)) {
             listOf(
-                "A digit sum ignores what the number is worth and just adds the figures: " +
-                    "52 becomes 5 + 2 = 7.",
-                "Because it throws the place value away, a digit sum is always small. " +
-                    "Two digits can never add up past 18.",
+                "The whole tens are 10, 20, 30 and so on. From 47 the next one up is 50, " +
+                    "which is 3 steps away.",
+                "Only the units figure decides the distance, because the tens are already " +
+                    "counted.",
+                "A number already sitting on a ten is nought steps from itself, not ten.",
             )
         } else {
             listOf(
-                "Suma cifrelor nu ține cont de cât valorează numărul, ci doar adună figurile. " +
-                    "Suma cifrelor lui 52: 5 + 2 = 7.",
-                "Fiindcă lasă deoparte valoarea de poziție, suma cifrelor e mereu mică. " +
-                    "Două cifre nu pot depăși 18.",
+                "Zecile întregi sunt 10, 20, 30 și așa mai departe. De la 47, următoarea e " +
+                    "50, adică la 3 pași.",
+                "Doar cifra unităților hotărăște distanța, fiindcă zecile sunt deja numărate.",
+                "Un număr care stă deja pe o zece e la zero pași de el însuși, nu la zece.",
+            )
+        }
+
+    private fun doubleNotes(language: AppLanguage): List<String> =
+        if (en(language)) {
+            listOf(
+                "Doubling is adding a number to itself: double 7 is 14.",
+                "Doubling then adding is not the same as adding then doubling. " +
+                    "Double 5 plus 3 is 13; double 8 is 16.",
+            )
+        } else {
+            listOf(
+                "A dubla înseamnă a aduna numărul cu el însuși: dublul lui 7 e 14.",
+                "Să dublezi și apoi să aduni nu e tot una cu a aduna și apoi a dubla. " +
+                    "Dublul lui 5 plus 3 face 13; dublul lui 8 face 16.",
             )
         }
 
@@ -241,56 +363,25 @@ internal object AnchorChain : ChallengeChain {
             )
         }
 
-    private fun anchorChainNotes(language: AppLanguage): List<String> =
+    private fun divisorNotes(language: AppLanguage): List<String> =
         if (en(language)) {
             listOf(
-                "Where you have been: the Anchor, then Y the remainder, then Z the digit sum, " +
-                    "then W the step up to the next prime.",
-                "This last one reaches all the way back. W multiplies the Anchor, not Z.",
+                "The numbers that divide 12 exactly are 1, 2, 3, 4, 6 and 12: six of them.",
+                "Every number has at least two, itself and 1. A prime has exactly those two " +
+                    "and nothing else.",
+                "They come in pairs that multiply back: for 12, 2 with 6 and 3 with 4.",
             )
         } else {
             listOf(
-                "Pe unde ai trecut: Ancora, apoi Y restul, apoi Z suma cifrelor, " +
-                    "apoi W pasul până la următorul prim.",
-                "Ultimul se întoarce tocmai la început. W înmulțește Ancora, nu Z.",
+                "Numerele care se împart exact în 12 sunt 1, 2, 3, 4, 6 și 12: șase la număr.",
+                "Orice număr are cel puțin două, pe el însuși și pe 1. Un prim are exact " +
+                    "acestea două și nimic altceva.",
+                "Vin în perechi care se înmulțesc înapoi: la 12, 2 cu 6 și 3 cu 4.",
             )
         }
 
     /**
-     * Only the DRAWN values are stored. Every answer is derived from them,
-     * which is the whole reason this is one object rather than five
-     * variables passed along: a chain where step four's input is a field
-     * somebody could set is a chain that can disagree with itself.
-     */
-    private data class State(
-        val anchor: Int,
-        val low: Int,
-        val high: Int,
-        val factorA: Int,
-        val factorB: Int,
-        val multiplier: Int,
-        val divisor: Int,
-        val addend: Int,
-        val tail: Int,
-    ) {
-        /** Never zero; see the divisor's draw. */
-        val remainder: Int get() = anchor * multiplier % divisor
-        val shifted: Int get() = remainder + addend
-        val digitSum: Int get() = digitsOf(shifted)
-        val prime: Int get() = PRIMES.first { it > digitSum }
-        val gap: Int get() = prime - digitSum
-        val finale: Int get() = gap * anchor - tail
-    }
-
-    /**
-     * Far enough to cover any digit sum this chain can reach. The largest
-     * shifted value is 48, whose digits sum to 12, so 13 is always in
-     * reach and the lookup can never run off the end.
-     */
-    private val PRIMES = listOf(2, 3, 5, 7, 11, 13, 17, 19, 23)
-
-    /**
-     * Factor pairs for step 1. Neither number divides the other, so
+     * Factor pairs for the hunt. Neither number divides the other, so
      * "a multiple of both" asks something that "a multiple of the bigger
      * one" would not.
      */
@@ -301,21 +392,21 @@ internal object AnchorChain : ChallengeChain {
     private const val ANCHOR_MAX = 96
 
     /**
-     * The widest step 1's window can get. Every stride is at least 12, so
-     * this stays under it and the single-answer guarantee holds.
+     * The widest the hunt's window can get. Every stride is at least 12,
+     * so this stays under it and the single-answer guarantee holds.
      */
     private const val MAX_WINDOW = 11
 
-    /** Step 2's candidate divisors. None of them is zero, by being written here. */
+    /** Candidate divisors for the remainder step. None of them is zero, by being written here. */
     private val DIVISORS = listOf(6, 7, 8, 9)
 
     /**
-     * Step 3's shift. Chosen so the result is always two digits: the
-     * remainder is at most 8, so the sum lands between 11 and 48.
+     * The shift. Chosen so the result is always two digits: the incoming
+     * figure is at most 9, so the sum lands between 11 and 49.
      */
     private const val ADDEND_MIN = 10
     private const val ADDEND_MAX = 40
 
-    /** Step 5's parting subtraction, comfortably under the smallest product. */
+    /** The parting subtraction, comfortably under the smallest possible product. */
     private val TAILS = listOf(10, 15, 20)
 }

@@ -101,7 +101,7 @@ fun applyKey(current: String, key: KeypadKey): String = when (key) {
 fun KeypadPanel(
     input: String,
     unit: String,
-    onKey: (KeypadKey) -> Unit,
+    onInput: (String) -> Unit,
     finished: Boolean,
     modifier: Modifier = Modifier,
     resetKey: Any? = null,
@@ -116,6 +116,10 @@ fun KeypadPanel(
             AnswerDisplay(
                 input = input,
                 unit = unit,
+                // Tapping the bar brings up her own keyboard, which lands
+                // over the keys below rather than moving them.
+                onInput = onInput,
+                enabled = !finished,
                 modifier = Modifier.weight(1f),
             )
             // The handle goes with the keypad when the problem ends. There
@@ -135,7 +139,12 @@ fun KeypadPanel(
         ) {
             Column {
                 Spacer(Modifier.height(12.dp))
-                Keypad(onKey = onKey, enabled = !finished)
+                // The panel owns the current text, so it is the one place
+                // that can turn a key press into the answer it makes.
+                Keypad(
+                    onKey = { key -> onInput(applyKey(input, key)) },
+                    enabled = !finished,
+                )
             }
         }
     }

@@ -179,6 +179,8 @@ class Strings(
      */
     val keypadHide: String,
     val keypadShow: String,
+    /** What tapping the answer bar does, for a screen reader. */
+    val answerTapToType: String,
 )
 
 val EnglishStrings = Strings(
@@ -384,6 +386,7 @@ val EnglishStrings = Strings(
     keypadBackspace = "Delete one digit",
     keypadHide = "Hide the keypad",
     keypadShow = "Show the keypad",
+    answerTapToType = "Type with your own keyboard",
 )
 
 val RomanianStrings = Strings(
@@ -598,4 +601,5 @@ val RomanianStrings = Strings(
     keypadBackspace = "Șterge o cifră",
     keypadHide = "Ascunde tastatura",
     keypadShow = "Arată tastatura",
+    answerTapToType = "Scrie cu tastatura ta",
 )

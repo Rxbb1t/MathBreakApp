@@ -410,7 +410,7 @@ fun ProblemScreenContent(
                 // not control the size of.
                 ProblemDock(
                     uiState = uiState,
-                    onKey = { key -> onInputChange(applyKey(uiState.input, key)) },
+                    onInput = onInputChange,
                     onSubmit = onSubmit,
                     onSubmitChoice = onSubmitChoice,
                     onToggleCard = onToggleCard,

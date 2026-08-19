@@ -1,7 +1,10 @@
 package com.ak.momapp.ui.problem
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -12,6 +15,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilterChip
@@ -19,10 +26,20 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.isSpecified
@@ -82,7 +99,8 @@ internal fun TextStyle.scaledBy(fraction: Float): TextStyle = copy(
 @Composable
 fun ProblemDock(
     uiState: ProblemUiState,
-    onKey: (KeypadKey) -> Unit,
+    /** The whole answer, not one key: her own keyboard can type it. */
+    onInput: (String) -> Unit,
     onSubmit: () -> Unit,
     onSubmitChoice: (Int) -> Unit,
     onToggleCard: (Int) -> Unit,
@@ -150,7 +168,7 @@ fun ProblemDock(
             else -> KeypadPanel(
                 input = uiState.input,
                 unit = problem.answerUnit,
-                onKey = onKey,
+                onInput = onInput,
                 finished = uiState.isFinished,
                 // A new problem is a new fold: the pad comes back up.
                 resetKey = problem,
@@ -311,19 +329,95 @@ private fun QuietButton(
 }
 
 /**
- * The typed answer, shown rather than edited.
+ * The tap target that hands the answer bar over to her phone's own
+ * keyboard.
  *
- * The system keyboard is gone, so this is a readout, not a text field.
+ * The app draws its own keypad because the system one is a poor fit for
+ * this screen, but "poor fit" is not "forbidden": if she would rather
+ * type on the keyboard she uses everywhere else, tapping the bar gets it.
+ *
+ * It is a real text field, sized to a single invisible dp. The visible
+ * readout is drawn over the top and has no pointer handler of its own, so
+ * taps fall through to the target underneath and the bar keeps exactly
+ * the look it had. Nothing here reads or applies the IME insets, which is
+ * what leaves the keyboard to cover the app's keypad rather than shove
+ * the question off the top of the screen -- the whole point of asking for
+ * it this way round.
+ *
+ * Focus alone drives the keyboard: Compose raises the IME when a field
+ * takes focus and drops it when the field loses it, so a finished problem
+ * puts the keyboard away with the keypad and nothing has to remember to.
+ */
+@Composable
+private fun BoxScope.SystemKeyboardTarget(
+    input: String,
+    onInput: (String) -> Unit,
+    enabled: Boolean,
+) {
+    val strings = LocalStrings.current
+    val focusRequester = remember { FocusRequester() }
+    val focusManager = LocalFocusManager.current
+
+    // Belt and braces on the way down. Compose drops focus when a field is
+    // disabled, but the keyboard covering her worked solution is exactly
+    // the bug this whole change is meant to avoid.
+    LaunchedEffect(enabled) {
+        if (!enabled) focusManager.clearFocus()
+    }
+
+    Box(
+        Modifier
+            .matchParentSize()
+            .clickable(
+                enabled = enabled,
+                onClickLabel = strings.answerTapToType,
+                onClick = { focusRequester.requestFocus() },
+            ),
+    ) {
+        BasicTextField(
+            value = input,
+            onValueChange = onInput,
+            enabled = enabled,
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Number,
+                imeAction = ImeAction.Done,
+            ),
+            keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
+            // The field is never seen, so neither is its caret. What she
+            // is typing shows in the readout above at the size it has
+            // always been.
+            cursorBrush = SolidColor(Color.Transparent),
+            modifier = Modifier
+                .size(1.dp)
+                .alpha(0f)
+                .focusRequester(focusRequester),
+        )
+    }
+}
+
+/**
+ * The typed answer: a readout the app's keypad writes into, and a way in
+ * for her phone's own keyboard if she would rather use that.
+ *
  * In Modern it is the inset counterpart to the raised problem card: the
  * darkest container in the ladder against the card's lightest, which is
  * the only way to read as recessed when Compose has no inner shadow.
- * Legacy keeps its outline, because Legacy keeps its look.
+ * Tone alone turned out not to be enough on the dark palettes, where the
+ * well and the background land within a shade of each other and the bar
+ * disappears from under its own question mark, so Modern now takes the
+ * same hairline the problem card has. Legacy keeps its heavy outline,
+ * because Legacy keeps its look.
+ *
+ * [onInput] is what makes it typeable. Null leaves it a readout.
  */
 @Composable
 fun AnswerDisplay(
     input: String,
     unit: String,
     modifier: Modifier = Modifier,
+    onInput: ((String) -> Unit)? = null,
+    enabled: Boolean = true,
 ) {
     val modern = LocalSkin.current == UiSkin.MODERN
     Surface(
@@ -333,38 +427,51 @@ fun AnswerDisplay(
         } else {
             MaterialTheme.colorScheme.surface
         },
-        border = if (modern) null else BorderStroke(2.dp, MaterialTheme.colorScheme.primary),
+        border = if (modern) {
+            BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+        } else {
+            BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
+        },
         modifier = modifier
             .fillMaxWidth()
             .heightIn(min = 64.dp.asControl()),
     ) {
-        Row(
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-        ) {
-            Text(
-                // A placeholder question mark rather than an empty box, so
-                // the row never looks like something failed to load.
-                text = input.ifEmpty { "?" },
-                fontSize = 34.sp,
-                fontWeight = FontWeight.SemiBold,
-                textAlign = TextAlign.Center,
-                color = if (input.isEmpty()) {
-                    MaterialTheme.colorScheme.onSurfaceVariant
-                } else {
-                    MaterialTheme.colorScheme.onSurface
-                },
-            )
-            // The expected unit ("m", "deg", "lei", "min") sits beside the
-            // number so it is never a guess.
-            if (unit.isNotEmpty()) {
-                Spacer(Modifier.padding(horizontal = 3.dp))
-                Text(
-                    text = unit,
-                    fontSize = 22.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+        Box(contentAlignment = Alignment.Center) {
+            if (onInput != null) {
+                SystemKeyboardTarget(
+                    input = input,
+                    onInput = onInput,
+                    enabled = enabled,
                 )
+            }
+            Row(
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+            ) {
+                Text(
+                    // A placeholder question mark rather than an empty box, so
+                    // the row never looks like something failed to load.
+                    text = input.ifEmpty { "?" },
+                    fontSize = 34.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    textAlign = TextAlign.Center,
+                    color = if (input.isEmpty()) {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    } else {
+                        MaterialTheme.colorScheme.onSurface
+                    },
+                )
+                // The expected unit ("m", "deg", "lei", "min") sits beside the
+                // number so it is never a guess.
+                if (unit.isNotEmpty()) {
+                    Spacer(Modifier.padding(horizontal = 3.dp))
+                    Text(
+                        text = unit,
+                        fontSize = 22.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
         }
     }

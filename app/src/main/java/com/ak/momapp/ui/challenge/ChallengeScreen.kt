@@ -55,7 +55,6 @@ import com.ak.momapp.ui.problem.ConfettiBurst
 import com.ak.momapp.ui.problem.KeypadPanel
 import com.ak.momapp.ui.problem.NotebookTabAlignment
 import com.ak.momapp.ui.problem.QuietButtonScale
-import com.ak.momapp.ui.problem.applyKey
 import com.ak.momapp.ui.problem.scaledBy
 import com.ak.momapp.ui.problem.NotebookPad
 import com.ak.momapp.ui.problem.NotebookPaper
@@ -266,7 +265,7 @@ private fun StageContent(
             KeypadPanel(
                 input = state.input,
                 unit = state.stage.answerUnit,
-                onKey = { key -> onInputChange(applyKey(state.input, key)) },
+                onInput = onInputChange,
                 finished = state.phase == ChallengePhase.STAGE_DONE,
                 // A new stage is a new question: the pad comes back up.
                 resetKey = state.stageIndex,

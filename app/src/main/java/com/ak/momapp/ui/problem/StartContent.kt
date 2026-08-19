@@ -142,10 +142,14 @@ private fun TrophyMark(drawn: Boolean, tint: Color, modifier: Modifier = Modifie
 /**
  * What greets her when she opens the app on her own: the usual top-row
  * buttons and one big Start. No problem until she asks for one.
+ *
+ * The day's tally used to sit under the greeting and no longer does. It
+ * is one of the figures on the stats screen, which is where a number she
+ * might want to go and look at belongs; here it was only ever something
+ * else to read before pressing Start.
  */
 @Composable
 internal fun StartContent(
-    solvedToday: Int,
     challengeDone: Boolean,
     onStart: () -> Unit,
     onOpenSettings: () -> Unit,
@@ -204,15 +208,6 @@ internal fun StartContent(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
                 )
-                if (solvedToday > 0) {
-                    Spacer(Modifier.height(10.dp))
-                    Text(
-                        text = strings.solvedToday(solvedToday),
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center,
-                    )
-                }
                 Spacer(Modifier.height(28.dp))
                 Button(
                     onClick = onStart,

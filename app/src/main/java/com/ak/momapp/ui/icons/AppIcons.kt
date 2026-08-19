@@ -14,6 +14,7 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.vector.PathBuilder
 import androidx.compose.ui.graphics.vector.path
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -29,6 +30,11 @@ import androidx.compose.ui.unit.dp
  * Settings and Back are NOT here: Icons.Filled.Settings and
  * Icons.AutoMirrored.Filled.ArrowBack are already Material vectors that
  * tint correctly, so replacing them would buy nothing.
+ *
+ * [Palette] and [Chart] are the exception to the first paragraph: both
+ * skins use them, because they replace a Material star and a written-out
+ * word in the settings bar rather than an emoji, and neither skin has
+ * anything better to put there.
  */
 object AppIcons {
 
@@ -100,6 +106,67 @@ object AppIcons {
             lineTo(7.5f, 20.2f)
             close()
         }
+    }
+
+    /**
+     * Colours and skins: a painter's palette.
+     *
+     * The wells and the thumb hole are holes in one even-odd path, for the
+     * same reason the notebook's rules are: a second path would have to
+     * pick a colour, and the only colour that works is whatever is behind
+     * the icon, which it cannot know.
+     */
+    val Palette: ImageVector = vector("Palette") {
+        path(fill = SolidColor(Color.Black), pathFillType = PathFillType.EvenOdd) {
+            circle(12f, 12f, 9.5f)
+            // The thumb hole, low and to the right, which is what makes
+            // the disc read as a palette rather than as a coin.
+            circle(14.6f, 15.4f, 2.9f)
+            // Three wells around the top edge.
+            circle(7.6f, 8.2f, 1.6f)
+            circle(12.6f, 6.9f, 1.6f)
+            circle(6.6f, 13.2f, 1.6f)
+        }
+    }
+
+    /** Her numbers: three bars on a baseline. */
+    val Chart: ImageVector = vector("Chart") {
+        path(fill = SolidColor(Color.Black)) {
+            bar(3.5f, 13.5f)
+            bar(9.9f, 8.5f)
+            bar(16.3f, 4.5f)
+        }
+        // The baseline, so the bars stand on something at any size.
+        path(fill = SolidColor(Color.Black)) {
+            moveTo(2.5f, 19.4f)
+            lineTo(21.5f, 19.4f)
+            lineTo(21.5f, 21f)
+            lineTo(2.5f, 21f)
+            close()
+        }
+    }
+
+    /** One bar of the chart: [left] to [left] + 4.2, [top] down to the rule. */
+    private fun PathBuilder.bar(left: Float, top: Float) {
+        moveTo(left, top)
+        lineTo(left + 4.2f, top)
+        lineTo(left + 4.2f, 18f)
+        lineTo(left, 18f)
+        close()
+    }
+
+    /**
+     * A circle, since the path DSL has no primitive for one. Four cubics
+     * at the usual constant; visually exact at icon sizes.
+     */
+    private fun PathBuilder.circle(cx: Float, cy: Float, r: Float) {
+        val k = r * 0.5523f
+        moveTo(cx, cy - r)
+        curveTo(cx + k, cy - r, cx + r, cy - k, cx + r, cy)
+        curveTo(cx + r, cy + k, cx + k, cy + r, cx, cy + r)
+        curveTo(cx - k, cy + r, cx - r, cy + k, cx - r, cy)
+        curveTo(cx - r, cy - k, cx - k, cy - r, cx, cy - r)
+        close()
     }
 
     /** Delete one digit. The usual pointed key with a cross cut out of it. */

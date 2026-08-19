@@ -50,10 +50,13 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ak.momapp.data.SettingsRepository
 import com.ak.momapp.i18n.LocalStrings
-import com.ak.momapp.ui.problem.AnswerDisplay
+import com.ak.momapp.ui.problem.CheckButtonScale
 import com.ak.momapp.ui.problem.ConfettiBurst
-import com.ak.momapp.ui.problem.Keypad
+import com.ak.momapp.ui.problem.KeypadPanel
+import com.ak.momapp.ui.problem.NotebookTabAlignment
+import com.ak.momapp.ui.problem.QuietButtonScale
 import com.ak.momapp.ui.problem.applyKey
+import com.ak.momapp.ui.problem.scaledBy
 import com.ak.momapp.ui.problem.NotebookPad
 import com.ak.momapp.ui.problem.NotebookPaper
 import com.ak.momapp.ui.problem.ProblemTextCard
@@ -178,7 +181,9 @@ fun ChallengeScreen(
                         onClick = { scope.launch { drawerState.open() } },
                         shape = RoundedCornerShape(topEnd = 16.dp, bottomEnd = 16.dp),
                         color = MaterialTheme.colorScheme.secondaryContainer,
-                        modifier = Modifier.align(Alignment.CenterStart),
+                        // Same place as on a break, and for the same
+                        // reason: on the story card, not on the answer.
+                        modifier = Modifier.align(NotebookTabAlignment),
                     ) {
                         Text(
                             text = "📝",
@@ -234,14 +239,14 @@ private fun StageContent(
                 .fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(8.dp))
             Text(
                 text = state.intro,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
             )
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(10.dp))
 
             ProblemTextCard(
                 text = state.stage.text,
@@ -252,22 +257,22 @@ private fun StageContent(
                     .fillMaxWidth(),
             )
 
-            Spacer(Modifier.height(24.dp))
-
-            // Same readout and keypad as a break, so the two screens work
-            // the same way. The system keyboard would be worse here than
-            // anywhere: a challenge stage is long, and half the screen
-            // disappearing under an IME is half the story gone.
-            AnswerDisplay(input = state.input, unit = state.stage.answerUnit)
-
             Spacer(Modifier.height(12.dp))
 
-            Keypad(
+            // Same readout, keypad and fold-away handle as a break, so the
+            // two screens work the same way. It matters more here than
+            // anywhere: a challenge stage is a paragraph, and the keypad
+            // is exactly the height of the part she cannot read.
+            KeypadPanel(
+                input = state.input,
+                unit = state.stage.answerUnit,
                 onKey = { key -> onInputChange(applyKey(state.input, key)) },
-                enabled = state.phase != ChallengePhase.STAGE_DONE,
+                finished = state.phase == ChallengePhase.STAGE_DONE,
+                // A new stage is a new question: the pad comes back up.
+                resetKey = state.stageIndex,
             )
 
-            Spacer(Modifier.height(20.dp))
+            Spacer(Modifier.height(12.dp))
 
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -300,7 +305,7 @@ private fun StageContent(
                     }
                 }
             }
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(8.dp))
         }
 
         if (state.phase == ChallengePhase.STAGE_DONE) {
@@ -313,14 +318,20 @@ private fun StageContent(
                 Text(strings.challengeContinue, style = MaterialTheme.typography.titleLarge)
             }
         } else {
+            // Check and Hint are sized from the break screen's constants,
+            // not from numbers of their own: the same two buttons on two
+            // screens have to come out the same size.
             Button(
                 onClick = onSubmit,
                 enabled = state.input.isNotEmpty(),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(min = 60.dp),
+                    .heightIn(min = 60.dp * CheckButtonScale),
             ) {
-                Text(strings.check, style = MaterialTheme.typography.titleLarge)
+                Text(
+                    text = strings.check,
+                    style = MaterialTheme.typography.titleLarge.scaledBy(CheckButtonScale),
+                )
             }
             // Always present now. There is no keyboard left to slide it
             // out of the way of, and a Hint button that comes and goes is
@@ -331,11 +342,11 @@ private fun StageContent(
                 enabled = state.hintsUsed < ChallengeViewModel.MAX_HINTS,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(min = 48.dp),
+                    .heightIn(min = 48.dp * QuietButtonScale),
             ) {
                 Text(
                     text = strings.hintButton(ChallengeViewModel.MAX_HINTS - state.hintsUsed),
-                    style = MaterialTheme.typography.titleMedium,
+                    style = MaterialTheme.typography.titleMedium.scaledBy(QuietButtonScale),
                 )
             }
         }

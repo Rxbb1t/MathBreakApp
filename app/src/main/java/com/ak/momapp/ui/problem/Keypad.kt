@@ -1,16 +1,30 @@
 package com.ak.momapp.ui.problem
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
@@ -63,6 +77,105 @@ fun applyKey(current: String, key: KeypadKey): String = when (key) {
             current == "0" -> digit
             current.length >= MaxAnswerLength -> current
             else -> current + digit
+        }
+    }
+}
+
+/**
+ * The answer readout, the keypad under it, and the handle that folds the
+ * keypad away.
+ *
+ * The keypad is the tallest thing on the screen and the question is the
+ * thing she came here to read, so on a long word problem the two are in
+ * competition. The handle hands her the room back mid-problem, and a
+ * finished problem folds the keypad by itself: a pad that no longer
+ * accepts a digit has no business covering the working it is being
+ * replaced by.
+ *
+ * The hand-folded state is keyed to [resetKey] -- the problem -- so every
+ * new question arrives with the keypad up. Carrying a fold across would
+ * leave her facing the next question with nothing to type on until she
+ * worked out why.
+ */
+@Composable
+fun KeypadPanel(
+    input: String,
+    unit: String,
+    onKey: (KeypadKey) -> Unit,
+    finished: Boolean,
+    modifier: Modifier = Modifier,
+    resetKey: Any? = null,
+) {
+    var foldedByHand by remember(resetKey) { mutableStateOf(false) }
+    Column(modifier = modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            AnswerDisplay(
+                input = input,
+                unit = unit,
+                modifier = Modifier.weight(1f),
+            )
+            // The handle goes with the keypad when the problem ends. There
+            // is nothing left to unfold, and a control that does nothing is
+            // worse than no control at all.
+            if (!finished) {
+                KeypadHandle(
+                    folded = foldedByHand,
+                    onClick = { foldedByHand = !foldedByHand },
+                )
+            }
+        }
+        AnimatedVisibility(
+            visible = !finished && !foldedByHand,
+            enter = expandVertically() + fadeIn(),
+            exit = shrinkVertically() + fadeOut(),
+        ) {
+            Column {
+                Spacer(Modifier.height(12.dp))
+                Keypad(onKey = onKey, enabled = !finished)
+            }
+        }
+    }
+}
+
+/**
+ * The fold-away handle, beside the answer rather than under it.
+ *
+ * Beside is the only place it stays put: below the keypad it would ride
+ * up and down the screen as the keypad folds, so the control she wants
+ * would be wherever she last left it. Here it keeps the answer field's
+ * height and its own place, folded or not.
+ */
+@Composable
+private fun KeypadHandle(
+    folded: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val strings = LocalStrings.current
+    Surface(
+        onClick = onClick,
+        shape = MaterialTheme.shapes.small,
+        color = MaterialTheme.colorScheme.secondaryContainer,
+        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+        modifier = modifier
+            .size(width = 46.dp.asControl(), height = 64.dp.asControl())
+            .semantics {
+                contentDescription = if (folded) strings.keypadShow else strings.keypadHide
+            },
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Icon(
+                imageVector = if (folded) {
+                    Icons.Filled.KeyboardArrowUp
+                } else {
+                    Icons.Filled.KeyboardArrowDown
+                },
+                contentDescription = null,
+            )
         }
     }
 }

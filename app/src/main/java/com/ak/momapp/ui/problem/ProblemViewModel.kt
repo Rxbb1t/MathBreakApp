@@ -120,10 +120,10 @@ class ProblemViewModel(
     private val _uiState = MutableStateFlow<ProblemUiState?>(null)
     val uiState: StateFlow<ProblemUiState?> = _uiState.asStateFlow()
 
-    /** Persisted across restarts, unlike the old session-only counter. */
-    val solvedToday: StateFlow<Int> = progressRepository.stats
-        .map { it.solvedToday }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
+    // The day's tally used to be exposed here for the Start and problem
+    // screens to print. Neither shows it any more -- it is one of the
+    // figures on the stats screen, which reads the same repository -- so
+    // the flow is gone rather than left running with nobody collecting it.
 
     /** The per-break cap, for the sitting's progress dots (0 = no cap). */
     val sessionLimit: StateFlow<Int> = settingsRepository.settings

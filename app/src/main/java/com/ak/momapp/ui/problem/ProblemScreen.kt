@@ -20,9 +20,12 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -52,6 +55,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.BiasAlignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
@@ -77,7 +81,16 @@ import com.ak.momapp.problem.ProblemKind
 import com.ak.momapp.problem.ProblemTopic
 import com.ak.momapp.problem.toLevel
 import com.ak.momapp.ui.theme.MomAppTheme
+import com.ak.momapp.ui.theme.asControl
 import kotlinx.coroutines.launch
+
+/**
+ * Where the notebook's pull-tab sits on the left edge: hard against it,
+ * and a third of the way up from the middle so it rides the question card
+ * rather than the answer field below it. Shared with the daily challenge,
+ * which has the same tab over the same two things.
+ */
+internal val NotebookTabAlignment = BiasAlignment(horizontalBias = -1f, verticalBias = -0.35f)
 
 @Composable
 fun ProblemScreen(
@@ -92,7 +105,6 @@ fun ProblemScreen(
     viewModel: ProblemViewModel = viewModel(factory = ProblemViewModel.Factory),
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val solvedToday by viewModel.solvedToday.collectAsState()
     val challengeDone by viewModel.challengeDoneToday.collectAsState()
     val started by viewModel.started.collectAsState()
     val soundEnabled by viewModel.successSound.collectAsState()
@@ -109,7 +121,6 @@ fun ProblemScreen(
     val state = uiState
     if (!started) {
         StartContent(
-            solvedToday = solvedToday,
             challengeDone = challengeDone,
             onStart = viewModel::startSession,
             onOpenSettings = onOpenSettings,
@@ -124,7 +135,6 @@ fun ProblemScreen(
     } else {
         ProblemScreenContent(
             uiState = state,
-            solvedToday = solvedToday,
             onInputChange = viewModel::onInputChange,
             onSubmit = viewModel::submit,
             onNextProblem = viewModel::nextProblem,
@@ -151,7 +161,6 @@ fun ProblemScreen(
 @Composable
 fun ProblemScreenContent(
     uiState: ProblemUiState,
-    solvedToday: Int,
     onInputChange: (String) -> Unit,
     onSubmit: () -> Unit,
     onNextProblem: () -> Unit,
@@ -338,24 +347,14 @@ fun ProblemScreenContent(
                 )
 
                 // A drill has no cap, so no dots.
-                if (practiceTopic == null) {
-                    if (sessionLimit > 0) {
-                        Spacer(Modifier.height(10.dp))
-                        SittingProgress(done = sessionDone, limit = sessionLimit)
-                    }
-                    // The day's tally used to ride in the header, where it
-                    // was the widest thing in the row and crowded the
-                    // buttons out. It reads better under the dots anyway:
-                    // both are "how far along am I".
-                    if (solvedToday > 0) {
-                        Spacer(Modifier.height(8.dp))
-                        Text(
-                            text = strings.solvedToday(solvedToday),
-                            style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            textAlign = TextAlign.Center,
-                        )
-                    }
+                //
+                // The day's tally used to sit here too, and no longer does:
+                // it is one of the numbers on the stats screen, and a line
+                // of chrome over the question is a poor place to keep a
+                // figure she can go and look at whenever she wants.
+                if (practiceTopic == null && sessionLimit > 0) {
+                    Spacer(Modifier.height(10.dp))
+                    SittingProgress(done = sessionDone, limit = sessionLimit)
                 }
 
                 // The problem and its feedback take whatever room the dock
@@ -434,7 +433,12 @@ fun ProblemScreenContent(
                     onClick = { scope.launch { drawerState.open() } },
                     shape = RoundedCornerShape(topEnd = 16.dp, bottomEnd = 16.dp),
                     color = MaterialTheme.colorScheme.secondaryContainer,
-                    modifier = Modifier.align(Alignment.CenterStart),
+                    // Above centre, not on it. Dead centre puts the tab on
+                    // the answer field's left corner, where it reads as a
+                    // piece of that control rather than as an edge to pull;
+                    // this lands it against the question card on every
+                    // screen size without measuring anything.
+                    modifier = Modifier.align(NotebookTabAlignment),
                 ) {
                     Text(
                         text = "📝",
@@ -608,7 +612,17 @@ private fun WorkedSolution(steps: List<String>, modifier: Modifier = Modifier) {
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Column(
-                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp),
+                    modifier = Modifier
+                        // The same failsafe the question has. A six-step
+                        // solution at a large font size is taller than the
+                        // room under the problem, and without a bound the
+                        // last steps simply fall off the bottom of the
+                        // screen with nothing to say they were there. The
+                        // cap follows her text size so it never crops more
+                        // than it has to.
+                        .heightIn(max = 260.dp.asControl())
+                        .verticalScroll(rememberScrollState())
+                        .padding(horizontal = 20.dp, vertical = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     steps.forEachIndexed { index, step ->
@@ -641,7 +655,6 @@ private fun ProblemScreenPreview() {
             uiState = ProblemUiState(
                 problem = Problem("23 + 48 = ?", 71, Difficulty.EASY.toLevel()),
             ),
-            solvedToday = 0,
             onInputChange = {},
             onSubmit = {},
             onNextProblem = {},
@@ -661,7 +674,6 @@ private fun ProblemScreenCorrectDarkPreview() {
                 phase = AnswerPhase.CORRECT,
                 encouragementSeed = 1,
             ),
-            solvedToday = 3,
             onInputChange = {},
             onSubmit = {},
             onNextProblem = {},

@@ -67,7 +67,6 @@ fun PracticeScreen(
 ) {
     val practice by viewModel.practice.collectAsState()
     val uiState by viewModel.uiState.collectAsState()
-    val solvedToday by viewModel.solvedToday.collectAsState()
     val soundEnabled by viewModel.successSound.collectAsState()
 
     val drill = practice
@@ -88,7 +87,6 @@ fun PracticeScreen(
     } else {
         ProblemScreenContent(
             uiState = state,
-            solvedToday = solvedToday,
             onInputChange = viewModel::onInputChange,
             onSubmit = viewModel::submit,
             onNextProblem = viewModel::nextProblem,

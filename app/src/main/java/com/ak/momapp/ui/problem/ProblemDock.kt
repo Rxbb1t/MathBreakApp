@@ -21,9 +21,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.isSpecified
 import androidx.compose.ui.unit.sp
 import com.ak.momapp.i18n.LocalStrings
 import com.ak.momapp.problem.ComparisonProblemGenerator
@@ -33,6 +35,33 @@ import com.ak.momapp.problem.TrueFalseProblemGenerator
 import com.ak.momapp.ui.theme.LocalSkin
 import com.ak.momapp.ui.theme.UiSkin
 import com.ak.momapp.ui.theme.asControl
+
+/**
+ * How much of their old size the dock's two quieter rows keep.
+ *
+ * Hint and Skip are the buttons she reaches for least, and at full size
+ * they were taking room from the question; Check is the one she presses
+ * every time, so it gives up less. Both keep their full WIDTH -- a
+ * narrower button would be harder to hit, and the row would stop reading
+ * as one block. Only the height and the label come down.
+ *
+ * Shared with the daily challenge, which has the same two buttons and
+ * must not drift from the break screen.
+ */
+internal const val QuietButtonScale = 0.85f
+internal const val CheckButtonScale = 0.90f
+
+/**
+ * This style at [fraction] of its size.
+ *
+ * Guards both dimensions: Legacy's typography is the Material baseline,
+ * and multiplying an unspecified TextUnit throws rather than doing
+ * nothing.
+ */
+internal fun TextStyle.scaledBy(fraction: Float): TextStyle = copy(
+    fontSize = if (fontSize.isSpecified) fontSize * fraction else fontSize,
+    lineHeight = if (lineHeight.isSpecified) lineHeight * fraction else lineHeight,
+)
 
 /**
  * Everything she touches, anchored to the bottom of the screen.
@@ -118,14 +147,14 @@ fun ProblemDock(
                 }
             }
 
-            else -> {
-                AnswerDisplay(input = uiState.input, unit = problem.answerUnit)
-                Spacer(Modifier.height(12.dp))
-                Keypad(
-                    onKey = onKey,
-                    enabled = !uiState.isFinished,
-                )
-            }
+            else -> KeypadPanel(
+                input = uiState.input,
+                unit = problem.answerUnit,
+                onKey = onKey,
+                finished = uiState.isFinished,
+                // A new problem is a new fold: the pad comes back up.
+                resetKey = problem,
+            )
         }
 
         Spacer(Modifier.height(12.dp))
@@ -145,9 +174,13 @@ fun ProblemDock(
                         enabled = ready,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(56.dp.asControl()),
+                            .height((56.dp * CheckButtonScale).asControl()),
                     ) {
-                        Text(strings.check, style = MaterialTheme.typography.titleLarge)
+                        Text(
+                            text = strings.check,
+                            style = MaterialTheme.typography.titleLarge
+                                .scaledBy(CheckButtonScale),
+                        )
                     }
                     Spacer(Modifier.height(8.dp))
                 }
@@ -265,12 +298,12 @@ private fun QuietButton(
     FilledTonalButton(
         onClick = onClick,
         enabled = enabled,
-        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp),
-        modifier = modifier.heightIn(min = 48.dp.asControl()),
+        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp),
+        modifier = modifier.heightIn(min = (48.dp * QuietButtonScale).asControl()),
     ) {
         Text(
             text = text,
-            style = MaterialTheme.typography.titleMedium,
+            style = MaterialTheme.typography.titleMedium.scaledBy(QuietButtonScale),
             textAlign = TextAlign.Center,
             maxLines = 2,
         )

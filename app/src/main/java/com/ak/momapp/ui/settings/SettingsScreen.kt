@@ -32,7 +32,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
@@ -69,6 +68,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.core.app.NotificationManagerCompat
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -81,6 +81,7 @@ import com.ak.momapp.i18n.formatTimeOfDay
 import com.ak.momapp.problem.Difficulty
 import com.ak.momapp.problem.ProblemTopic
 import com.ak.momapp.ui.PresetDialog
+import com.ak.momapp.ui.icons.AppIcons
 import com.ak.momapp.ui.sectionSurfaceBorder
 import com.ak.momapp.ui.sectionSurfaceColor
 import com.ak.momapp.ui.theme.AppPalette
@@ -115,16 +116,25 @@ fun SettingsScreen(
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = strings.back)
                     }
                 },
+                // Two marks rather than a star and a word. A star says
+                // "favourite" in every other app she uses and nothing at
+                // all about her numbers, and "Personalize" set as a label
+                // was the widest thing in the bar. The names survive as
+                // the content descriptions.
                 actions = {
                     IconButton(onClick = onOpenStats) {
                         Icon(
-                            imageVector = Icons.Filled.Star,
+                            imageVector = AppIcons.Chart,
                             contentDescription = strings.statsIconDescription,
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
-                    TextButton(onClick = { showPalettePicker = true }) {
-                        Text(strings.personalize)
+                    IconButton(onClick = { showPalettePicker = true }) {
+                        Icon(
+                            imageVector = AppIcons.Palette,
+                            contentDescription = strings.personalize,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
                 },
             )
@@ -329,10 +339,10 @@ private fun SettingsContent(
             }
         }
 
-        SettingsSection(
-            title = strings.appearanceTitle,
-            subtitle = strings.appearanceSubtitle,
-        ) {
+        // No subtitle: "Legacy" and "Modern" are the whole explanation,
+        // and a line telling her which one is the old look only matters
+        // to someone deciding, which the two buttons already handle.
+        SettingsSection(title = strings.appearanceTitle) {
             SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
                 UiSkin.entries.forEachIndexed { index, skin ->
                     SegmentedButton(
@@ -795,20 +805,31 @@ private fun PalettePickerDialog(
  */
 @Composable
 private fun SettingsGroup(title: String) {
-    // Modern sets the group heading small and spaced instead of large,
-    // so it reads as a label over the cards rather than competing with
-    // the card titles inside them, which are the things she is choosing
-    // between. Legacy keeps titleSmall.
+    // Modern sets the group heading spaced and a shade quieter rather
+    // than large, so it reads as a label over the cards instead of
+    // competing with the card titles inside them, which are the things
+    // she is choosing between. Legacy keeps titleSmall.
+    //
+    // It used to ask for labelSmall, and that was a bug: Modern renders
+    // every piece of chrome at three quarters size, so an 11sp role
+    // landed on screen at about 8sp and these headings were the smallest
+    // words in the app. Sized here in absolute terms instead, so what the
+    // number says is what she gets: under the card titles, over their
+    // subtitles.
     val modern = LocalSkin.current == UiSkin.MODERN
     Text(
         text = title,
         style = if (modern) {
-            MaterialTheme.typography.labelSmall
+            MaterialTheme.typography.labelLarge.copy(
+                fontSize = 17.sp,
+                lineHeight = 22.sp,
+                letterSpacing = 0.4.sp,
+            )
         } else {
             MaterialTheme.typography.titleSmall
         },
         color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(start = 4.dp, top = 8.dp),
+        modifier = Modifier.padding(start = 4.dp, top = 10.dp),
     )
 }
 

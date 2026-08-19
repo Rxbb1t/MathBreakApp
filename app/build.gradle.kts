@@ -25,8 +25,8 @@ android {
         applicationId = "com.ak.momapp"
         minSdk = 26
         targetSdk = 36
-        versionCode = 16
-        versionName = "1.7.4"
+        versionCode = 17
+        versionName = "1.7.5"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

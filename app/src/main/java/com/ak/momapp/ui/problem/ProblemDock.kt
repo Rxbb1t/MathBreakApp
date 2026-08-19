@@ -36,6 +36,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -344,9 +345,17 @@ private fun QuietButton(
  * the question off the top of the screen -- the whole point of asking for
  * it this way round.
  *
- * Focus alone drives the keyboard: Compose raises the IME when a field
- * takes focus and drops it when the field loses it, so a finished problem
- * puts the keyboard away with the keypad and nothing has to remember to.
+ * Focus drives the keyboard on the way DOWN: Compose drops the IME when
+ * the field loses focus, so a finished problem puts the keyboard away
+ * with the keypad and nothing has to remember to.
+ *
+ * On the way UP focus is not enough, and assuming it was is what made
+ * this bar a one-shot. The system back button hides the keyboard WITHOUT
+ * taking focus off the field, so the second tap called requestFocus on a
+ * field that was already focused, which does nothing at all, and the
+ * keyboard never came back. Asking for it explicitly is what fixes that:
+ * it re-raises the IME whether or not the tap changed anything about
+ * focus.
  */
 @Composable
 private fun BoxScope.SystemKeyboardTarget(
@@ -357,6 +366,7 @@ private fun BoxScope.SystemKeyboardTarget(
     val strings = LocalStrings.current
     val focusRequester = remember { FocusRequester() }
     val focusManager = LocalFocusManager.current
+    val keyboard = LocalSoftwareKeyboardController.current
 
     // Belt and braces on the way down. Compose drops focus when a field is
     // disabled, but the keyboard covering her worked solution is exactly
@@ -371,7 +381,14 @@ private fun BoxScope.SystemKeyboardTarget(
             .clickable(
                 enabled = enabled,
                 onClickLabel = strings.answerTapToType,
-                onClick = { focusRequester.requestFocus() },
+                onClick = {
+                    // Both, every time, and in this order. The first is a
+                    // no-op when the field already holds focus; the second
+                    // is a no-op when the first raised the keyboard by
+                    // itself. Between them the bar answers every tap.
+                    focusRequester.requestFocus()
+                    keyboard?.show()
+                },
             ),
     ) {
         BasicTextField(
